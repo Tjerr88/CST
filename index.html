@@ -1,0 +1,785 @@
+
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CST Generator v2.3</title>
+<style>
+  :root{
+    --bg:#0e1116;
+    --surface:#131821;
+    --surface2:#10151d;
+    --text:#e7edf6;
+    --muted:#aab4c4;
+    --line:#253042;
+    --acc:#7aa7ff;
+    --good:#5fd08a;
+    --mid:#e0b45c;
+    --rec:#7aa7ff;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:16px;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:var(--bg); color:var(--text);
+  }
+  .wrap{max-width:980px; margin:0 auto; display:grid; gap:12px}
+  .card{
+    background:var(--surface);
+    border:1px solid var(--line);
+    border-radius:16px;
+    padding:14px;
+  }
+  .grid{display:grid; grid-template-columns:1fr; gap:12px}
+  @media (min-width: 880px){ .grid{ grid-template-columns: 1.2fr .8fr; } }
+  h1{font-size:20px; margin:0 0 6px}
+  h2{font-size:15px; margin:0 0 8px}
+  p{margin:0; color:var(--muted); line-height:1.35; font-size:13px}
+  .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+  .btn{
+    appearance:none; border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04); color:var(--text);
+    border-radius:12px; padding:10px 12px; font-weight:850; cursor:pointer;
+  }
+  .btn.primary{border-color: rgba(122,167,255,0.45); background: rgba(122,167,255,0.10);}
+  .btn.danger{border-color: rgba(255,120,120,0.40); background: rgba(255,120,120,0.10);}
+  .btn:disabled{opacity:.45; cursor:not-allowed}
+  .pill{
+    display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px;
+    border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03);
+    color:var(--muted); font-size:12px;
+  }
+  .pill strong{color:var(--text)}
+  .exercise{
+    border:1px solid var(--line);
+    background:var(--surface2);
+    border-radius:12px;
+    padding:10px 12px;
+    display:flex; gap:10px; justify-content:space-between; align-items:flex-start;
+  }
+  .ex-left{display:grid; gap:3px}
+  .ex-title{font-weight:850}
+  .ex-meta{color:var(--muted); font-size:12px}
+  .label{color:var(--muted); font-size:12px}
+  .time{font-variant-numeric: tabular-nums; font-size:42px; font-weight:900; letter-spacing:.5px; line-height:1;}
+  .hr{height:1px; background:var(--line); margin:12px 0;}
+  .small{font-size:12px; color:var(--muted)}
+  .gate-grid{display:grid; gap:12px}
+  .gate-row{display:grid; gap:8px}
+  .score-row{display:flex; gap:8px; flex-wrap:wrap}
+  .score-btn{
+    width:44px; height:38px; display:inline-flex; justify-content:center; align-items:center;
+    border-radius:12px; border:1px solid rgba(255,255,255,.14);
+    background:rgba(255,255,255,.06); color:var(--text);
+    font-weight:900; cursor:pointer; user-select:none;
+  }
+  .score-btn.active{
+    border-color: rgba(255, 157, 46, 0.55);
+    background: linear-gradient(180deg, rgba(255, 157, 46, 0.22), rgba(255, 157, 46, 0.10));
+    transform: scale(1.08);
+  }
+  .score-label{margin-top:6px; min-height:18px; font-size:12px; color:var(--muted); font-weight:600}
+  .total{
+    display:flex; gap:10px; align-items:center; justify-content:space-between;
+    border:1px solid var(--line); background:var(--surface2); border-radius:12px; padding:10px 12px;
+  }
+  .total .n{font-size:28px; font-weight:900; font-variant-numeric: tabular-nums}
+  .badge{
+    padding:6px 10px; border-radius:999px; font-size:12px; font-weight:900;
+    border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--muted);
+  }
+  .badge.good{ color: rgba(55,214,122,1); border-color: rgba(55,214,122,.4); background: rgba(55,214,122,.08); }
+  .badge.mid{ color: rgba(255,176,32,1); border-color: rgba(255,176,32,.4); background: rgba(255,176,32,.08); }
+  .badge.rec{ color: rgba(83,166,255,1); border-color: rgba(83,166,255,.45); background: rgba(83,166,255,.10); }
+
+  .accordion{
+    border:1px solid var(--line);
+    background:var(--surface2);
+    border-radius:12px;
+    overflow:hidden;
+    margin-top:10px;
+  }
+  .accordion-header{
+    width:100%;
+    appearance:none;
+    border:0;
+    background:transparent;
+    color:var(--text);
+    padding:12px 14px;
+    font-weight:850;
+    text-align:left;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  .accordion-header:hover{ background:rgba(255,255,255,.03); }
+  .accordion-header::after{
+    content:"▶";
+    color:var(--muted);
+    transition:transform .2s ease;
+    flex:0 0 auto;
+  }
+  .accordion.active .accordion-header::after{
+    transform:rotate(90deg);
+  }
+  .accordion-content{
+    display:none;
+    padding:0 12px 12px;
+    border-top:1px solid var(--line);
+  }
+  .accordion.active .accordion-content{
+    display:block;
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>CST Generator v2.3</h1>
+    <div class="row" style="margin-top:10px;">
+      <button id="btnMain" class="btn primary">Start</button>
+      <button id="btnReset" class="btn danger">Reset dag</button>
+      <span id="modePill" class="pill">Mode: <strong>—</strong></span>
+      <span id="dayPill" class="pill">Vandaag: <strong>nieuw</strong></span>
+    </div>
+    <p class="small" style="margin-top:10px;">Recovery Gate + datumlogica (gisteren FULL = vandaag max MINI) + single/double/2H clublogica op echte Clubbell-dagen.</p>
+  </div>
+
+  <div class="grid">
+    <div id="leftCard" class="card"></div>
+    <div id="rightCard" class="card"><div id="rightInner"></div></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const LS_DAY = "cst_day_v23";
+  const LS_LAST = "cst_last_v23";
+  const DUR = { full: 20*60, mini: 15*60 };
+
+  const gateDef = [
+    { key:'soreness', label:'Spierpijn / Herstel', choices:['Pijn','Beperkt','Stijf','Licht stijf','Soepel','Fris'] },
+    { key:'energy',   label:'Energie / Stress',   choices:['Leeg','Zwaar','Moe','Neutraal','Goed','Scherp'] },
+    { key:'sleep',    label:'Slaapkwaliteit',     choices:['Zeer slecht','Slecht','Onderbroken','Oké','Goed','Herstellend'] },
+  ];
+
+  const intu = [
+    "Neck CARs","Shoulder Rolls","Arm Circles","Spine Waves","Hip Circles","Knee Circles","Ankle Circles"
+  ];
+
+  const rhythmic = [
+    "Front Swing",
+    "Two-Handed Front Swing",
+    "Side Swing",
+    "Side Semi Circle Swing",
+    "Pirouette Swing",
+    "Front Pendulum",
+    "Two-Handed Front Pendulum",
+    "Inside Pendulum",
+    "Double Side Pendulum",
+    "Two-Handed Guard Inside Pendulum",
+    "Outside Pendulum",
+    "Two-Handed Guard Outside Pendulum",
+    "Lunge-Step Pendulum",
+    "Two-Handed Guard Lunge-Step Pendulum",
+    "Side-Step Pendulum",
+    "Two-Handed Guard Side-Step Pendulum",
+    "Front Circle",
+    "Back Circle",
+    "Inside Circle",
+    "Outside Circle",
+    "Two-Handed Side Circle",
+    "Alternating Circles: Front Stroke and Backstroke"
+  ];
+
+  const ballistic = [
+    "Front Clean to Order Position",
+    "Two-Handed Front Clean to Order Position",
+    "Front Clean to Shoulder Park",
+    "Two-Handed Front Clean to Shoulder Park",
+    "Front Clean to Flag Position",
+    "Two-Handed Front Clean to Flag Position",
+    "Front Clean to Back Position",
+    "Two-Handed Front Clean to Back Position",
+    "Side Clean to Guard Position",
+    "Side Clean to Shoulder Park",
+    "Side Clean to Back Position",
+    "Side Clean to Side Flag",
+    "Front Torch Jerk",
+    "Two-Handed Front Torch Jerk",
+    "Front Jerk",
+    "Two-Handed Front Jerk",
+    "Shoulder Park Front Jerk",
+    "Two-Handed Shoulder Park Front Jerk",
+    "Front Clean + Jerk",
+    "Side Torch Jerk",
+    "Side Jerk",
+    "Shoulder Park Side Jerk",
+    "Side Clean + Jerk",
+    "Front Torch Snatch",
+    "Two-Handed Front Torch Snatch",
+    "Front Snatch",
+    "Two-Handed Front Snatch",
+    "Side Torch Snatch",
+    "Side Snatch"
+  ];
+
+  const grinding = [
+    "Torch Press",
+    "Two-Handed Torch Press",
+    "Front Press",
+    "Two-Handed Front Press",
+    "Flag Press",
+    "Two-Handed Flag Press",
+    "Side Torch Press",
+    "Side Press",
+    "Side Flag Press",
+    "Clean and Press",
+    "Wrist Cast",
+    "Two Handed Wrist Cast — The Crowbar",
+    "Arm Cast",
+    "Alternating Arm Cast — Drumming Cast",
+    "Two-Handed Arm Cast — The Gama Cast",
+    "Two-Handed Arm Cast Circular Pivot",
+    "Two-Handed Arm Cast to Flag Position — The Barbarian",
+    "Shoulder Cast",
+    "Two-Handed Shoulder Cast",
+    "Shoulder Cast to Side Flag Position — The Muscle Out",
+    "Double Shoulder Cast — The Crucifix",
+    "Alternating Shoulder Cast — The Kodo Cast",
+    "Head Cast",
+    "Shoulder Cast Leverage Hold Variation",
+    "Alternating Head Cast – The See-Saw",
+    "Two-Handed Head Cast",
+    "Shield Cast",
+    "Two-Handed Shield Cast",
+    "Parry Cast",
+    "Reverse Parry Cast",
+    "Two-Handed Parry Cast"
+  ];
+
+  const prasaraFamilies = {
+    "Squat":["Deep Squat","Cossack","Squat Rotation","Heels Elevated"],
+    "Lunge":["Low Lunge","High Lunge","Twisting Lunge","Lateral Lunge"],
+    "Hinge":["Forward Fold","Wide Fold","Single Leg Fold","Fold Rotation"],
+    "Plank":["Plank","Side Plank","Shoulder Tap","Beast"],
+    "Extension":["Cobra","Upward Dog","Sphinx","Locust"],
+    "Inverted":["Down Dog","Bent Knee Dog","3 Leg Dog","Walking Dog"],
+    "Rotation":["Seated Twist","Lunge Twist","Thread Needle","Open Book"],
+    "Balance":["Single Leg","Tree","Airplane","Knee Raise"]
+  };
+
+
+  const prasaraIntentions = [
+    "Slow & gecontroleerd",
+    "Continu bewegen",
+    "Focus op rotatie",
+    "Focus op ademhaling",
+    "Blijf laag bij de grond",
+    "Speel met range (klein ↔ groot)",
+    "Flow zonder kracht te forceren"
+  ];
+
+  const prasaraRules = [
+    "Geen stoppen",
+    "Vrije volgorde",
+    "Wissel links/rechts",
+    "Gebruik rotatie om te verbinden",
+    "Blijf in beweging, ook bij twijfel"
+  ];
+
+  const CLUB_ROTATION = ["single","double","single","2h","single","double"];
+
+  const leftCard = document.getElementById("leftCard");
+  const rightInner = document.getElementById("rightInner");
+  const btnMain = document.getElementById("btnMain");
+  const btnReset = document.getElementById("btnReset");
+  const modePill = document.getElementById("modePill");
+  const dayPill = document.getElementById("dayPill");
+
+  function todayKey(){
+    const d = new Date();
+    return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+  }
+
+  function loadJSON(k){ try{ const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch { return null; } }
+  function saveJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
+  function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+  function pickFamilies(obj, count){
+    return shuffle(Object.keys(obj)).slice(0, count);
+  }
+  function normalize(x){ return x.toLowerCase(); }
+  function isTwoHanded(x){
+    const s = normalize(x);
+    return s.includes("two-handed") || s.includes("two handed");
+  }
+  function isDouble(x){ return normalize(x).includes("double"); }
+  function isAlternating(x){ return normalize(x).includes("alternating"); }
+
+  function filterSingle(arr){
+    return arr.filter(x => !isTwoHanded(x) && !isDouble(x) && !isAlternating(x));
+  }
+  function filterDouble(arr){
+    return arr.filter(x => !isTwoHanded(x));
+  }
+  function filter2H(arr){
+    return arr.filter(x => isTwoHanded(x));
+  }
+  function pickExercise(arr, clubType){
+    let pool = [];
+    if(clubType === "single") pool = filterSingle(arr);
+    if(clubType === "double") pool = filterDouble(arr);
+    if(clubType === "2h") pool = filter2H(arr);
+    if(!pool || pool.length === 0) return null;
+    return rand(pool);
+  }
+
+  function computeBand(total){
+    if(total >= 12) return { band:'FULL', label:'12–15', cls:'good' };
+    if(total >= 7)  return { band:'MINI', label:'7–11', cls:'mid' };
+    return { band:'LOW', label:'0–6', cls:'rec' };
+  }
+
+  function setModePill(mode){
+    modePill.innerHTML = `Mode: <strong>${mode || "—"}</strong>`;
+  }
+  function setDayPill(state){
+    dayPill.innerHTML = `Vandaag: <strong>${state || "nieuw"}</strong>`;
+  }
+
+  function renderRightNone(){
+    rightInner.innerHTML = `<h2>Status</h2><p class="small">Geen actieve timer.</p>`;
+  }
+
+  let timer = null;
+  function fmt(sec){
+    const m = Math.floor(sec/60), s = sec%60;
+    return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
+  }
+  function fmtMin(sec){
+    if(!sec) return "—";
+    return Math.round(sec/60) + " min";
+  }
+
+  function renderRightTimer(title, left){
+    rightInner.innerHTML = `
+      <h2>${title}</h2>
+      <div class="label">Timer</div>
+      <div id="timeDisplay" class="time">${fmt(left)}</div>
+      <div class="row" style="margin-top:10px;">
+        <button id="btnStartTimer" class="btn primary">Start</button>
+        <button id="btnPauseTimer" class="btn">Pauze</button>
+        <button id="btnResetTimer" class="btn">Reset</button>
+      </div>
+      <div class="small" style="margin-top:10px;">Hoofdtimer van de sessie / dagmodus.</div>
+    `;
+    document.getElementById("btnStartTimer").onclick = startTimer;
+    document.getElementById("btnPauseTimer").onclick = pauseTimer;
+    document.getElementById("btnResetTimer").onclick = resetTimer;
+  }
+
+  function loadDay(){
+    const a = loadJSON(LS_DAY);
+    if(!a || a.day !== todayKey()) return null;
+    return a;
+  }
+  function saveDay(day){ saveJSON(LS_DAY, day); }
+
+  function loadLast(){
+    return loadJSON(LS_LAST) || { lastFullDate:null, nextClubIndex:0 };
+  }
+  function saveLast(v){ saveJSON(LS_LAST, v); }
+
+  function isYesterday(dateStr){
+    if(!dateStr) return false;
+    const d = new Date();
+    const y = new Date(d);
+    y.setDate(d.getDate() - 1);
+    const yKey = y.getFullYear() + "-" + String(y.getMonth()+1).padStart(2,"0") + "-" + String(y.getDate()).padStart(2,"0");
+    return dateStr === yKey;
+  }
+
+  function nextFullClubType(){
+    const last = loadLast();
+    const idx = Number.isInteger(last.nextClubIndex) ? last.nextClubIndex : 0;
+    const clubType = CLUB_ROTATION[idx % CLUB_ROTATION.length];
+    return { clubType, nextIndex: (idx + 1) % CLUB_ROTATION.length };
+  }
+
+  function generateClubExercises(clubType){
+    const exercises = [];
+    const r = pickExercise(rhythmic, clubType);
+    const b = pickExercise(ballistic, clubType);
+    if (r) exercises.push({ bucket: "Rhythmic", exercise: r });
+    if (b) exercises.push({ bucket: "Ballistic", exercise: b });
+    const g = pickExercise(grinding, clubType);
+    if (g && Math.random() > 0.35) {
+      exercises.push({ bucket: "Grinding", exercise: g });
+    }
+    return exercises;
+  }
+
+  function generateSession(mode, total){
+    const last = loadLast();
+    let finalMode = mode;
+    let downgraded = false;
+    let clubType = null;
+
+    if(mode === "FULL" && isYesterday(last.lastFullDate)){
+      finalMode = "MINI";
+      downgraded = true;
+    }
+
+    const session = {
+      day: todayKey(),
+      total,
+      modeRequested: mode,
+      mode: finalMode,
+      downgraded,
+      intu: intu.slice(),
+      club: null,
+      prasara: null,
+      blockTimes: {
+        intu: 8 * 60,
+        club: 0,
+        prasara: 0
+      },
+      timerLeft: finalMode === "FULL" ? DUR.full : finalMode === "MINI" ? DUR.mini : 0
+    };
+
+    if(finalMode === "FULL"){
+      const next = nextFullClubType();
+      clubType = next.clubType;
+      const exercises = generateClubExercises(clubType);
+      session.club = {
+        clubType,
+        exercises,
+        flow: exercises.map(x => x.exercise).join(" → ")
+      };
+      session.blockTimes.club = rand([15,20]) * 60;
+      session.blockTimes.prasara = rand([5,10]) * 60;
+      saveLast({ lastFullDate: todayKey(), nextClubIndex: next.nextIndex });
+    } else if (finalMode === "MINI"){
+      session.club = null;
+      session.blockTimes.prasara = rand([15,20]) * 60;
+      saveLast({ lastFullDate: last.lastFullDate || null, nextClubIndex: last.nextClubIndex || 0 });
+    } else {
+      saveLast({ lastFullDate: last.lastFullDate || null, nextClubIndex: last.nextClubIndex || 0 });
+    }
+
+    if(finalMode !== "LOW"){
+      const prasaraCount = Math.floor(Math.random()*3)+3;
+      const fams = pickFamilies(prasaraFamilies, prasaraCount);
+      session.prasara = {
+        shapes: fams.map(f => ({ family:f, exercise: rand(prasaraFamilies[f]) })),
+        rules: shuffle(prasaraRules).slice(0, 3),
+        intention: rand(prasaraIntentions)
+      };
+    }
+
+    saveDay(session);
+    return session;
+  }
+
+
+  function bindAccordions(){
+    const headers = leftCard.querySelectorAll('.accordion-header');
+    headers.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const parent = btn.closest('.accordion');
+        const isOpen = parent.classList.contains('active');
+        leftCard.querySelectorAll('.accordion').forEach(acc => acc.classList.remove('active'));
+        if(!isOpen) parent.classList.add('active');
+      });
+    });
+  }
+
+  function renderSession(s){
+    let html = `<h2>Vandaag</h2>`;
+
+    if(s.downgraded){
+      html += `
+        <div class="exercise" style="margin-bottom:12px;">
+          <div class="ex-left">
+            <div class="ex-title">FULL → MINI</div>
+            <div class="ex-meta">Automatisch aangepast: gisteren was FULL, dus vandaag maximaal MINI.</div>
+          </div>
+          <div class="pill">Recovery</div>
+        </div>
+      `;
+    }
+
+    html += `
+      <div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Intu</span>
+          <span class="pill">7 drills · ${fmtMin(s.blockTimes?.intu || 0)}</span>
+        </button>
+        <div class="accordion-content">
+          <div style="display:grid; gap:10px; margin-top:12px;">
+            ${s.intu.map(x => `
+              <div class="exercise">
+                <div class="ex-left"><div class="ex-title">${x}</div></div>
+                <div class="pill">Intu</div>
+              </div>
+            `).join("")}
+          </div>
+        </div>
+      </div>
+    `;
+
+    if(s.club){
+      html += `<div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Clubbell</span>
+          <span class="pill">${s.club.clubType.toUpperCase()} · ${fmtMin(s.blockTimes?.club || 0)}</span>
+        </button>
+        <div class="accordion-content">
+          <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Club type</div>
+              <div class="ex-meta">${s.club.clubType.toUpperCase()}</div>
+            </div>
+            <div class="pill">${s.mode}</div>
+          </div>
+          <div class="exercise" style="margin-bottom:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Richtduur Clubbell</div>
+              <div class="ex-meta">${fmtMin(s.blockTimes?.club || 0)}</div>
+            </div>
+            <div class="pill">Hoofdblok</div>
+          </div>
+          <div style="display:grid; gap:10px;">`;
+      html += s.club.exercises.map(x => `
+            <div class="exercise">
+              <div class="ex-left">
+                <div class="ex-title">${x.exercise}</div>
+                <div class="ex-meta">${x.bucket}</div>
+              </div>
+              <div class="pill">Club</div>
+            </div>
+      `).join("");
+      html += `</div>
+          <div class="exercise" style="margin-top:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Flow suggestie</div>
+              <div class="ex-meta">${s.club.flow || "—"}</div>
+            </div>
+            <div class="pill">Flow</div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    if(s.prasara){
+      html += `<div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Prasara</span>
+          <span class="pill">${fmtMin(s.blockTimes?.prasara || 0)} · ${s.mode === "FULL" ? "Integratie" : "Hoofdblok"}</span>
+        </button>
+        <div class="accordion-content">
+          <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Richtduur Prasara</div>
+              <div class="ex-meta">${fmtMin(s.blockTimes?.prasara || 0)}</div>
+            </div>
+            <div class="pill">${s.mode === "FULL" ? "Integratie" : "Hoofdblok"}</div>
+          </div>
+          <div class="exercise" style="margin-bottom:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Intentie</div>
+              <div class="ex-meta">${s.prasara.intention}</div>
+            </div>
+            <div class="pill">Focus</div>
+          </div>
+          <div class="exercise" style="margin-bottom:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Regels</div>
+              <div class="ex-meta">${s.prasara.rules.join(" • ")}</div>
+            </div>
+            <div class="pill">Flow</div>
+          </div>
+          <div class="exercise" style="margin-bottom:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Prasara opdracht</div>
+              <div class="ex-meta">Gebruik deze shapes als woorden. Blijf continu bewegen. Geen vaste volgorde, geen eindpunten, alleen terugkerende vormen.</div>
+            </div>
+            <div class="pill">Language</div>
+          </div>
+          <div style="display:grid; gap:10px;">`;
+      html += s.prasara.shapes.map(x => `
+            <div class="exercise">
+              <div class="ex-left">
+                <div class="ex-title">${x.exercise}</div>
+                <div class="ex-meta">${x.family}</div>
+              </div>
+              <div class="pill">Shape</div>
+            </div>
+      `).join("");
+      html += `</div>
+        </div>
+      </div>`;
+    }
+
+    html += `<div class="hr"></div>
+      <div class="row">
+        <button id="btnStartSession" class="btn primary" ${s.mode === "LOW" ? "disabled" : ""}>START</button>
+      </div>
+      <p class="small" style="margin-top:10px;">${s.mode === "FULL" ? "FULL = Intu + Clubbell + korte Prasara. Hoofdtimer blijft 20 min; blokrichtduren staan hierboven." : s.mode === "MINI" ? "MINI = Intu + langere Prasara, geen Clubbell." : "LOW dag: alleen Intu, geen timer nodig."}</p>`;
+
+    leftCard.innerHTML = html;
+    bindAccordions();
+    document.getElementById("btnStartSession").onclick = () => {
+      if(s.mode === "LOW") return;
+      renderRightTimer(s.mode === "FULL" ? "FULL timer (20:00)" : "MINI timer (15:00)", s.timerLeft);
+    };
+    setModePill(s.mode);
+    setDayPill("vastgezet");
+    if(s.mode === "LOW") renderRightNone();
+    else renderRightTimer(s.mode === "FULL" ? "FULL timer (20:00)" : "MINI timer (15:00)", s.timerLeft);
+  }
+
+  function startTimer(){
+    const day = loadDay();
+    if(!day || day.mode === "LOW") return;
+    if(timer) clearInterval(timer);
+    timer = setInterval(() => {
+      const d = loadDay();
+      if(!d) return;
+      if(d.timerLeft <= 0){
+        clearInterval(timer);
+        timer = null;
+        document.getElementById("timeDisplay").textContent = "Klaar!";
+        return;
+      }
+      d.timerLeft -= 1;
+      saveDay(d);
+      document.getElementById("timeDisplay").textContent = fmt(d.timerLeft);
+    }, 1000);
+  }
+  function pauseTimer(){
+    if(timer) clearInterval(timer);
+    timer = null;
+  }
+  function resetTimer(){
+    if(timer) clearInterval(timer);
+    timer = null;
+    const d = loadDay();
+    if(!d) return;
+    d.timerLeft = d.mode === "FULL" ? DUR.full : d.mode === "MINI" ? DUR.mini : 0;
+    saveDay(d);
+    renderRightTimer(d.mode === "FULL" ? "FULL timer (20:00)" : "MINI timer (15:00)", d.timerLeft);
+  }
+
+  function renderGate(existing){
+    const _raw = existing?.scores ?? { soreness:null, energy:null, sleep:null };
+    const scores = { soreness:_raw.soreness, energy:_raw.energy, sleep:_raw.sleep };
+
+    leftCard.innerHTML = `
+      <h2>Recovery Gate</h2>
+      <div class="gate-grid">
+        ${gateDef.map(g => `
+          <div class="gate-row">
+            <div class="label">${g.label}</div>
+            <div class="score-row" data-gkey="${g.key}">
+              ${[0,1,2,3,4,5].map(n => `<div class="score-btn" data-score="${n}">${n}</div>`).join('')}
+            </div>
+            <div class="score-label" id="lbl-${g.key}">—</div>
+          </div>
+        `).join('')}
+        <div class="total">
+          <div>
+            <div class="label">Totaal</div>
+            <div class="n" id="totalN">0</div>
+          </div>
+          <div id="band" class="badge">—</div>
+        </div>
+        <div class="row">
+          <button id="btnGenerate" class="btn primary" disabled>Genereer sessie</button>
+          <span class="small">(na invullen van alle 3 scores)</span>
+        </div>
+      </div>
+    `;
+
+    const totalEl = document.getElementById('totalN');
+    const bandEl = document.getElementById('band');
+    const btnGenerate = document.getElementById('btnGenerate');
+
+    function updateUI(){
+      const vals = Object.values(scores);
+      const complete = vals.every(v => typeof v === 'number');
+      const total = vals.reduce((a,b) => a + (typeof b==='number' ? b : 0), 0);
+      totalEl.textContent = String(total);
+      const b = computeBand(total);
+      bandEl.className = `badge ${b.cls}`;
+      bandEl.textContent = b.label;
+      gateDef.forEach(g => {
+        const v = scores[g.key];
+        const el = document.getElementById(`lbl-${g.key}`);
+        el.textContent = typeof v === 'number' ? g.choices[v] : '—';
+      });
+      btnGenerate.disabled = !complete;
+    }
+
+    document.querySelectorAll('.score-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        const t = e.target;
+        if(!t.classList.contains('score-btn')) return;
+        const key = row.dataset.gkey;
+        const v = Number(t.dataset.score);
+        scores[key] = v;
+        row.querySelectorAll('.score-btn').forEach(b => b.classList.remove('active'));
+        t.classList.add('active');
+        updateUI();
+      });
+    });
+
+    btnGenerate.onclick = () => {
+      const total = Object.values(scores).reduce((a,b)=>a+b,0);
+      const band = computeBand(total).band;
+      const session = generateSession(band, total);
+      renderSession(session);
+    };
+
+    updateUI();
+    renderRightNone();
+    setModePill("—");
+    setDayPill("nieuw");
+  }
+
+  function boot(){
+    const day = loadDay();
+    if(day){
+      btnMain.textContent = "Open sessie";
+      renderSession(day);
+    } else {
+      btnMain.textContent = "Start";
+      renderGate(null);
+    }
+  }
+
+  btnMain.onclick = boot;
+  btnReset.onclick = () => {
+    localStorage.removeItem(LS_DAY);
+    if(timer) clearInterval(timer);
+    timer = null;
+    boot();
+  };
+
+  boot();
+})();
+</script>
+</body>
+</html>
