@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="nl">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v2.3</title>
+<title>CST Generator v2.5</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -17,10 +16,11 @@
     --good:#5fd08a;
     --mid:#e0b45c;
     --rec:#7aa7ff;
+    --warn:#ffcc66;
   }
   *{box-sizing:border-box}
   body{
-    margin:0; padding:16px;
+    margin:0; padding:14px;
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     background:var(--bg); color:var(--text);
   }
@@ -40,10 +40,12 @@
   .btn{
     appearance:none; border:1px solid rgba(255,255,255,.12);
     background:rgba(255,255,255,.04); color:var(--text);
-    border-radius:12px; padding:10px 12px; font-weight:850; cursor:pointer;
+    border-radius:12px; padding:12px 14px; font-weight:850; cursor:pointer;
+    min-height:46px;
   }
   .btn.primary{border-color: rgba(122,167,255,0.45); background: rgba(122,167,255,0.10);}
   .btn.danger{border-color: rgba(255,120,120,0.40); background: rgba(255,120,120,0.10);}
+  .btn.good{border-color: rgba(95,208,138,0.45); background: rgba(95,208,138,0.10);}
   .btn:disabled{opacity:.45; cursor:not-allowed}
   .pill{
     display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px;
@@ -62,14 +64,15 @@
   .ex-title{font-weight:850}
   .ex-meta{color:var(--muted); font-size:12px}
   .label{color:var(--muted); font-size:12px}
-  .time{font-variant-numeric: tabular-nums; font-size:42px; font-weight:900; letter-spacing:.5px; line-height:1;}
+  .time{font-variant-numeric: tabular-nums; font-size:52px; font-weight:900; letter-spacing:.5px; line-height:1;}
+  .stage-title{font-size:18px; font-weight:900; margin-bottom:4px;}
   .hr{height:1px; background:var(--line); margin:12px 0;}
   .small{font-size:12px; color:var(--muted)}
   .gate-grid{display:grid; gap:12px}
   .gate-row{display:grid; gap:8px}
   .score-row{display:flex; gap:8px; flex-wrap:wrap}
   .score-btn{
-    width:44px; height:38px; display:inline-flex; justify-content:center; align-items:center;
+    width:48px; height:42px; display:inline-flex; justify-content:center; align-items:center;
     border-radius:12px; border:1px solid rgba(255,255,255,.14);
     background:rgba(255,255,255,.06); color:var(--text);
     font-weight:900; cursor:pointer; user-select:none;
@@ -134,19 +137,85 @@
     display:block;
   }
 
+  .timeline{
+    display:grid;
+    gap:8px;
+    margin-top:12px;
+  }
+  .stage-pill{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:10px 12px;
+    border-radius:12px;
+    border:1px solid var(--line);
+    background:var(--surface2);
+    color:var(--muted);
+    font-size:13px;
+  }
+  .stage-pill.active{
+    border-color: rgba(122,167,255,0.45);
+    background: rgba(122,167,255,0.10);
+    color:var(--text);
+  }
+  .stage-pill.done{
+    border-color: rgba(95,208,138,0.45);
+    background: rgba(95,208,138,0.08);
+    color:var(--text);
+  }
+  .beep-pill{
+    color:var(--warn);
+    border-color: rgba(255,204,102,.4);
+    background: rgba(255,204,102,.08);
+  }
+
+  #appModal{
+    position:fixed; inset:0;
+    background: rgba(0,0,0,0.58);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:10000;
+    padding:16px;
+  }
+  #appModal.show{ display:flex; }
+  .modalCard{
+    width:min(560px, 100%);
+    border:1px solid var(--line);
+    background: var(--surface);
+    border-radius:16px;
+    padding:14px;
+  }
+  .modalTitle{ font-size:15px; font-weight:900; margin:0 0 6px; }
+  .modalText{ font-size:13px; color:var(--muted); margin:0; line-height:1.35; }
+  .modalRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+
 </style>
 </head>
 <body>
+
+<div id="appModal" aria-hidden="true">
+  <div class="modalCard">
+    <div class="modalTitle" id="modalTitle">FULL instelling</div>
+    <p class="modalText" id="modalText">Kies hoe FULL-dagen werken.</p>
+    <div class="modalRow" id="modalActions"></div>
+  </div>
+</div>
+
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v2.3</h1>
+    <h1>CST Generator v2.5</h1>
     <div class="row" style="margin-top:10px;">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset dag</button>
       <span id="modePill" class="pill">Mode: <strong>—</strong></span>
+      <span id="fullPill" class="pill">FULL: <strong>CST Only</strong></span>
       <span id="dayPill" class="pill">Vandaag: <strong>nieuw</strong></span>
+      <span id="wakePill" class="pill">Wake Lock: <strong>uit</strong></span>
+      <span class="pill beep-pill">Beeps: <strong>3-2-1 + wissel + klaar</strong></span>
     </div>
-    <p class="small" style="margin-top:10px;">Recovery Gate + datumlogica (gisteren FULL = vandaag max MINI) + single/double/2H clublogica op echte Clubbell-dagen.</p>
+    <p class="small" style="margin-top:10px;">LOW = alleen Intu. MINI = Intu + langere Prasara. FULL = Clubbell óf KB, afhankelijk van je instelling. Houd Genereer sessie ingedrukt om te wisselen tussen CST Only en CST / KB Alternate. Als gisteren FULL was, is vandaag maximaal MINI.</p>
   </div>
 
   <div class="grid">
@@ -157,9 +226,8 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v23";
-  const LS_LAST = "cst_last_v23";
-  const DUR = { full: 20*60, mini: 15*60 };
+  const LS_DAY = "cst_day_v24";
+  const LS_LAST = "cst_last_v24";
 
   const gateDef = [
     { key:'soreness', label:'Spierpijn / Herstel', choices:['Pijn','Beperkt','Stijf','Licht stijf','Soepel','Fris'] },
@@ -172,94 +240,34 @@
   ];
 
   const rhythmic = [
-    "Front Swing",
-    "Two-Handed Front Swing",
-    "Side Swing",
-    "Side Semi Circle Swing",
-    "Pirouette Swing",
-    "Front Pendulum",
-    "Two-Handed Front Pendulum",
-    "Inside Pendulum",
-    "Double Side Pendulum",
-    "Two-Handed Guard Inside Pendulum",
-    "Outside Pendulum",
-    "Two-Handed Guard Outside Pendulum",
-    "Lunge-Step Pendulum",
-    "Two-Handed Guard Lunge-Step Pendulum",
-    "Side-Step Pendulum",
-    "Two-Handed Guard Side-Step Pendulum",
-    "Front Circle",
-    "Back Circle",
-    "Inside Circle",
-    "Outside Circle",
-    "Two-Handed Side Circle",
-    "Alternating Circles: Front Stroke and Backstroke"
+    "Front Swing","Two-Handed Front Swing","Side Swing","Side Semi Circle Swing","Pirouette Swing",
+    "Front Pendulum","Two-Handed Front Pendulum","Inside Pendulum","Double Side Pendulum",
+    "Two-Handed Guard Inside Pendulum","Outside Pendulum","Two-Handed Guard Outside Pendulum",
+    "Lunge-Step Pendulum","Two-Handed Guard Lunge-Step Pendulum","Side-Step Pendulum",
+    "Two-Handed Guard Side-Step Pendulum","Front Circle","Back Circle","Inside Circle",
+    "Outside Circle","Two-Handed Side Circle","Alternating Circles: Front Stroke and Backstroke"
   ];
 
   const ballistic = [
-    "Front Clean to Order Position",
-    "Two-Handed Front Clean to Order Position",
-    "Front Clean to Shoulder Park",
-    "Two-Handed Front Clean to Shoulder Park",
-    "Front Clean to Flag Position",
-    "Two-Handed Front Clean to Flag Position",
-    "Front Clean to Back Position",
-    "Two-Handed Front Clean to Back Position",
-    "Side Clean to Guard Position",
-    "Side Clean to Shoulder Park",
-    "Side Clean to Back Position",
-    "Side Clean to Side Flag",
-    "Front Torch Jerk",
-    "Two-Handed Front Torch Jerk",
-    "Front Jerk",
-    "Two-Handed Front Jerk",
-    "Shoulder Park Front Jerk",
-    "Two-Handed Shoulder Park Front Jerk",
-    "Front Clean + Jerk",
-    "Side Torch Jerk",
-    "Side Jerk",
-    "Shoulder Park Side Jerk",
-    "Side Clean + Jerk",
-    "Front Torch Snatch",
-    "Two-Handed Front Torch Snatch",
-    "Front Snatch",
-    "Two-Handed Front Snatch",
-    "Side Torch Snatch",
-    "Side Snatch"
+    "Front Clean to Order Position","Two-Handed Front Clean to Order Position","Front Clean to Shoulder Park",
+    "Two-Handed Front Clean to Shoulder Park","Front Clean to Flag Position","Two-Handed Front Clean to Flag Position",
+    "Front Clean to Back Position","Two-Handed Front Clean to Back Position","Side Clean to Guard Position",
+    "Side Clean to Shoulder Park","Side Clean to Back Position","Side Clean to Side Flag","Front Torch Jerk",
+    "Two-Handed Front Torch Jerk","Front Jerk","Two-Handed Front Jerk","Shoulder Park Front Jerk",
+    "Two-Handed Shoulder Park Front Jerk","Front Clean + Jerk","Side Torch Jerk","Side Jerk",
+    "Shoulder Park Side Jerk","Side Clean + Jerk","Front Torch Snatch","Two-Handed Front Torch Snatch",
+    "Front Snatch","Two-Handed Front Snatch","Side Torch Snatch","Side Snatch"
   ];
 
   const grinding = [
-    "Torch Press",
-    "Two-Handed Torch Press",
-    "Front Press",
-    "Two-Handed Front Press",
-    "Flag Press",
-    "Two-Handed Flag Press",
-    "Side Torch Press",
-    "Side Press",
-    "Side Flag Press",
-    "Clean and Press",
-    "Wrist Cast",
-    "Two Handed Wrist Cast — The Crowbar",
-    "Arm Cast",
-    "Alternating Arm Cast — Drumming Cast",
-    "Two-Handed Arm Cast — The Gama Cast",
-    "Two-Handed Arm Cast Circular Pivot",
-    "Two-Handed Arm Cast to Flag Position — The Barbarian",
-    "Shoulder Cast",
-    "Two-Handed Shoulder Cast",
-    "Shoulder Cast to Side Flag Position — The Muscle Out",
-    "Double Shoulder Cast — The Crucifix",
-    "Alternating Shoulder Cast — The Kodo Cast",
-    "Head Cast",
-    "Shoulder Cast Leverage Hold Variation",
-    "Alternating Head Cast – The See-Saw",
-    "Two-Handed Head Cast",
-    "Shield Cast",
-    "Two-Handed Shield Cast",
-    "Parry Cast",
-    "Reverse Parry Cast",
-    "Two-Handed Parry Cast"
+    "Torch Press","Two-Handed Torch Press","Front Press","Two-Handed Front Press","Flag Press","Two-Handed Flag Press",
+    "Side Torch Press","Side Press","Side Flag Press","Clean and Press","Wrist Cast","Two Handed Wrist Cast — The Crowbar",
+    "Arm Cast","Alternating Arm Cast — Drumming Cast","Two-Handed Arm Cast — The Gama Cast",
+    "Two-Handed Arm Cast Circular Pivot","Two-Handed Arm Cast to Flag Position — The Barbarian","Shoulder Cast",
+    "Two-Handed Shoulder Cast","Shoulder Cast to Side Flag Position — The Muscle Out","Double Shoulder Cast — The Crucifix",
+    "Alternating Shoulder Cast — The Kodo Cast","Head Cast","Shoulder Cast Leverage Hold Variation",
+    "Alternating Head Cast – The See-Saw","Two-Handed Head Cast","Shield Cast","Two-Handed Shield Cast",
+    "Parry Cast","Reverse Parry Cast","Two-Handed Parry Cast"
   ];
 
   const prasaraFamilies = {
@@ -273,39 +281,65 @@
     "Balance":["Single Leg","Tree","Airplane","Knee Raise"]
   };
 
-
   const prasaraIntentions = [
-    "Slow & gecontroleerd",
-    "Continu bewegen",
-    "Focus op rotatie",
-    "Focus op ademhaling",
-    "Blijf laag bij de grond",
-    "Speel met range (klein ↔ groot)",
-    "Flow zonder kracht te forceren"
+    "Slow & gecontroleerd","Continu bewegen","Focus op rotatie","Focus op ademhaling",
+    "Blijf laag bij de grond","Speel met range (klein ↔ groot)","Flow zonder kracht te forceren"
   ];
 
   const prasaraRules = [
-    "Geen stoppen",
-    "Vrije volgorde",
-    "Wissel links/rechts",
-    "Gebruik rotatie om te verbinden",
-    "Blijf in beweging, ook bij twijfel"
+    "Geen stoppen","Vrije volgorde","Wissel links/rechts","Gebruik rotatie om te verbinden","Blijf in beweging, ook bij twijfel"
   ];
 
   const CLUB_ROTATION = ["single","double","single","2h","single","double"];
+  const LS_SETTINGS = "cst_settings_v25";
+  const FULL_TYPES = ["club","kb"];
+
+  const KB_LIB = {
+    squat: { label:"Squat", subcats:{
+      symmetric:{ label:"Symmetrisch", exercises:["Goblet Squat","Double Front Squat","Hack Squat"] },
+      asymmetric:{ label:"Asymmetrisch", exercises:["Reverse Lunge","Side Lunge / Cossack","Bulgarian Split Squat"] },
+      singleleg:{ label:"Single Leg", exercises:["Step-up","Skater Squat","Box Pistol"] },
+    }},
+    hinge: { label:"Hinge", subcats:{
+      deadlift:{ label:"Deadlift", exercises:["Single-Leg Deadlift","B-Stance Deadlift","Double Sumo Deadlift"] },
+      hipthrust:{ label:"Hip Thrust", exercises:["Hip Thrust","B-Stance Hip Thrust","Single-Leg Hip Thrust"] },
+      ballistic:{ label:"Ballistic", exercises:["One-Arm Swing","Two-Arm Swing","Hand-to-Hand Swing"] },
+    }},
+    push: { label:"Push", subcats:{
+      horizontal:{ label:"Horizontal", exercises:["Bridge Floor Press","Push-up","Get-Up Sit-Up"] },
+      vertical:{ label:"Vertical", exercises:["Military Press","Half-Kneeling Press","Top-Down Press"] },
+      ballistic:{ label:"Ballistic", exercises:["Double Push Press","Push Jerk","Viking Push Press"] },
+    }},
+    pull: { label:"Pull", subcats:{
+      horizontal:{ label:"Horizontal", exercises:["Wide Row","Small Row","Gorilla Row"] },
+      vertical:{ label:"Vertical", exercises:["Chin-up","Pull-up","False-Grip Pull-up"] },
+      ballistic:{ label:"Ballistic", exercises:["Double Clean","Snatch","High Pull"] },
+    }}
+  };
+
+  const KB_CARRIES = ["Suitcase Carry","Front Rack Carry","Overhead Carry","Front Rack March","Cook Drill March","Get-Up"];
 
   const leftCard = document.getElementById("leftCard");
   const rightInner = document.getElementById("rightInner");
   const btnMain = document.getElementById("btnMain");
   const btnReset = document.getElementById("btnReset");
   const modePill = document.getElementById("modePill");
+  const fullPill = document.getElementById("fullPill");
   const dayPill = document.getElementById("dayPill");
+  const wakePill = document.getElementById("wakePill");
+  const appModal = document.getElementById("appModal");
+  const modalTitleEl = document.getElementById("modalTitle");
+  const modalTextEl = document.getElementById("modalText");
+  const modalActionsEl = document.getElementById("modalActions");
+
+  let timer = null;
+  let audioCtx = null;
+  let wakeLock = null;
 
   function todayKey(){
     const d = new Date();
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
   }
-
   function loadJSON(k){ try{ const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch { return null; } }
   function saveJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
   function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
@@ -317,33 +351,20 @@
     }
     return a;
   }
-  function pickFamilies(obj, count){
-    return shuffle(Object.keys(obj)).slice(0, count);
-  }
+  function pickFamilies(obj, count){ return shuffle(Object.keys(obj)).slice(0, count); }
   function normalize(x){ return x.toLowerCase(); }
-  function isTwoHanded(x){
-    const s = normalize(x);
-    return s.includes("two-handed") || s.includes("two handed");
-  }
+  function isTwoHanded(x){ const s = normalize(x); return s.includes("two-handed") || s.includes("two handed"); }
   function isDouble(x){ return normalize(x).includes("double"); }
   function isAlternating(x){ return normalize(x).includes("alternating"); }
-
-  function filterSingle(arr){
-    return arr.filter(x => !isTwoHanded(x) && !isDouble(x) && !isAlternating(x));
-  }
-  function filterDouble(arr){
-    return arr.filter(x => !isTwoHanded(x));
-  }
-  function filter2H(arr){
-    return arr.filter(x => isTwoHanded(x));
-  }
+  function filterSingle(arr){ return arr.filter(x => !isTwoHanded(x) && !isDouble(x) && !isAlternating(x)); }
+  function filterDouble(arr){ return arr.filter(x => !isTwoHanded(x)); }
+  function filter2H(arr){ return arr.filter(x => isTwoHanded(x)); }
   function pickExercise(arr, clubType){
     let pool = [];
     if(clubType === "single") pool = filterSingle(arr);
     if(clubType === "double") pool = filterDouble(arr);
     if(clubType === "2h") pool = filter2H(arr);
-    if(!pool || pool.length === 0) return null;
-    return rand(pool);
+    return pool.length ? rand(pool) : null;
   }
 
   function computeBand(total){
@@ -351,44 +372,62 @@
     if(total >= 7)  return { band:'MINI', label:'7–11', cls:'mid' };
     return { band:'LOW', label:'0–6', cls:'rec' };
   }
-
-  function setModePill(mode){
-    modePill.innerHTML = `Mode: <strong>${mode || "—"}</strong>`;
+  function loadSettings(){
+    const raw = loadJSON(LS_SETTINGS);
+    return {
+      fullMode: raw?.fullMode === "alternate" ? "alternate" : "cst",
+    };
   }
-  function setDayPill(state){
-    dayPill.innerHTML = `Vandaag: <strong>${state || "nieuw"}</strong>`;
+  function saveSettings(v){ saveJSON(LS_SETTINGS, v); }
+  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${mode || "—"}</strong>`; }
+  function setFullPill(){
+    const s = loadSettings();
+    fullPill.innerHTML = `FULL: <strong>${s.fullMode === "alternate" ? "CST / KB Alternate" : "CST Only"}</strong>`;
+  }
+  function setDayPill(state){ dayPill.innerHTML = `Vandaag: <strong>${state || "nieuw"}</strong>`; }
+  function setWakePill(on){ wakePill.innerHTML = `Wake Lock: <strong>${on ? "aan" : "uit"}</strong>`; }
+
+  function openModal({title="Instelling", text="", actionsHTML=""} = {}){
+    modalTitleEl.textContent = title;
+    modalTextEl.textContent = text;
+    modalActionsEl.innerHTML = actionsHTML || "";
+    appModal.classList.add("show");
+    appModal.setAttribute("aria-hidden", "false");
+  }
+  function closeModal(){
+    appModal.classList.remove("show");
+    appModal.setAttribute("aria-hidden", "true");
+    modalActionsEl.innerHTML = "";
+  }
+  function openFullModeModal(){
+    const settings = loadSettings();
+    openModal({
+      title: "FULL instelling",
+      text: "Kies hoe FULL-dagen werken.",
+      actionsHTML: `
+        <button id="btnSetCST" class="btn ${settings.fullMode === "cst" ? "good" : "primary"}">CST Only</button>
+        <button id="btnSetAlt" class="btn ${settings.fullMode === "alternate" ? "good" : "primary"}">CST / KB Alternate</button>
+        <button id="btnCloseModal" class="btn">Sluiten</button>
+      `
+    });
+    document.getElementById("btnSetCST").onclick = () => {
+      saveSettings({ fullMode:"cst" });
+      setFullPill();
+      closeModal();
+    };
+    document.getElementById("btnSetAlt").onclick = () => {
+      saveSettings({ fullMode:"alternate" });
+      setFullPill();
+      closeModal();
+    };
+    document.getElementById("btnCloseModal").onclick = closeModal;
   }
 
-  function renderRightNone(){
-    rightInner.innerHTML = `<h2>Status</h2><p class="small">Geen actieve timer.</p>`;
-  }
-
-  let timer = null;
   function fmt(sec){
     const m = Math.floor(sec/60), s = sec%60;
     return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
   }
-  function fmtMin(sec){
-    if(!sec) return "—";
-    return Math.round(sec/60) + " min";
-  }
-
-  function renderRightTimer(title, left){
-    rightInner.innerHTML = `
-      <h2>${title}</h2>
-      <div class="label">Timer</div>
-      <div id="timeDisplay" class="time">${fmt(left)}</div>
-      <div class="row" style="margin-top:10px;">
-        <button id="btnStartTimer" class="btn primary">Start</button>
-        <button id="btnPauseTimer" class="btn">Pauze</button>
-        <button id="btnResetTimer" class="btn">Reset</button>
-      </div>
-      <div class="small" style="margin-top:10px;">Hoofdtimer van de sessie / dagmodus.</div>
-    `;
-    document.getElementById("btnStartTimer").onclick = startTimer;
-    document.getElementById("btnPauseTimer").onclick = pauseTimer;
-    document.getElementById("btnResetTimer").onclick = resetTimer;
-  }
+  function fmtMin(sec){ return sec ? Math.round(sec/60) + " min" : "—"; }
 
   function loadDay(){
     const a = loadJSON(LS_DAY);
@@ -396,10 +435,7 @@
     return a;
   }
   function saveDay(day){ saveJSON(LS_DAY, day); }
-
-  function loadLast(){
-    return loadJSON(LS_LAST) || { lastFullDate:null, nextClubIndex:0 };
-  }
+  function loadLast(){ return loadJSON(LS_LAST) || { lastFullDate:null, nextClubIndex:0, nextFullTypeIndex:0, kbMemory:null, lastCarry:null }; }
   function saveLast(v){ saveJSON(LS_LAST, v); }
 
   function isYesterday(dateStr){
@@ -425,17 +461,143 @@
     if (r) exercises.push({ bucket: "Rhythmic", exercise: r });
     if (b) exercises.push({ bucket: "Ballistic", exercise: b });
     const g = pickExercise(grinding, clubType);
-    if (g && Math.random() > 0.35) {
-      exercises.push({ bucket: "Grinding", exercise: g });
-    }
+    if (g && Math.random() > 0.35) exercises.push({ bucket: "Grinding", exercise: g });
     return exercises;
+  }
+
+  function createKbMemory(){
+    const mem = { patterns:{}, lastCarry:null };
+    Object.keys(KB_LIB).forEach(patternKey => {
+      mem.patterns[patternKey] = {
+        lastSubcat:null,
+        subcatBag:[],
+        lastExerciseBySubcat:{},
+        exerciseBags:{}
+      };
+      Object.keys(KB_LIB[patternKey].subcats).forEach(subcatKey => {
+        mem.patterns[patternKey].lastExerciseBySubcat[subcatKey] = null;
+        mem.patterns[patternKey].exerciseBags[subcatKey] = [];
+      });
+    });
+    return mem;
+  }
+
+  function sanitizeKbMemory(raw){
+    const mem = createKbMemory();
+    if(!raw || !raw.patterns) return mem;
+    Object.keys(KB_LIB).forEach(patternKey => {
+      const src = raw.patterns?.[patternKey];
+      if(!src) return;
+      mem.patterns[patternKey].lastSubcat = src.lastSubcat || null;
+      if(Array.isArray(src.subcatBag)){
+        mem.patterns[patternKey].subcatBag = src.subcatBag.filter(sc => Object.prototype.hasOwnProperty.call(KB_LIB[patternKey].subcats, sc));
+      }
+      Object.keys(KB_LIB[patternKey].subcats).forEach(subcatKey => {
+        const exs = KB_LIB[patternKey].subcats[subcatKey].exercises;
+        mem.patterns[patternKey].lastExerciseBySubcat[subcatKey] = src.lastExerciseBySubcat?.[subcatKey] || null;
+        if(Array.isArray(src.exerciseBags?.[subcatKey])){
+          mem.patterns[patternKey].exerciseBags[subcatKey] = src.exerciseBags[subcatKey].filter(ex => exs.includes(ex));
+        }
+      });
+    });
+    mem.lastCarry = raw.lastCarry || null;
+    return mem;
+  }
+
+  function pickFromBag(items, lastValue, existingBag){
+    let bag = Array.isArray(existingBag) ? existingBag.slice() : [];
+    if(!bag.length) bag = shuffle(items);
+    if(lastValue && bag.length > 1 && bag[0] === lastValue){
+      const swapIdx = bag.findIndex(x => x !== lastValue);
+      if(swapIdx > 0) [bag[0], bag[swapIdx]] = [bag[swapIdx], bag[0]];
+    }
+    let picked = bag.shift();
+    if(lastValue && picked === lastValue){
+      const fallback = items.find(x => x !== lastValue);
+      if(fallback){
+        picked = fallback;
+        const idx = bag.indexOf(fallback);
+        if(idx >= 0) bag.splice(idx, 1);
+      }
+    }
+    return { picked, bag };
+  }
+
+  function ladderForKb(item){
+    const ex = (item.exercise || "").toLowerCase();
+    const isDouble = ex.includes("double");
+    const isBallistic = item.subcatKey === "ballistic";
+    if(isBallistic && isDouble) return "4-6-10";
+    if(isBallistic) return "5-10-15";
+    return "2-3-5";
+  }
+
+  function generateKbSession(){
+    const last = loadLast();
+    const mem = sanitizeKbMemory(last.kbMemory);
+    const picks = [];
+
+    ["squat","hinge","push","pull"].forEach(patternKey => {
+      const pattern = KB_LIB[patternKey];
+      const patternMem = mem.patterns[patternKey];
+      const subcatKeys = Object.keys(pattern.subcats);
+      const subcatPick = pickFromBag(subcatKeys, patternMem.lastSubcat, patternMem.subcatBag);
+      const subcatKey = subcatPick.picked;
+      patternMem.subcatBag = subcatPick.bag;
+
+      const exercises = pattern.subcats[subcatKey].exercises;
+      const exPick = pickFromBag(exercises, patternMem.lastExerciseBySubcat[subcatKey], patternMem.exerciseBags[subcatKey]);
+      const exercise = exPick.picked;
+      patternMem.exerciseBags[subcatKey] = exPick.bag;
+      patternMem.lastSubcat = subcatKey;
+      patternMem.lastExerciseBySubcat[subcatKey] = exercise;
+
+      picks.push({
+        patternKey,
+        patternLabel: pattern.label,
+        subcatKey,
+        subcatLabel: pattern.subcats[subcatKey].label,
+        exercise,
+        ladder: ladderForKb({ subcatKey, exercise })
+      });
+    });
+
+    const carryChoices = KB_CARRIES.filter(x => x !== mem.lastCarry);
+    const carry = rand(carryChoices.length ? carryChoices : KB_CARRIES);
+    mem.lastCarry = carry;
+
+    return { circuit: shuffle(picks), carry, memory: mem };
+  }
+
+  function nextFullType(){
+    const settings = loadSettings();
+    if(settings.fullMode !== "alternate") return { fullType:"club", nextIndex:null };
+    const last = loadLast();
+    const idx = Number.isInteger(last.nextFullTypeIndex) ? last.nextFullTypeIndex : 0;
+    return { fullType: FULL_TYPES[idx % FULL_TYPES.length], nextIndex: (idx + 1) % FULL_TYPES.length };
+  }
+
+  function buildStages(session){
+    const stages = [];
+    if(session.mode === "FULL"){
+      if(session.fullType === "kb"){
+        stages.push({ key:"kb", label:`Kettlebell · ${fmtMin(session.blockTimes.kb)}`, seconds:session.blockTimes.kb });
+        stages.push({ key:"carry", label:`Carry · ${fmtMin(session.blockTimes.carry)}`, seconds:session.blockTimes.carry });
+      } else {
+        stages.push({ key:"club", label:`Clubbell · ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
+        stages.push({ key:"prasara", label:`Prasara · ${fmtMin(session.blockTimes.prasara)}`, seconds:session.blockTimes.prasara });
+      }
+    } else if(session.mode === "MINI"){
+      stages.push({ key:"prasara", label:`Prasara · ${fmtMin(session.blockTimes.prasara)}`, seconds:session.blockTimes.prasara });
+    }
+    return stages;
   }
 
   function generateSession(mode, total){
     const last = loadLast();
+    const settings = loadSettings();
     let finalMode = mode;
     let downgraded = false;
-    let clubType = null;
 
     if(mode === "FULL" && isYesterday(last.lastFullDate)){
       finalMode = "MINI";
@@ -448,38 +610,80 @@
       modeRequested: mode,
       mode: finalMode,
       downgraded,
+      fullSetting: settings.fullMode,
+      fullType: finalMode === "FULL" ? "club" : null,
       intu: intu.slice(),
       club: null,
+      kb: null,
       prasara: null,
-      blockTimes: {
-        intu: 8 * 60,
-        club: 0,
-        prasara: 0
-      },
-      timerLeft: finalMode === "FULL" ? DUR.full : finalMode === "MINI" ? DUR.mini : 0
+      carry: null,
+      blockTimes: { intu: 8 * 60, club: 0, kb: 0, prasara: 0, carry: 0 },
+      stages: [],
+      currentStageIndex: 0,
+      currentStageLeft: 0,
+      isRunning: false,
+      lastCountdownBeep: null
     };
 
     if(finalMode === "FULL"){
-      const next = nextFullClubType();
-      clubType = next.clubType;
-      const exercises = generateClubExercises(clubType);
-      session.club = {
-        clubType,
-        exercises,
-        flow: exercises.map(x => x.exercise).join(" → ")
-      };
-      session.blockTimes.club = rand([15,20]) * 60;
-      session.blockTimes.prasara = rand([5,10]) * 60;
-      saveLast({ lastFullDate: todayKey(), nextClubIndex: next.nextIndex });
+      const fullChoice = nextFullType();
+      session.fullType = fullChoice.fullType;
+
+      if(session.fullType === "kb"){
+        const kbSession = generateKbSession();
+        session.kb = {
+          circuit: kbSession.circuit,
+          carry: kbSession.carry
+        };
+        session.carry = { exercise: kbSession.carry };
+        session.blockTimes.kb = 20 * 60;
+        session.blockTimes.carry = 5 * 60;
+        saveLast({
+          lastFullDate: todayKey(),
+          nextClubIndex: last.nextClubIndex || 0,
+          nextFullTypeIndex: fullChoice.nextIndex ?? (last.nextFullTypeIndex || 0),
+          kbMemory: kbSession.memory,
+          lastCarry: kbSession.carry
+        });
+      } else {
+        const next = nextFullClubType();
+        const clubType = next.clubType;
+        const exercises = generateClubExercises(clubType);
+        session.club = {
+          clubType,
+          exercises,
+          flow: exercises.map(x => x.exercise).join(" → ")
+        };
+        session.blockTimes.club = rand([15,20]) * 60;
+        session.blockTimes.prasara = rand([5,10]) * 60;
+        saveLast({
+          lastFullDate: todayKey(),
+          nextClubIndex: next.nextIndex,
+          nextFullTypeIndex: fullChoice.nextIndex ?? (last.nextFullTypeIndex || 0),
+          kbMemory: sanitizeKbMemory(last.kbMemory),
+          lastCarry: last.lastCarry || null
+        });
+      }
     } else if (finalMode === "MINI"){
-      session.club = null;
       session.blockTimes.prasara = rand([15,20]) * 60;
-      saveLast({ lastFullDate: last.lastFullDate || null, nextClubIndex: last.nextClubIndex || 0 });
+      saveLast({
+        lastFullDate: last.lastFullDate || null,
+        nextClubIndex: last.nextClubIndex || 0,
+        nextFullTypeIndex: last.nextFullTypeIndex || 0,
+        kbMemory: sanitizeKbMemory(last.kbMemory),
+        lastCarry: last.lastCarry || null
+      });
     } else {
-      saveLast({ lastFullDate: last.lastFullDate || null, nextClubIndex: last.nextClubIndex || 0 });
+      saveLast({
+        lastFullDate: last.lastFullDate || null,
+        nextClubIndex: last.nextClubIndex || 0,
+        nextFullTypeIndex: last.nextFullTypeIndex || 0,
+        kbMemory: sanitizeKbMemory(last.kbMemory),
+        lastCarry: last.lastCarry || null
+      });
     }
 
-    if(finalMode !== "LOW"){
+    if(finalMode !== "LOW" && !(finalMode === "FULL" && session.fullType === "kb")){
       const prasaraCount = Math.floor(Math.random()*3)+3;
       const fams = pickFamilies(prasaraFamilies, prasaraCount);
       session.prasara = {
@@ -489,10 +693,12 @@
       };
     }
 
+    session.stages = buildStages(session);
+    session.currentStageLeft = session.stages.length ? session.stages[0].seconds : 0;
+
     saveDay(session);
     return session;
   }
-
 
   function bindAccordions(){
     const headers = leftCard.querySelectorAll('.accordion-header');
@@ -508,7 +714,6 @@
 
   function renderSession(s){
     let html = `<h2>Vandaag</h2>`;
-
     if(s.downgraded){
       html += `
         <div class="exercise" style="margin-bottom:12px;">
@@ -517,11 +722,17 @@
             <div class="ex-meta">Automatisch aangepast: gisteren was FULL, dus vandaag maximaal MINI.</div>
           </div>
           <div class="pill">Recovery</div>
-        </div>
-      `;
+        </div>`;
     }
 
     html += `
+      <div class="exercise" style="margin-bottom:12px;">
+        <div class="ex-left">
+          <div class="ex-title">FULL instelling</div>
+          <div class="ex-meta">${s.fullSetting === "alternate" ? "CST / KB Alternate" : "CST Only"}${s.mode === "FULL" ? ` • Vandaag: ${s.fullType === "kb" ? "KB" : "CST"}` : ""}</div>
+        </div>
+        <div class="pill">${s.mode === "FULL" ? (s.fullType === "kb" ? "KB" : "CST") : "FULL"}</div>
+      </div>
       <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Intu</span>
@@ -533,15 +744,14 @@
               <div class="exercise">
                 <div class="ex-left"><div class="ex-title">${x}</div></div>
                 <div class="pill">Intu</div>
-              </div>
-            `).join("")}
+              </div>`).join("")}
           </div>
         </div>
-      </div>
-    `;
+      </div>`;
 
     if(s.club){
-      html += `<div class="accordion">
+      html += `
+      <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Clubbell</span>
           <span class="pill">${s.club.clubType.toUpperCase()} · ${fmtMin(s.blockTimes?.club || 0)}</span>
@@ -561,17 +771,16 @@
             </div>
             <div class="pill">Hoofdblok</div>
           </div>
-          <div style="display:grid; gap:10px;">`;
-      html += s.club.exercises.map(x => `
-            <div class="exercise">
-              <div class="ex-left">
-                <div class="ex-title">${x.exercise}</div>
-                <div class="ex-meta">${x.bucket}</div>
-              </div>
-              <div class="pill">Club</div>
-            </div>
-      `).join("");
-      html += `</div>
+          <div style="display:grid; gap:10px;">
+            ${s.club.exercises.map(x => `
+              <div class="exercise">
+                <div class="ex-left">
+                  <div class="ex-title">${x.exercise}</div>
+                  <div class="ex-meta">${x.bucket}</div>
+                </div>
+                <div class="pill">Club</div>
+              </div>`).join("")}
+          </div>
           <div class="exercise" style="margin-top:10px;">
             <div class="ex-left">
               <div class="ex-title">Flow suggestie</div>
@@ -583,8 +792,38 @@
       </div>`;
     }
 
+    if(s.kb){
+      html += `
+      <div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Kettlebell</span>
+          <span class="pill">${fmtMin(s.blockTimes?.kb || 0)} · Chop Wood</span>
+        </button>
+        <div class="accordion-content">
+          <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Richtduur Kettlebell</div>
+              <div class="ex-meta">${fmtMin(s.blockTimes?.kb || 0)}</div>
+            </div>
+            <div class="pill">Hoofdblok</div>
+          </div>
+          <div style="display:grid; gap:10px;">
+            ${s.kb.circuit.map((x, idx) => `
+              <div class="exercise">
+                <div class="ex-left">
+                  <div class="ex-title">${idx + 1}. ${x.exercise}</div>
+                  <div class="ex-meta">${x.patternLabel} • ${x.subcatLabel} • ladder ${x.ladder}</div>
+                </div>
+                <div class="pill">${x.patternLabel}</div>
+              </div>`).join("")}
+          </div>
+        </div>
+      </div>`;
+    }
+
     if(s.prasara){
-      html += `<div class="accordion">
+      html += `
+      <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Prasara</span>
           <span class="pill">${fmtMin(s.blockTimes?.prasara || 0)} · ${s.mode === "FULL" ? "Integratie" : "Hoofdblok"}</span>
@@ -618,69 +857,297 @@
             </div>
             <div class="pill">Language</div>
           </div>
-          <div style="display:grid; gap:10px;">`;
-      html += s.prasara.shapes.map(x => `
-            <div class="exercise">
-              <div class="ex-left">
-                <div class="ex-title">${x.exercise}</div>
-                <div class="ex-meta">${x.family}</div>
-              </div>
-              <div class="pill">Shape</div>
-            </div>
-      `).join("");
-      html += `</div>
+          <div style="display:grid; gap:10px;">
+            ${s.prasara.shapes.map(x => `
+              <div class="exercise">
+                <div class="ex-left">
+                  <div class="ex-title">${x.exercise}</div>
+                  <div class="ex-meta">${x.family}</div>
+                </div>
+                <div class="pill">Shape</div>
+              </div>`).join("")}
+          </div>
         </div>
       </div>`;
     }
 
+    if(s.carry){
+      html += `
+      <div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Carry</span>
+          <span class="pill">${fmtMin(s.blockTimes?.carry || 0)} · Finisher</span>
+        </button>
+        <div class="accordion-content">
+          <div class="exercise" style="margin-top:12px;">
+            <div class="ex-left">
+              <div class="ex-title">${s.carry.exercise}</div>
+              <div class="ex-meta">5 minuten finisher • wissel zijde wanneer nodig</div>
+            </div>
+            <div class="pill">Carry</div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    const summaryText = s.mode === "FULL"
+      ? (s.fullType === "kb" ? "FULL = eerst Kettlebell, daarna Carry." : "FULL = eerst Clubbell, daarna korte Prasara.")
+      : s.mode === "MINI"
+      ? "MINI = alleen langere Prasara als hoofdblok."
+      : "LOW = alleen Intu, geen timer.";
+
     html += `<div class="hr"></div>
       <div class="row">
-        <button id="btnStartSession" class="btn primary" ${s.mode === "LOW" ? "disabled" : ""}>START</button>
+        <button id="btnStartSession" class="btn primary" ${s.mode === "LOW" ? "disabled" : ""}>Start bloktimer</button>
       </div>
-      <p class="small" style="margin-top:10px;">${s.mode === "FULL" ? "FULL = Intu + Clubbell + korte Prasara. Hoofdtimer blijft 20 min; blokrichtduren staan hierboven." : s.mode === "MINI" ? "MINI = Intu + langere Prasara, geen Clubbell." : "LOW dag: alleen Intu, geen timer nodig."}</p>`;
+      <p class="small" style="margin-top:10px;">${summaryText}</p>`;
 
     leftCard.innerHTML = html;
     bindAccordions();
-    document.getElementById("btnStartSession").onclick = () => {
-      if(s.mode === "LOW") return;
-      renderRightTimer(s.mode === "FULL" ? "FULL timer (20:00)" : "MINI timer (15:00)", s.timerLeft);
-    };
-    setModePill(s.mode);
+    const startBtn = document.getElementById("btnStartSession");
+    if(startBtn){
+      startBtn.onclick = () => {
+        if(s.mode === "LOW") return;
+        startSequence();
+      };
+    }
+    const modeLabel = s.mode === "FULL" ? `FULL · ${s.fullType === "kb" ? "KB" : "CST"}` : s.mode;
+    setModePill(modeLabel);
+    setFullPill();
     setDayPill("vastgezet");
-    if(s.mode === "LOW") renderRightNone();
-    else renderRightTimer(s.mode === "FULL" ? "FULL timer (20:00)" : "MINI timer (15:00)", s.timerLeft);
+    renderRightPanel();
   }
 
-  function startTimer(){
-    const day = loadDay();
-    if(!day || day.mode === "LOW") return;
-    if(timer) clearInterval(timer);
-    timer = setInterval(() => {
+  function getCurrentStage(session){
+    if(!session || !session.stages || !session.stages.length) return null;
+    return session.stages[session.currentStageIndex] || null;
+  }
+
+  function renderRightNone(){
+    rightInner.innerHTML = `<h2>Status</h2><p class="small">Geen actieve timer.</p>`;
+  }
+
+  function renderRightPanel(){
+    const s = loadDay();
+    if(!s || s.mode === "LOW"){
+      renderRightNone();
+      return;
+    }
+    const current = getCurrentStage(s);
+    const next = s.stages[s.currentStageIndex + 1] || null;
+
+    rightInner.innerHTML = `
+      <h2>Bloktimer</h2>
+      <div class="label">Huidig blok</div>
+      <div class="stage-title">${current ? current.label : "—"}</div>
+      <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
+
+      <div class="row" style="margin-top:12px;">
+        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pauze" : "Start"}</button>
+        <button id="btnNextStage" class="btn">Volgend blok</button>
+        <button id="btnResetTimer" class="btn danger">Reset blokken</button>
+      </div>
+
+      <div class="exercise" style="margin-top:12px;">
+        <div class="ex-left">
+          <div class="ex-title">Volgende</div>
+          <div class="ex-meta">${next ? next.label : "Na dit blok ben je klaar."}</div>
+        </div>
+        <div class="pill">${next ? "Hierna" : "Laatste"}</div>
+      </div>
+
+      <div class="timeline">
+        ${s.stages.map((st, idx) => {
+          let cls = "";
+          if(idx < s.currentStageIndex) cls = "done";
+          else if(idx === s.currentStageIndex) cls = "active";
+          return `<div class="stage-pill ${cls}">
+            <span>${st.label}</span>
+            <strong>${idx < s.currentStageIndex ? "✓" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
+          </div>`;
+        }).join("")}
+      </div>
+
+      <div class="small" style="margin-top:12px;">Duidelijke beeps op 3-2-1, blokwissel en einde. Wake Lock probeert je scherm actief te houden tijdens het lopen.</div>
+    `;
+
+    document.getElementById("btnPlayPause").onclick = () => {
       const d = loadDay();
       if(!d) return;
-      if(d.timerLeft <= 0){
-        clearInterval(timer);
-        timer = null;
-        document.getElementById("timeDisplay").textContent = "Klaar!";
+      if(d.isRunning) pauseSequence();
+      else startSequence();
+    };
+    document.getElementById("btnNextStage").onclick = () => advanceStage(true);
+    document.getElementById("btnResetTimer").onclick = resetSequence;
+  }
+
+  async function ensureAudio(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if(audioCtx.state === "suspended"){
+      await audioCtx.resume();
+    }
+  }
+
+  async function beep(freq=880, duration=0.12, volume=0.06){
+    try{
+      await ensureAudio();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.value = volume;
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration);
+    } catch(e){}
+  }
+
+  async function patternCountdown(n){
+    const map = {3:740,2:840,1:980};
+    await beep(map[n] || 880, 0.14, 0.08);
+  }
+  async function patternStageChange(){
+    await beep(880,0.12,0.08);
+    setTimeout(() => beep(1175,0.14,0.08), 150);
+  }
+  async function patternDone(){
+    await beep(880,0.12,0.08);
+    setTimeout(() => beep(1175,0.12,0.08), 150);
+    setTimeout(() => beep(1568,0.18,0.08), 300);
+  }
+
+  async function acquireWakeLock(){
+    try{
+      if("wakeLock" in navigator){
+        wakeLock = await navigator.wakeLock.request("screen");
+        setWakePill(true);
+        wakeLock.addEventListener("release", () => setWakePill(false));
+      }
+    } catch(e){
+      setWakePill(false);
+    }
+  }
+  async function releaseWakeLock(){
+    try{
+      if(wakeLock){
+        await wakeLock.release();
+        wakeLock = null;
+      }
+    } catch(e){}
+    setWakePill(false);
+  }
+
+  document.addEventListener("visibilitychange", async () => {
+    const s = loadDay();
+    if(document.visibilityState === "visible" && s?.isRunning){
+      await acquireWakeLock();
+    }
+  });
+
+  function startTick(){
+    if(timer) clearInterval(timer);
+    timer = setInterval(async () => {
+      const d = loadDay();
+      if(!d || !d.isRunning) return;
+      const cur = getCurrentStage(d);
+      if(!cur) return;
+
+      if(d.currentStageLeft > 0){
+        d.currentStageLeft -= 1;
+
+        if([3,2,1].includes(d.currentStageLeft) && d.lastCountdownBeep !== d.currentStageLeft){
+          d.lastCountdownBeep = d.currentStageLeft;
+          saveDay(d);
+          renderRightPanel();
+          await patternCountdown(d.currentStageLeft);
+          return;
+        }
+      }
+
+      if(d.currentStageLeft <= 0){
+        d.isRunning = false;
+        saveDay(d);
+        renderRightPanel();
+        await advanceStage(false);
         return;
       }
-      d.timerLeft -= 1;
+
       saveDay(d);
-      document.getElementById("timeDisplay").textContent = fmt(d.timerLeft);
+      renderRightPanel();
     }, 1000);
   }
-  function pauseTimer(){
-    if(timer) clearInterval(timer);
-    timer = null;
+
+  async function startSequence(){
+    const d = loadDay();
+    if(!d || d.mode === "LOW") return;
+    d.isRunning = true;
+    d.lastCountdownBeep = null;
+    saveDay(d);
+    await ensureAudio();
+    await acquireWakeLock();
+    renderRightPanel();
+    startTick();
   }
-  function resetTimer(){
-    if(timer) clearInterval(timer);
-    timer = null;
+
+  async function pauseSequence(){
     const d = loadDay();
     if(!d) return;
-    d.timerLeft = d.mode === "FULL" ? DUR.full : d.mode === "MINI" ? DUR.mini : 0;
+    d.isRunning = false;
     saveDay(d);
-    renderRightTimer(d.mode === "FULL" ? "FULL timer (20:00)" : "MINI timer (15:00)", d.timerLeft);
+    if(timer) clearInterval(timer);
+    timer = null;
+    await releaseWakeLock();
+    renderRightPanel();
+  }
+
+  async function advanceStage(manual){
+    const d = loadDay();
+    if(!d) return;
+    const atLast = d.currentStageIndex >= d.stages.length - 1;
+
+    if(atLast){
+      d.isRunning = false;
+      saveDay(d);
+      if(timer) clearInterval(timer);
+      timer = null;
+      renderRightPanel();
+      await releaseWakeLock();
+      await patternDone();
+      return;
+    }
+
+    d.currentStageIndex += 1;
+    d.currentStageLeft = d.stages[d.currentStageIndex].seconds;
+    d.lastCountdownBeep = null;
+    if(!manual) d.isRunning = true;
+    saveDay(d);
+    renderRightPanel();
+    await patternStageChange();
+
+    if(manual){
+      d.isRunning = false;
+      saveDay(d);
+      renderRightPanel();
+    } else {
+      startTick();
+    }
+  }
+
+  async function resetSequence(){
+    const d = loadDay();
+    if(!d) return;
+    d.currentStageIndex = 0;
+    d.currentStageLeft = d.stages.length ? d.stages[0].seconds : 0;
+    d.isRunning = false;
+    d.lastCountdownBeep = null;
+    saveDay(d);
+    if(timer) clearInterval(timer);
+    timer = null;
+    await releaseWakeLock();
+    renderRightPanel();
   }
 
   function renderGate(existing){
@@ -747,15 +1214,48 @@
     });
 
     btnGenerate.onclick = () => {
+      if(longPressTriggered) return;
       const total = Object.values(scores).reduce((a,b)=>a+b,0);
       const band = computeBand(total).band;
       const session = generateSession(band, total);
       renderSession(session);
     };
 
+    let pressTimer = null;
+    let longPressTriggered = false;
+    const startPress = () => {
+      if(btnGenerate.disabled) return;
+      clearTimeout(pressTimer);
+      longPressTriggered = false;
+      pressTimer = setTimeout(() => {
+        longPressTriggered = true;
+        openFullModeModal();
+      }, 650);
+    };
+    const endPress = (e) => {
+      if(pressTimer){
+        clearTimeout(pressTimer);
+        pressTimer = null;
+      }
+      if(longPressTriggered && e){
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      setTimeout(() => { longPressTriggered = false; }, 0);
+    };
+
+    btnGenerate.addEventListener("touchstart", startPress, { passive:true });
+    btnGenerate.addEventListener("touchend", endPress);
+    btnGenerate.addEventListener("touchcancel", endPress);
+    btnGenerate.addEventListener("mousedown", startPress);
+    btnGenerate.addEventListener("mouseup", endPress);
+    btnGenerate.addEventListener("mouseleave", endPress);
+    btnGenerate.addEventListener("contextmenu", (e) => e.preventDefault());
+
     updateUI();
     renderRightNone();
     setModePill("—");
+    setFullPill();
     setDayPill("nieuw");
   }
 
@@ -771,13 +1271,22 @@
   }
 
   btnMain.onclick = boot;
-  btnReset.onclick = () => {
+  btnReset.onclick = async () => {
     localStorage.removeItem(LS_DAY);
     if(timer) clearInterval(timer);
     timer = null;
+    await releaseWakeLock();
     boot();
   };
 
+  if(appModal){
+    appModal.addEventListener("click", (e) => {
+      if(e.target === appModal) closeModal();
+    });
+  }
+
+  setWakePill(false);
+  setFullPill();
   boot();
 })();
 </script>
