@@ -462,6 +462,9 @@ function pickClubExercise(pool, currentPosition, usedNames){
     if(total >= 7)  return { band:'MINI', label:'7–11', cls:'mid' };
     return { band:'LOW', label:'0–6', cls:'rec' };
   }
+  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${mode || '—'}</strong>`; }
+  function setDayPill(state){ dayPill.innerHTML = `Vandaag: <strong>${state || 'nieuw'}</strong>`; }
+  function setWakePill(on){ wakePill.innerHTML = `Wake Lock: <strong>${on ? 'aan' : 'uit'}</strong>`; }
   function fmt(sec){
     const m = Math.floor(sec/60), s = sec%60;
     return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
@@ -559,6 +562,91 @@ function generateClubExercises(clubType){
     endPosition: currentPosition
   };
 }
+
+  function buildStages(session){
+    const stages = [];
+    if(session.mode === 'FULL'){
+      stages.push({ key:'club', label:`Clubbell · ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
+      stages.push({ key:'prasara', label:`Prasara · ${fmtMin(session.blockTimes.prasara)}`, seconds:session.blockTimes.prasara });
+    } else if(session.mode === 'MINI'){
+      stages.push({ key:'prasara', label:`Prasara · ${fmtMin(session.blockTimes.prasara)}`, seconds:session.blockTimes.prasara });
+    }
+    return stages;
+  }
+
+  function generateSession(mode, total){
+    const last = loadLast();
+    let finalMode = mode;
+    let downgraded = false;
+
+    if(mode === 'FULL' && isYesterday(last.lastFullDate)){
+      finalMode = 'MINI';
+      downgraded = true;
+    }
+
+    const session = {
+      day: todayKey(),
+      total,
+      modeRequested: mode,
+      mode: finalMode,
+      downgraded,
+      intu: intu.slice(),
+      club: null,
+      prasara: null,
+      blockTimes: { intu: 8 * 60, club: 0, prasara: 0 },
+      stages: [],
+      currentStageIndex: 0,
+      currentStageLeft: 0,
+      isRunning: false,
+      lastCountdownBeep: null
+    };
+
+    if(finalMode === 'FULL'){
+      const next = nextFullClubType();
+      const clubType = next.clubType;
+      const clubPlan = generateClubExercises(clubType);
+      session.club = {
+        clubType,
+        exercises: clubPlan.exercises,
+        sequence: clubPlan.sequence,
+        flow: clubPlan.flow,
+        endPosition: clubPlan.endPosition
+      };
+      session.blockTimes.club = rand([15,20]) * 60;
+      session.blockTimes.prasara = rand([5,10]) * 60;
+      saveLast({
+        lastFullDate: todayKey(),
+        nextClubIndex: next.nextIndex
+      });
+    } else if(finalMode === 'MINI'){
+      session.blockTimes.prasara = rand([15,20]) * 60;
+      saveLast({
+        lastFullDate: last.lastFullDate || null,
+        nextClubIndex: last.nextClubIndex || 0
+      });
+    } else {
+      saveLast({
+        lastFullDate: last.lastFullDate || null,
+        nextClubIndex: last.nextClubIndex || 0
+      });
+    }
+
+    if(finalMode !== 'LOW'){
+      const prasaraCount = Math.floor(Math.random()*3)+3;
+      const fams = pickFamilies(prasaraFamilies, prasaraCount);
+      session.prasara = {
+        shapes: fams.map(f => ({ family:f, exercise: rand(prasaraFamilies[f]) })),
+        rules: shuffle(prasaraRules).slice(0, 3),
+        intention: rand(prasaraIntentions)
+      };
+    }
+
+    session.stages = buildStages(session);
+    session.currentStageLeft = session.stages.length ? session.stages[0].seconds : 0;
+
+    saveDay(session);
+    return session;
+  }
 
   function bindAccordions(){
     const headers = leftCard.querySelectorAll('.accordion-header');
