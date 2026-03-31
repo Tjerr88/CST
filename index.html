@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v3</title>
+<title>CST Generator v3.1</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -178,7 +178,7 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v3</h1>
+    <h1>CST Generator v3.1</h1>
     <div class="row" style="margin-top:10px;">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset dag</button>
@@ -198,8 +198,8 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v24";
-  const LS_LAST = "cst_last_v24";
+  const LS_DAY = "cst_day_v31";
+  const LS_LAST = "cst_last_v31";
 
   const gateDef = [
     { key:'soreness', label:'Spierpijn / Herstel', choices:['Pijn','Beperkt','Stijf','Licht stijf','Soepel','Fris'] },
@@ -404,24 +404,49 @@ function pickClubExercise(pool, currentPosition, usedNames){
   return pool.length ? rand(pool) : null;
 }
 
-  const prasaraFamilies = {
-    "Squat":["Deep Squat","Cossack","Squat Rotation","Heels Elevated"],
-    "Lunge":["Low Lunge","High Lunge","Twisting Lunge","Lateral Lunge"],
-    "Hinge":["Forward Fold","Wide Fold","Single Leg Fold","Fold Rotation"],
-    "Plank":["Plank","Side Plank","Shoulder Tap","Beast"],
-    "Extension":["Cobra","Upward Dog","Sphinx","Locust"],
-    "Inverted":["Down Dog","Bent Knee Dog","3 Leg Dog","Walking Dog"],
-    "Rotation":["Seated Twist","Lunge Twist","Thread Needle","Open Book"],
-    "Balance":["Single Leg","Tree","Airplane","Knee Raise"]
-  };
-
-  const prasaraIntentions = [
-    "Slow & gecontroleerd","Continu bewegen","Focus op rotatie","Focus op ademhaling",
-    "Blijf laag bij de grond","Speel met range (klein ↔ groot)","Flow zonder kracht te forceren"
-  ];
-
-  const prasaraRules = [
-    "Geen stoppen","Vrije volgorde","Wissel links/rechts","Gebruik rotatie om te verbinden","Blijf in beweging, ook bij twijfel"
+  const PRASARA_FLOWS = [
+    {
+      id:"ground",
+      name:"Ground Flow",
+      focus:"Reset, decompressie, schouders en rug losmaken",
+      use:"Na Clubbell: 1 rustige ronde. Losse training: 15–20 min herhalen.",
+      sequence:["Child’s Pose","Quadruped","Thread the Needle rechts","Quadruped","Thread the Needle links","Sphinx Pose","Cobra Pose","Child’s Pose"]
+    },
+    {
+      id:"hip",
+      name:"Hip Flow",
+      focus:"Heupen, adductoren, enkels en squatkwaliteit",
+      use:"Na Clubbell: 1 ronde om de onderkant open te maken. Losse training: 15–20 min vloeiend herhalen.",
+      sequence:["Deep Squat","Cossack rechts","Deep Squat","Cossack links","Low Lunge rechts","Forward Fold","Low Lunge links","Deep Squat"]
+    },
+    {
+      id:"spine",
+      name:"Spine Flow",
+      focus:"Wervelkolom in flexie, extensie en rotatie",
+      use:"Na Clubbell: rustige integratie. Losse training: 15–20 min soepel en zonder forceren.",
+      sequence:["Cat","Cow","Child’s Pose","Cobra Pose","Downward Dog","Seated Twist rechts","Seated Twist links","Forward Fold"]
+    },
+    {
+      id:"standing",
+      name:"Standing Flow",
+      focus:"Balans, heupcontrole en staande verbindingen",
+      use:"Na Clubbell: 1 geconcentreerde ronde. Losse training: 15–20 min ritmisch herhalen.",
+      sequence:["Mountain Pose","Tree Pose rechts","Forward Fold","Half Lift","Tree Pose links","Forward Fold","Half Lift","Mountain Pose"]
+    },
+    {
+      id:"strength",
+      name:"Strength Flow",
+      focus:"Benen, core en schouders met gecontroleerde druk",
+      use:"Na Clubbell: alleen rustig en technisch. Losse training: 15–20 min als werk-flow.",
+      sequence:["Plank","Side Plank rechts","Plank","Side Plank links","Cobra Pose","Deep Squat","Chair Pose","Forward Fold"]
+    },
+    {
+      id:"open",
+      name:"Open Flow",
+      focus:"Voorkant lichaam openen, heupflexoren, borst en ademruimte",
+      use:"Na Clubbell: mooie cooldown. Losse training: 15–20 min met rustige adem.",
+      sequence:["Low Lunge rechts","Upward Dog","Downward Dog","Low Lunge links","Upward Dog","Downward Dog","Child’s Pose","Mountain Pose"]
+    }
   ];
 
   const CLUB_ROTATION = ["single","double","single","2h","single","double"];
@@ -490,7 +515,7 @@ function pickClubExercise(pool, currentPosition, usedNames){
     return a;
   }
   function saveDay(day){ saveJSON(LS_DAY, day); }
-  function loadLast(){ return loadJSON(LS_LAST) || { lastFullDate:null, nextClubIndex:0 }; }
+  function loadLast(){ return loadJSON(LS_LAST) || { lastFullDate:null, nextClubIndex:0, prasaraBag:[] }; }
   function saveLast(v){ saveJSON(LS_LAST, v); }
 
   function isYesterday(dateStr){
@@ -508,6 +533,19 @@ function pickClubExercise(pool, currentPosition, usedNames){
     const clubType = CLUB_ROTATION[idx % CLUB_ROTATION.length];
     return { clubType, nextIndex: (idx + 1) % CLUB_ROTATION.length };
   }
+
+  function nextPrasaraFlow(){
+    const last = loadLast();
+    let bag = Array.isArray(last.prasaraBag) ? last.prasaraBag.slice() : [];
+    if(!bag.length){
+      bag = shuffle(PRASARA_FLOWS.map(x => x.id));
+    }
+    const flowId = bag.shift();
+    last.prasaraBag = bag;
+    saveLast(last);
+    return PRASARA_FLOWS.find(x => x.id === flowId) || PRASARA_FLOWS[0];
+  }
+
 
 
 function generateClubExercises(clubType){
@@ -627,30 +665,35 @@ function generateClubExercises(clubType){
       };
       session.blockTimes.club = rand([15,20]) * 60;
       session.blockTimes.prasara = rand([5,10]) * 60;
+      const lastState = loadLast();
       saveLast({
         lastFullDate: todayKey(),
-        nextClubIndex: next.nextIndex
+        nextClubIndex: next.nextIndex,
+        prasaraBag: Array.isArray(lastState.prasaraBag) ? lastState.prasaraBag : []
       });
     } else if(finalMode === 'MINI'){
       session.blockTimes.prasara = rand([15,20]) * 60;
       saveLast({
         lastFullDate: last.lastFullDate || null,
-        nextClubIndex: last.nextClubIndex || 0
+        nextClubIndex: last.nextClubIndex || 0,
+        prasaraBag: Array.isArray(last.prasaraBag) ? last.prasaraBag : []
       });
     } else {
       saveLast({
         lastFullDate: last.lastFullDate || null,
-        nextClubIndex: last.nextClubIndex || 0
+        nextClubIndex: last.nextClubIndex || 0,
+        prasaraBag: Array.isArray(last.prasaraBag) ? last.prasaraBag : []
       });
     }
 
     if(finalMode !== 'LOW'){
-      const prasaraCount = Math.floor(Math.random()*3)+3;
-      const fams = pickFamilies(prasaraFamilies, prasaraCount);
+      const flow = nextPrasaraFlow();
       session.prasara = {
-        shapes: fams.map(f => ({ family:f, exercise: rand(prasaraFamilies[f]) })),
-        rules: shuffle(prasaraRules).slice(0, 3),
-        intention: rand(prasaraIntentions)
+        id: flow.id,
+        name: flow.name,
+        focus: flow.focus,
+        use: flow.use,
+        sequence: flow.sequence.slice()
       };
     }
 
@@ -761,48 +804,56 @@ function generateClubExercises(clubType){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Prasara</span>
+          <span>Prasara · ${s.prasara.name}</span>
           <span class="pill">${fmtMin(s.blockTimes?.prasara || 0)} · ${s.mode === "FULL" ? "Integratie" : "Hoofdblok"}</span>
         </button>
         <div class="accordion-content">
           <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
             <div class="ex-left">
-              <div class="ex-title">Richtduur Prasara</div>
-              <div class="ex-meta">${fmtMin(s.blockTimes?.prasara || 0)}</div>
+              <div class="ex-title">Flow van de dag</div>
+              <div class="ex-meta">${s.prasara.name}</div>
             </div>
-            <div class="pill">${s.mode === "FULL" ? "Integratie" : "Hoofdblok"}</div>
+            <div class="pill">Shuffle bag</div>
           </div>
           <div class="exercise" style="margin-bottom:10px;">
             <div class="ex-left">
-              <div class="ex-title">Intentie</div>
-              <div class="ex-meta">${s.prasara.intention}</div>
+              <div class="ex-title">Focus</div>
+              <div class="ex-meta">${s.prasara.focus}</div>
             </div>
             <div class="pill">Focus</div>
           </div>
           <div class="exercise" style="margin-bottom:10px;">
             <div class="ex-left">
-              <div class="ex-title">Regels</div>
-              <div class="ex-meta">${s.prasara.rules.join(" • ")}</div>
+              <div class="ex-title">Gebruik</div>
+              <div class="ex-meta">${s.prasara.use}</div>
             </div>
-            <div class="pill">Flow</div>
+            <div class="pill">${s.mode === "FULL" ? "Na Clubbell" : "Losse sessie"}</div>
           </div>
           <div class="exercise" style="margin-bottom:10px;">
             <div class="ex-left">
-              <div class="ex-title">Prasara opdracht</div>
-              <div class="ex-meta">Gebruik deze shapes als woorden. Blijf continu bewegen. Geen vaste volgorde, geen eindpunten, alleen terugkerende vormen.</div>
+              <div class="ex-title">Regel</div>
+              <div class="ex-meta">Geen holds. Blijf bewegen. Adem rustig door. Leer de vaste keten.</div>
             </div>
-            <div class="pill">Language</div>
+            <div class="pill">Flow</div>
           </div>
           <div style="display:grid; gap:10px;">
-            ${s.prasara.shapes.map(x => `
+            ${s.prasara.sequence.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
-                  <div class="ex-title">${x.exercise}</div>
-                  <div class="ex-meta">${x.family}</div>
+                  <div class="ex-title">${idx + 1}. ${x}</div>
+                  <div class="ex-meta">${idx < s.prasara.sequence.length - 1 ? `Ga door naar: ${s.prasara.sequence[idx + 1]}` : "Rond af en begin opnieuw of stop rustig."}</div>
                 </div>
-                <div class="pill">Shape</div>
+                <div class="pill">Step</div>
               </div>`).join("")}
           </div>
+          <div class="exercise" style="margin-top:10px;">
+            <div class="ex-left">
+              <div class="ex-title">Volledige keten</div>
+              <div class="ex-meta">${s.prasara.sequence.join(" → ")}</div>
+            </div>
+            <div class="pill">Sequence</div>
+          </div>
+          <p class="small" style="margin-top:10px;">Shuffle bag: alle 6 flows komen eerst één keer langs voordat de volgorde opnieuw wordt geschud.</p>
         </div>
       </div>`;
     }
