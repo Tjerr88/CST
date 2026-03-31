@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v2.5</title>
+<title>CST Generator Pure CST v2.7</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -170,52 +170,24 @@
     background: rgba(255,204,102,.08);
   }
 
-  #appModal{
-    position:fixed; inset:0;
-    background: rgba(0,0,0,0.58);
-    display:none;
-    align-items:center;
-    justify-content:center;
-    z-index:10000;
-    padding:16px;
-  }
-  #appModal.show{ display:flex; }
-  .modalCard{
-    width:min(560px, 100%);
-    border:1px solid var(--line);
-    background: var(--surface);
-    border-radius:16px;
-    padding:14px;
-  }
-  .modalTitle{ font-size:15px; font-weight:900; margin:0 0 6px; }
-  .modalText{ font-size:13px; color:var(--muted); margin:0; line-height:1.35; }
-  .modalRow{ display:flex; gap:10px; flex-wrap:wrap; margin-top:12px; }
+
 
 </style>
 </head>
 <body>
 
-<div id="appModal" aria-hidden="true">
-  <div class="modalCard">
-    <div class="modalTitle" id="modalTitle">FULL instelling</div>
-    <p class="modalText" id="modalText">Kies hoe FULL-dagen werken.</p>
-    <div class="modalRow" id="modalActions"></div>
-  </div>
-</div>
-
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v2.5</h1>
+    <h1>CST Generator Pure CST v2.7</h1>
     <div class="row" style="margin-top:10px;">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset dag</button>
       <span id="modePill" class="pill">Mode: <strong>—</strong></span>
-      <span id="fullPill" class="pill">FULL: <strong>CST Only</strong></span>
-      <span id="dayPill" class="pill">Vandaag: <strong>nieuw</strong></span>
+            <span id="dayPill" class="pill">Vandaag: <strong>nieuw</strong></span>
       <span id="wakePill" class="pill">Wake Lock: <strong>uit</strong></span>
       <span class="pill beep-pill">Beeps: <strong>3-2-1 + wissel + klaar</strong></span>
     </div>
-    <p class="small" style="margin-top:10px;">LOW = alleen Intu. MINI = Intu + langere Prasara. FULL = Clubbell óf KB, afhankelijk van je instelling. Houd Genereer sessie ingedrukt om te wisselen tussen CST Only en CST / KB Alternate. Als gisteren FULL was, is vandaag maximaal MINI.</p>
+    <p class="small" style="margin-top:10px;">LOW = alleen Intu. MINI = Intu + langere Prasara. FULL = Clubbell + korte Prasara. Als gisteren FULL was, is vandaag maximaal MINI.</p>
   </div>
 
   <div class="grid">
@@ -440,33 +412,6 @@ function pickClubExercise(pool, currentPosition, usedNames){
   ];
 
   const CLUB_ROTATION = ["single","double","single","2h","single","double"];
-  const LS_SETTINGS = "cst_settings_v25";
-  const FULL_TYPES = ["club","kb"];
-
-  const KB_LIB = {
-    squat: { label:"Squat", subcats:{
-      symmetric:{ label:"Symmetrisch", exercises:["Goblet Squat","Double Front Squat","Hack Squat"] },
-      asymmetric:{ label:"Asymmetrisch", exercises:["Reverse Lunge","Side Lunge / Cossack","Bulgarian Split Squat"] },
-      singleleg:{ label:"Single Leg", exercises:["Step-up","Skater Squat","Box Pistol"] },
-    }},
-    hinge: { label:"Hinge", subcats:{
-      deadlift:{ label:"Deadlift", exercises:["Single-Leg Deadlift","B-Stance Deadlift","Double Sumo Deadlift"] },
-      hipthrust:{ label:"Hip Thrust", exercises:["Hip Thrust","B-Stance Hip Thrust","Single-Leg Hip Thrust"] },
-      ballistic:{ label:"Ballistic", exercises:["One-Arm Swing","Two-Arm Swing","Hand-to-Hand Swing"] },
-    }},
-    push: { label:"Push", subcats:{
-      horizontal:{ label:"Horizontal", exercises:["Bridge Floor Press","Push-up","Get-Up Sit-Up"] },
-      vertical:{ label:"Vertical", exercises:["Military Press","Half-Kneeling Press","Top-Down Press"] },
-      ballistic:{ label:"Ballistic", exercises:["Double Push Press","Push Jerk","Viking Push Press"] },
-    }},
-    pull: { label:"Pull", subcats:{
-      horizontal:{ label:"Horizontal", exercises:["Wide Row","Small Row","Gorilla Row"] },
-      vertical:{ label:"Vertical", exercises:["Chin-up","Pull-up","False-Grip Pull-up"] },
-      ballistic:{ label:"Ballistic", exercises:["Double Clean","Snatch","High Pull"] },
-    }}
-  };
-
-  const KB_CARRIES = ["Suitcase Carry","Front Rack Carry","Overhead Carry","Front Rack March","Cook Drill March","Get-Up"];
 
   const leftCard = document.getElementById("leftCard");
   const rightInner = document.getElementById("rightInner");
@@ -476,10 +421,6 @@ function pickClubExercise(pool, currentPosition, usedNames){
   const fullPill = document.getElementById("fullPill");
   const dayPill = document.getElementById("dayPill");
   const wakePill = document.getElementById("wakePill");
-  const appModal = document.getElementById("appModal");
-  const modalTitleEl = document.getElementById("modalTitle");
-  const modalTextEl = document.getElementById("modalText");
-  const modalActionsEl = document.getElementById("modalActions");
 
   let timer = null;
   let audioCtx = null;
@@ -521,57 +462,6 @@ function pickClubExercise(pool, currentPosition, usedNames){
     if(total >= 7)  return { band:'MINI', label:'7–11', cls:'mid' };
     return { band:'LOW', label:'0–6', cls:'rec' };
   }
-  function loadSettings(){
-    const raw = loadJSON(LS_SETTINGS);
-    return {
-      fullMode: raw?.fullMode === "alternate" ? "alternate" : "cst",
-    };
-  }
-  function saveSettings(v){ saveJSON(LS_SETTINGS, v); }
-  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${mode || "—"}</strong>`; }
-  function setFullPill(){
-    const s = loadSettings();
-    fullPill.innerHTML = `FULL: <strong>${s.fullMode === "alternate" ? "CST / KB Alternate" : "CST Only"}</strong>`;
-  }
-  function setDayPill(state){ dayPill.innerHTML = `Vandaag: <strong>${state || "nieuw"}</strong>`; }
-  function setWakePill(on){ wakePill.innerHTML = `Wake Lock: <strong>${on ? "aan" : "uit"}</strong>`; }
-
-  function openModal({title="Instelling", text="", actionsHTML=""} = {}){
-    modalTitleEl.textContent = title;
-    modalTextEl.textContent = text;
-    modalActionsEl.innerHTML = actionsHTML || "";
-    appModal.classList.add("show");
-    appModal.setAttribute("aria-hidden", "false");
-  }
-  function closeModal(){
-    appModal.classList.remove("show");
-    appModal.setAttribute("aria-hidden", "true");
-    modalActionsEl.innerHTML = "";
-  }
-  function openFullModeModal(){
-    const settings = loadSettings();
-    openModal({
-      title: "FULL instelling",
-      text: "Kies hoe FULL-dagen werken.",
-      actionsHTML: `
-        <button id="btnSetCST" class="btn ${settings.fullMode === "cst" ? "good" : "primary"}">CST Only</button>
-        <button id="btnSetAlt" class="btn ${settings.fullMode === "alternate" ? "good" : "primary"}">CST / KB Alternate</button>
-        <button id="btnCloseModal" class="btn">Sluiten</button>
-      `
-    });
-    document.getElementById("btnSetCST").onclick = () => {
-      saveSettings({ fullMode:"cst" });
-      setFullPill();
-      closeModal();
-    };
-    document.getElementById("btnSetAlt").onclick = () => {
-      saveSettings({ fullMode:"alternate" });
-      setFullPill();
-      closeModal();
-    };
-    document.getElementById("btnCloseModal").onclick = closeModal;
-  }
-
   function fmt(sec){
     const m = Math.floor(sec/60), s = sec%60;
     return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
@@ -584,7 +474,7 @@ function pickClubExercise(pool, currentPosition, usedNames){
     return a;
   }
   function saveDay(day){ saveJSON(LS_DAY, day); }
-  function loadLast(){ return loadJSON(LS_LAST) || { lastFullDate:null, nextClubIndex:0, nextFullTypeIndex:0, kbMemory:null, lastCarry:null }; }
+  function loadLast(){ return loadJSON(LS_LAST) || { lastFullDate:null, nextClubIndex:0 }; }
   function saveLast(v){ saveJSON(LS_LAST, v); }
 
   function isYesterday(dateStr){
@@ -670,244 +560,6 @@ function generateClubExercises(clubType){
   };
 }
 
-function createKbMemory
-(){
-    const mem = { patterns:{}, lastCarry:null };
-    Object.keys(KB_LIB).forEach(patternKey => {
-      mem.patterns[patternKey] = {
-        lastSubcat:null,
-        subcatBag:[],
-        lastExerciseBySubcat:{},
-        exerciseBags:{}
-      };
-      Object.keys(KB_LIB[patternKey].subcats).forEach(subcatKey => {
-        mem.patterns[patternKey].lastExerciseBySubcat[subcatKey] = null;
-        mem.patterns[patternKey].exerciseBags[subcatKey] = [];
-      });
-    });
-    return mem;
-  }
-
-  function sanitizeKbMemory(raw){
-    const mem = createKbMemory();
-    if(!raw || !raw.patterns) return mem;
-    Object.keys(KB_LIB).forEach(patternKey => {
-      const src = raw.patterns?.[patternKey];
-      if(!src) return;
-      mem.patterns[patternKey].lastSubcat = src.lastSubcat || null;
-      if(Array.isArray(src.subcatBag)){
-        mem.patterns[patternKey].subcatBag = src.subcatBag.filter(sc => Object.prototype.hasOwnProperty.call(KB_LIB[patternKey].subcats, sc));
-      }
-      Object.keys(KB_LIB[patternKey].subcats).forEach(subcatKey => {
-        const exs = KB_LIB[patternKey].subcats[subcatKey].exercises;
-        mem.patterns[patternKey].lastExerciseBySubcat[subcatKey] = src.lastExerciseBySubcat?.[subcatKey] || null;
-        if(Array.isArray(src.exerciseBags?.[subcatKey])){
-          mem.patterns[patternKey].exerciseBags[subcatKey] = src.exerciseBags[subcatKey].filter(ex => exs.includes(ex));
-        }
-      });
-    });
-    mem.lastCarry = raw.lastCarry || null;
-    return mem;
-  }
-
-  function pickFromBag(items, lastValue, existingBag){
-    let bag = Array.isArray(existingBag) ? existingBag.slice() : [];
-    if(!bag.length) bag = shuffle(items);
-    if(lastValue && bag.length > 1 && bag[0] === lastValue){
-      const swapIdx = bag.findIndex(x => x !== lastValue);
-      if(swapIdx > 0) [bag[0], bag[swapIdx]] = [bag[swapIdx], bag[0]];
-    }
-    let picked = bag.shift();
-    if(lastValue && picked === lastValue){
-      const fallback = items.find(x => x !== lastValue);
-      if(fallback){
-        picked = fallback;
-        const idx = bag.indexOf(fallback);
-        if(idx >= 0) bag.splice(idx, 1);
-      }
-    }
-    return { picked, bag };
-  }
-
-  function ladderForKb(item){
-    const ex = (item.exercise || "").toLowerCase();
-    const isDouble = ex.includes("double");
-    const isBallistic = item.subcatKey === "ballistic";
-    if(isBallistic && isDouble) return "4-6-10";
-    if(isBallistic) return "5-10-15";
-    return "2-3-5";
-  }
-
-  function generateKbSession(){
-    const last = loadLast();
-    const mem = sanitizeKbMemory(last.kbMemory);
-    const picks = [];
-
-    ["squat","hinge","push","pull"].forEach(patternKey => {
-      const pattern = KB_LIB[patternKey];
-      const patternMem = mem.patterns[patternKey];
-      const subcatKeys = Object.keys(pattern.subcats);
-      const subcatPick = pickFromBag(subcatKeys, patternMem.lastSubcat, patternMem.subcatBag);
-      const subcatKey = subcatPick.picked;
-      patternMem.subcatBag = subcatPick.bag;
-
-      const exercises = pattern.subcats[subcatKey].exercises;
-      const exPick = pickFromBag(exercises, patternMem.lastExerciseBySubcat[subcatKey], patternMem.exerciseBags[subcatKey]);
-      const exercise = exPick.picked;
-      patternMem.exerciseBags[subcatKey] = exPick.bag;
-      patternMem.lastSubcat = subcatKey;
-      patternMem.lastExerciseBySubcat[subcatKey] = exercise;
-
-      picks.push({
-        patternKey,
-        patternLabel: pattern.label,
-        subcatKey,
-        subcatLabel: pattern.subcats[subcatKey].label,
-        exercise,
-        ladder: ladderForKb({ subcatKey, exercise })
-      });
-    });
-
-    const carryChoices = KB_CARRIES.filter(x => x !== mem.lastCarry);
-    const carry = rand(carryChoices.length ? carryChoices : KB_CARRIES);
-    mem.lastCarry = carry;
-
-    return { circuit: shuffle(picks), carry, memory: mem };
-  }
-
-  function nextFullType(){
-    const settings = loadSettings();
-    if(settings.fullMode !== "alternate") return { fullType:"club", nextIndex:null };
-    const last = loadLast();
-    const idx = Number.isInteger(last.nextFullTypeIndex) ? last.nextFullTypeIndex : 0;
-    return { fullType: FULL_TYPES[idx % FULL_TYPES.length], nextIndex: (idx + 1) % FULL_TYPES.length };
-  }
-
-  function buildStages(session){
-    const stages = [];
-    if(session.mode === "FULL"){
-      if(session.fullType === "kb"){
-        stages.push({ key:"kb", label:`Kettlebell · ${fmtMin(session.blockTimes.kb)}`, seconds:session.blockTimes.kb });
-        stages.push({ key:"carry", label:`Carry · ${fmtMin(session.blockTimes.carry)}`, seconds:session.blockTimes.carry });
-      } else {
-        stages.push({ key:"club", label:`Clubbell · ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
-        stages.push({ key:"prasara", label:`Prasara · ${fmtMin(session.blockTimes.prasara)}`, seconds:session.blockTimes.prasara });
-      }
-    } else if(session.mode === "MINI"){
-      stages.push({ key:"prasara", label:`Prasara · ${fmtMin(session.blockTimes.prasara)}`, seconds:session.blockTimes.prasara });
-    }
-    return stages;
-  }
-
-  function generateSession(mode, total){
-    const last = loadLast();
-    const settings = loadSettings();
-    let finalMode = mode;
-    let downgraded = false;
-
-    if(mode === "FULL" && isYesterday(last.lastFullDate)){
-      finalMode = "MINI";
-      downgraded = true;
-    }
-
-    const session = {
-      day: todayKey(),
-      total,
-      modeRequested: mode,
-      mode: finalMode,
-      downgraded,
-      fullSetting: settings.fullMode,
-      fullType: finalMode === "FULL" ? "club" : null,
-      intu: intu.slice(),
-      club: null,
-      kb: null,
-      prasara: null,
-      carry: null,
-      blockTimes: { intu: 8 * 60, club: 0, kb: 0, prasara: 0, carry: 0 },
-      stages: [],
-      currentStageIndex: 0,
-      currentStageLeft: 0,
-      isRunning: false,
-      lastCountdownBeep: null
-    };
-
-    if(finalMode === "FULL"){
-      const fullChoice = nextFullType();
-      session.fullType = fullChoice.fullType;
-
-      if(session.fullType === "kb"){
-        const kbSession = generateKbSession();
-        session.kb = {
-          circuit: kbSession.circuit,
-          carry: kbSession.carry
-        };
-        session.carry = { exercise: kbSession.carry };
-        session.blockTimes.kb = 20 * 60;
-        session.blockTimes.carry = 5 * 60;
-        saveLast({
-          lastFullDate: todayKey(),
-          nextClubIndex: last.nextClubIndex || 0,
-          nextFullTypeIndex: fullChoice.nextIndex ?? (last.nextFullTypeIndex || 0),
-          kbMemory: kbSession.memory,
-          lastCarry: kbSession.carry
-        });
-      } else {
-        const next = nextFullClubType();
-        const clubType = next.clubType;
-        const clubPlan = generateClubExercises(clubType);
-        session.club = {
-          clubType,
-          exercises: clubPlan.exercises,
-          sequence: clubPlan.sequence,
-          flow: clubPlan.flow,
-          endPosition: clubPlan.endPosition
-        };
-        session.blockTimes.club = rand([15,20]) * 60;
-        session.blockTimes.prasara = rand([5,10]) * 60;
-        saveLast({
-          lastFullDate: todayKey(),
-          nextClubIndex: next.nextIndex,
-          nextFullTypeIndex: fullChoice.nextIndex ?? (last.nextFullTypeIndex || 0),
-          kbMemory: sanitizeKbMemory(last.kbMemory),
-          lastCarry: last.lastCarry || null
-        });
-      }
-    } else if (finalMode === "MINI"){
-      session.blockTimes.prasara = rand([15,20]) * 60;
-      saveLast({
-        lastFullDate: last.lastFullDate || null,
-        nextClubIndex: last.nextClubIndex || 0,
-        nextFullTypeIndex: last.nextFullTypeIndex || 0,
-        kbMemory: sanitizeKbMemory(last.kbMemory),
-        lastCarry: last.lastCarry || null
-      });
-    } else {
-      saveLast({
-        lastFullDate: last.lastFullDate || null,
-        nextClubIndex: last.nextClubIndex || 0,
-        nextFullTypeIndex: last.nextFullTypeIndex || 0,
-        kbMemory: sanitizeKbMemory(last.kbMemory),
-        lastCarry: last.lastCarry || null
-      });
-    }
-
-    if(finalMode !== "LOW" && !(finalMode === "FULL" && session.fullType === "kb")){
-      const prasaraCount = Math.floor(Math.random()*3)+3;
-      const fams = pickFamilies(prasaraFamilies, prasaraCount);
-      session.prasara = {
-        shapes: fams.map(f => ({ family:f, exercise: rand(prasaraFamilies[f]) })),
-        rules: shuffle(prasaraRules).slice(0, 3),
-        intention: rand(prasaraIntentions)
-      };
-    }
-
-    session.stages = buildStages(session);
-    session.currentStageLeft = session.stages.length ? session.stages[0].seconds : 0;
-
-    saveDay(session);
-    return session;
-  }
-
   function bindAccordions(){
     const headers = leftCard.querySelectorAll('.accordion-header');
     headers.forEach(btn => {
@@ -934,13 +586,6 @@ function createKbMemory
     }
 
     html += `
-      <div class="exercise" style="margin-bottom:12px;">
-        <div class="ex-left">
-          <div class="ex-title">FULL instelling</div>
-          <div class="ex-meta">${s.fullSetting === "alternate" ? "CST / KB Alternate" : "CST Only"}${s.mode === "FULL" ? ` • Vandaag: ${s.fullType === "kb" ? "KB" : "CST"}` : ""}</div>
-        </div>
-        <div class="pill">${s.mode === "FULL" ? (s.fullType === "kb" ? "KB" : "CST") : "FULL"}</div>
-      </div>
       <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Intu</span>
@@ -1010,34 +655,6 @@ function createKbMemory
       </div>`;
     }
 
-    if(s.kb){
-      html += `
-      <div class="accordion">
-        <button type="button" class="accordion-header">
-          <span>Kettlebell</span>
-          <span class="pill">${fmtMin(s.blockTimes?.kb || 0)} · Chop Wood</span>
-        </button>
-        <div class="accordion-content">
-          <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Richtduur Kettlebell</div>
-              <div class="ex-meta">${fmtMin(s.blockTimes?.kb || 0)}</div>
-            </div>
-            <div class="pill">Hoofdblok</div>
-          </div>
-          <div style="display:grid; gap:10px;">
-            ${s.kb.circuit.map((x, idx) => `
-              <div class="exercise">
-                <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${x.exercise}</div>
-                  <div class="ex-meta">${x.patternLabel} • ${x.subcatLabel} • ladder ${x.ladder}</div>
-                </div>
-                <div class="pill">${x.patternLabel}</div>
-              </div>`).join("")}
-          </div>
-        </div>
-      </div>`;
-    }
 
     if(s.prasara){
       html += `
@@ -1089,27 +706,9 @@ function createKbMemory
       </div>`;
     }
 
-    if(s.carry){
-      html += `
-      <div class="accordion">
-        <button type="button" class="accordion-header">
-          <span>Carry</span>
-          <span class="pill">${fmtMin(s.blockTimes?.carry || 0)} · Finisher</span>
-        </button>
-        <div class="accordion-content">
-          <div class="exercise" style="margin-top:12px;">
-            <div class="ex-left">
-              <div class="ex-title">${s.carry.exercise}</div>
-              <div class="ex-meta">5 minuten finisher • wissel zijde wanneer nodig</div>
-            </div>
-            <div class="pill">Carry</div>
-          </div>
-        </div>
-      </div>`;
-    }
 
     const summaryText = s.mode === "FULL"
-      ? (s.fullType === "kb" ? "FULL = eerst Kettlebell, daarna Carry." : "FULL = eerst Clubbell, daarna korte Prasara.")
+      ? "FULL = eerst Clubbell, daarna korte Prasara."
       : s.mode === "MINI"
       ? "MINI = alleen langere Prasara als hoofdblok."
       : "LOW = alleen Intu, geen timer.";
@@ -1129,9 +728,8 @@ function createKbMemory
         startSequence();
       };
     }
-    const modeLabel = s.mode === "FULL" ? `FULL · ${s.fullType === "kb" ? "KB" : "CST"}` : s.mode;
+    const modeLabel = s.mode === "FULL" ? "FULL · CST" : s.mode;
     setModePill(modeLabel);
-    setFullPill();
     setDayPill("vastgezet");
     renderRightPanel();
   }
@@ -1432,48 +1030,17 @@ function createKbMemory
     });
 
     btnGenerate.onclick = () => {
-      if(longPressTriggered) return;
       const total = Object.values(scores).reduce((a,b)=>a+b,0);
       const band = computeBand(total).band;
       const session = generateSession(band, total);
       renderSession(session);
     };
 
-    let pressTimer = null;
-    let longPressTriggered = false;
-    const startPress = () => {
-      if(btnGenerate.disabled) return;
-      clearTimeout(pressTimer);
-      longPressTriggered = false;
-      pressTimer = setTimeout(() => {
-        longPressTriggered = true;
-        openFullModeModal();
-      }, 650);
-    };
-    const endPress = (e) => {
-      if(pressTimer){
-        clearTimeout(pressTimer);
-        pressTimer = null;
-      }
-      if(longPressTriggered && e){
-        e.preventDefault();
-        e.stopPropagation();
-      }
-      setTimeout(() => { longPressTriggered = false; }, 0);
-    };
 
-    btnGenerate.addEventListener("touchstart", startPress, { passive:true });
-    btnGenerate.addEventListener("touchend", endPress);
-    btnGenerate.addEventListener("touchcancel", endPress);
-    btnGenerate.addEventListener("mousedown", startPress);
-    btnGenerate.addEventListener("mouseup", endPress);
-    btnGenerate.addEventListener("mouseleave", endPress);
-    btnGenerate.addEventListener("contextmenu", (e) => e.preventDefault());
 
     updateUI();
     renderRightNone();
     setModePill("—");
-    setFullPill();
     setDayPill("nieuw");
   }
 
@@ -1497,14 +1064,8 @@ function createKbMemory
     boot();
   };
 
-  if(appModal){
-    appModal.addEventListener("click", (e) => {
-      if(e.target === appModal) closeModal();
-    });
-  }
 
   setWakePill(false);
-  setFullPill();
   boot();
 })();
 </script>
