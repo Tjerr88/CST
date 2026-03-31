@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator Pure CST v2.7</title>
+<title>CST Generator v3</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -178,7 +178,7 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator Pure CST v2.7</h1>
+    <h1>CST Generator v3</h1>
     <div class="row" style="margin-top:10px;">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset dag</button>
@@ -254,92 +254,105 @@ const CLUB_POSITION_LABELS = {
 };
 
 const CLUB_EXERCISES = [
-  { name:"Front Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Two-Handed Front Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Side Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Side Semi Circle Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Pirouette Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Two-Handed Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Inside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Double Side Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Outside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Lunge-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Side-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Front Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Back Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Inside Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Outside Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
-  { name:"Two-Handed Side Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Front Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Front Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["2h"] },
+  { name:"Side Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Side Semi Circle Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Pirouette Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["2h"] },
+  { name:"Inside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Double Side Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["double"] },
+  { name:"Two-Handed Guard Inside Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Outside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Guard Outside Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Lunge-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Guard Lunge-Step Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Side-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Guard Side-Step Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Front Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Back Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Inside Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Outside Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Side Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["2h"] },
+  { name:"Alternating Circles: Front Stroke and Backstroke", bucket:"Rhythmic", start:"ready", end:"ready", modes:["double"] },
 
-  { name:"Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order" },
-  { name:"Two-Handed Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order" },
-  { name:"Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder" },
-  { name:"Two-Handed Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder" },
-  { name:"Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag" },
-  { name:"Two-Handed Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag" },
-  { name:"Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back" },
-  { name:"Two-Handed Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back" },
-  { name:"Side Clean to Guard Position", bucket:"Ballistic", start:"ready", end:"guard" },
-  { name:"Side Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder" },
-  { name:"Side Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back" },
-  { name:"Side Clean to Side Flag", bucket:"Ballistic", start:"ready", end:"flag" },
+  { name:"Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order", modes:["2h"] },
+  { name:"Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder", modes:["2h"] },
+  { name:"Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag", modes:["2h"] },
+  { name:"Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back", modes:["2h"] },
+  { name:"Side Clean to Guard Position", bucket:"Ballistic", start:"ready", end:"guard", modes:["single","double"] },
+  { name:"Side Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder", modes:["single","double"] },
+  { name:"Side Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back", modes:["single","double"] },
+  { name:"Side Clean to Side Flag", bucket:"Ballistic", start:"ready", end:"flag", modes:["single","double"] },
 
-  { name:"Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch" },
-  { name:"Two-Handed Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch" },
-  { name:"Front Jerk", bucket:"Ballistic", start:"order", end:"order" },
-  { name:"Two-Handed Front Jerk", bucket:"Ballistic", start:"order", end:"order" },
-  { name:"Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder" },
-  { name:"Two-Handed Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder" },
-  { name:"Front Clean + Jerk", bucket:"Ballistic", start:"ready", end:"order" },
-  { name:"Side Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch" },
-  { name:"Side Jerk", bucket:"Ballistic", start:"guard", end:"guard" },
-  { name:"Shoulder Park Side Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder" },
-  { name:"Side Clean + Jerk", bucket:"Ballistic", start:"ready", end:"guard" },
+  { name:"Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Front Jerk", bucket:"Ballistic", start:"order", end:"order", modes:["single","double"] },
+  { name:"Two-Handed Front Jerk", bucket:"Ballistic", start:"order", end:"order", modes:["2h"] },
+  { name:"Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["single","double"] },
+  { name:"Two-Handed Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["2h"] },
+  { name:"Front Clean + Jerk", bucket:"Ballistic", start:"ready", end:"order", modes:["single","double"] },
+  { name:"Side Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Side Jerk", bucket:"Ballistic", start:"guard", end:"guard", modes:["single","double"] },
+  { name:"Shoulder Park Side Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["single","double"] },
+  { name:"Side Clean + Jerk", bucket:"Ballistic", start:"ready", end:"guard", modes:["single","double"] },
 
-  { name:"Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch" },
-  { name:"Two-Handed Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch" },
-  { name:"Front Snatch", bucket:"Ballistic", start:"ready", end:"torch" },
-  { name:"Two-Handed Front Snatch", bucket:"Ballistic", start:"ready", end:"torch" },
-  { name:"Side Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch" },
-  { name:"Side Snatch", bucket:"Ballistic", start:"ready", end:"torch" },
+  { name:"Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Front Snatch", bucket:"Ballistic", start:"ready", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Front Snatch", bucket:"Ballistic", start:"ready", end:"torch", modes:["2h"] },
+  { name:"Side Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Side Snatch", bucket:"Ballistic", start:"ready", end:"torch", modes:["single","double"] },
 
-  { name:"Torch Press", bucket:"Grinding", start:"torch", end:"torch" },
-  { name:"Two-Handed Torch Press", bucket:"Grinding", start:"torch", end:"torch" },
-  { name:"Front Press", bucket:"Grinding", start:"order", end:"order" },
-  { name:"Two-Handed Front Press", bucket:"Grinding", start:"order", end:"order" },
-  { name:"Flag Press", bucket:"Grinding", start:"flag", end:"flag" },
-  { name:"Two-Handed Flag Press", bucket:"Grinding", start:"flag", end:"flag" },
-  { name:"Side Press", bucket:"Grinding", start:"guard", end:"guard" },
-  { name:"Side Flag Press", bucket:"Grinding", start:"flag", end:"flag" },
-  { name:"Clean and Press", bucket:"Grinding", start:"ready", end:"order" },
+  { name:"Torch Press", bucket:"Grinding", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Torch Press", bucket:"Grinding", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Front Press", bucket:"Grinding", start:"order", end:"order", modes:["single","double"] },
+  { name:"Two-Handed Front Press", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
+  { name:"Flag Press", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Flag Press", bucket:"Grinding", start:"flag", end:"flag", modes:["2h"] },
+  { name:"Side Torch Press", bucket:"Grinding", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Side Press", bucket:"Grinding", start:"guard", end:"guard", modes:["single","double"] },
+  { name:"Side Flag Press", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Clean and Press", bucket:"Grinding", start:"ready", end:"order", modes:["single","double"] },
 
-  { name:"Wrist Cast", bucket:"Grinding", start:"order", end:"order" },
-  { name:"Two Handed Wrist Cast — The Crowbar", bucket:"Grinding", start:"order", end:"order" },
-  { name:"Arm Cast", bucket:"Grinding", start:"order", end:"order" },
-  { name:"Two-Handed Arm Cast — The Gama Cast", bucket:"Grinding", start:"order", end:"order" },
-  { name:"Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder" },
-  { name:"Two-Handed Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder" },
-  { name:"Shoulder Cast to Side Flag Position — The Muscle Out", bucket:"Grinding", start:"shoulder", end:"flag" },
-  { name:"Double Shoulder Cast — The Crucifix", bucket:"Grinding", start:"shoulder", end:"shoulder" },
-  { name:"Head Cast", bucket:"Grinding", start:"back", end:"back" },
-  { name:"Two-Handed Head Cast", bucket:"Grinding", start:"back", end:"back" },
-  { name:"Shield Cast", bucket:"Grinding", start:"flag", end:"flag" },
-  { name:"Two-Handed Shield Cast", bucket:"Grinding", start:"flag", end:"flag" },
-  { name:"Parry Cast", bucket:"Grinding", start:"flag", end:"flag" },
-  { name:"Reverse Parry Cast", bucket:"Grinding", start:"flag", end:"flag" },
-  { name:"Two-Handed Parry Cast", bucket:"Grinding", start:"flag", end:"flag" }
+  { name:"Wrist Cast", bucket:"Grinding", start:"order", end:"order", modes:["single","double"] },
+  { name:"Two Handed Wrist Cast — The Crowbar", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
+  { name:"Arm Cast", bucket:"Grinding", start:"order", end:"order", modes:["single","double"] },
+  { name:"Alternating Arm Cast — Drumming Cast", bucket:"Grinding", start:"order", end:"order", modes:["double"] },
+  { name:"Two-Handed Arm Cast — The Gama Cast", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
+  { name:"Two-Handed Arm Cast Circular Pivot", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
+  { name:"Two-Handed Arm Cast to Flag Position — The Barbarian", bucket:"Grinding", start:"order", end:"flag", modes:["2h"] },
+  { name:"Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["single","double"] },
+  { name:"Two-Handed Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["2h"] },
+  { name:"Shoulder Cast to Side Flag Position — The Muscle Out", bucket:"Grinding", start:"shoulder", end:"flag", modes:["single","double"] },
+  { name:"Double Shoulder Cast — The Crucifix", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["double"] },
+  { name:"Alternating Shoulder Cast — The Kodo Cast", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["double"] },
+  { name:"Head Cast", bucket:"Grinding", start:"back", end:"back", modes:["single","double"] },
+  { name:"Shoulder Cast Leverage Hold Variation", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["single","double"] },
+  { name:"Alternating Head Cast – The See-Saw", bucket:"Grinding", start:"back", end:"back", modes:["double"] },
+  { name:"Two-Handed Head Cast", bucket:"Grinding", start:"back", end:"back", modes:["2h"] },
+  { name:"Shield Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Shield Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["2h"] },
+  { name:"Parry Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Reverse Parry Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Parry Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["2h"] }
 ];
 
-function clubCompatible(name, clubType){
-  if(clubType === "single") return !isTwoHanded(name) && !isDouble(name) && !isAlternating(name);
-  if(clubType === "double") return !isTwoHanded(name);
-  if(clubType === "2h") return isTwoHanded(name);
+function clubCompatible(exercise, clubType){
+  const modes = exercise.modes || ["single","double"];
+  if(clubType === "single") return modes.includes("single");
+  if(clubType === "double") return modes.includes("double");
+  if(clubType === "2h") return modes.includes("2h");
   return true;
 }
 
 function clubPool(bucket, clubType){
-  return CLUB_EXERCISES.filter(x => x.bucket === bucket && clubCompatible(x.name, clubType));
+  return CLUB_EXERCISES.filter(x => x.bucket === bucket && clubCompatible(x, clubType));
 }
 
 function clubPositionLabel(pos){
