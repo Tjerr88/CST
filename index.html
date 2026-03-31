@@ -270,6 +270,155 @@
     "Parry Cast","Reverse Parry Cast","Two-Handed Parry Cast"
   ];
 
+
+const CLUB_POSITION_LABELS = {
+  ready:"Ready",
+  order:"Order",
+  shoulder:"Shoulder Park",
+  flag:"Flag",
+  guard:"Guard",
+  back:"Back",
+  torch:"Torch"
+};
+
+const CLUB_EXERCISES = [
+  { name:"Front Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Two-Handed Front Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Side Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Side Semi Circle Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Pirouette Swing", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Two-Handed Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Inside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Double Side Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Outside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Lunge-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Side-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Front Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Back Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Inside Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Outside Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
+  { name:"Two-Handed Side Circle", bucket:"Rhythmic", start:"ready", end:"ready" },
+
+  { name:"Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order" },
+  { name:"Two-Handed Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order" },
+  { name:"Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder" },
+  { name:"Two-Handed Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder" },
+  { name:"Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag" },
+  { name:"Two-Handed Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag" },
+  { name:"Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back" },
+  { name:"Two-Handed Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back" },
+  { name:"Side Clean to Guard Position", bucket:"Ballistic", start:"ready", end:"guard" },
+  { name:"Side Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder" },
+  { name:"Side Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back" },
+  { name:"Side Clean to Side Flag", bucket:"Ballistic", start:"ready", end:"flag" },
+
+  { name:"Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch" },
+  { name:"Two-Handed Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch" },
+  { name:"Front Jerk", bucket:"Ballistic", start:"order", end:"order" },
+  { name:"Two-Handed Front Jerk", bucket:"Ballistic", start:"order", end:"order" },
+  { name:"Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder" },
+  { name:"Two-Handed Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder" },
+  { name:"Front Clean + Jerk", bucket:"Ballistic", start:"ready", end:"order" },
+  { name:"Side Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch" },
+  { name:"Side Jerk", bucket:"Ballistic", start:"guard", end:"guard" },
+  { name:"Shoulder Park Side Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder" },
+  { name:"Side Clean + Jerk", bucket:"Ballistic", start:"ready", end:"guard" },
+
+  { name:"Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch" },
+  { name:"Two-Handed Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch" },
+  { name:"Front Snatch", bucket:"Ballistic", start:"ready", end:"torch" },
+  { name:"Two-Handed Front Snatch", bucket:"Ballistic", start:"ready", end:"torch" },
+  { name:"Side Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch" },
+  { name:"Side Snatch", bucket:"Ballistic", start:"ready", end:"torch" },
+
+  { name:"Torch Press", bucket:"Grinding", start:"torch", end:"torch" },
+  { name:"Two-Handed Torch Press", bucket:"Grinding", start:"torch", end:"torch" },
+  { name:"Front Press", bucket:"Grinding", start:"order", end:"order" },
+  { name:"Two-Handed Front Press", bucket:"Grinding", start:"order", end:"order" },
+  { name:"Flag Press", bucket:"Grinding", start:"flag", end:"flag" },
+  { name:"Two-Handed Flag Press", bucket:"Grinding", start:"flag", end:"flag" },
+  { name:"Side Press", bucket:"Grinding", start:"guard", end:"guard" },
+  { name:"Side Flag Press", bucket:"Grinding", start:"flag", end:"flag" },
+  { name:"Clean and Press", bucket:"Grinding", start:"ready", end:"order" },
+
+  { name:"Wrist Cast", bucket:"Grinding", start:"order", end:"order" },
+  { name:"Two Handed Wrist Cast — The Crowbar", bucket:"Grinding", start:"order", end:"order" },
+  { name:"Arm Cast", bucket:"Grinding", start:"order", end:"order" },
+  { name:"Two-Handed Arm Cast — The Gama Cast", bucket:"Grinding", start:"order", end:"order" },
+  { name:"Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder" },
+  { name:"Two-Handed Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder" },
+  { name:"Shoulder Cast to Side Flag Position — The Muscle Out", bucket:"Grinding", start:"shoulder", end:"flag" },
+  { name:"Double Shoulder Cast — The Crucifix", bucket:"Grinding", start:"shoulder", end:"shoulder" },
+  { name:"Head Cast", bucket:"Grinding", start:"back", end:"back" },
+  { name:"Two-Handed Head Cast", bucket:"Grinding", start:"back", end:"back" },
+  { name:"Shield Cast", bucket:"Grinding", start:"flag", end:"flag" },
+  { name:"Two-Handed Shield Cast", bucket:"Grinding", start:"flag", end:"flag" },
+  { name:"Parry Cast", bucket:"Grinding", start:"flag", end:"flag" },
+  { name:"Reverse Parry Cast", bucket:"Grinding", start:"flag", end:"flag" },
+  { name:"Two-Handed Parry Cast", bucket:"Grinding", start:"flag", end:"flag" }
+];
+
+function clubCompatible(name, clubType){
+  if(clubType === "single") return !isTwoHanded(name) && !isDouble(name) && !isAlternating(name);
+  if(clubType === "double") return !isTwoHanded(name);
+  if(clubType === "2h") return isTwoHanded(name);
+  return true;
+}
+
+function clubPool(bucket, clubType){
+  return CLUB_EXERCISES.filter(x => x.bucket === bucket && clubCompatible(x.name, clubType));
+}
+
+function clubPositionLabel(pos){
+  return CLUB_POSITION_LABELS[pos] || pos || "—";
+}
+
+function clubBridge(fromPos, toPos){
+  if(!fromPos || !toPos || fromPos === toPos) return null;
+  const specific = {
+    "back->shoulder":"Half clean return: Back → Shoulder Park",
+    "back->order":"Half clean return: Back → Order",
+    "back->ready":"Return from Back → Ready",
+    "flag->shoulder":"Half return: Flag → Shoulder Park",
+    "flag->order":"Half return: Flag → Order",
+    "flag->ready":"Half return: Flag → Ready",
+    "guard->order":"Half return: Guard → Order",
+    "guard->ready":"Return from Guard → Ready",
+    "shoulder->order":"Half clean drop: Shoulder Park → Order",
+    "shoulder->ready":"Return from Shoulder Park → Ready",
+    "order->shoulder":"Half clean rise: Order → Shoulder Park",
+    "order->ready":"Return from Order → Ready",
+    "order->torch":"Drive to Torch",
+    "torch->order":"Lower from Torch → Order",
+    "torch->ready":"Lower from Torch → Ready",
+    "ready->order":"Front clean to Order",
+    "ready->shoulder":"Front clean to Shoulder Park",
+    "ready->flag":"Front clean to Flag",
+    "ready->guard":"Side clean to Guard",
+    "ready->back":"Front clean to Back"
+  };
+  const key = `${fromPos}->${toPos}`;
+  return {
+    type:"bridge",
+    label: specific[key] || `Half transition: ${clubPositionLabel(fromPos)} → ${clubPositionLabel(toPos)}`,
+    from: fromPos,
+    to: toPos
+  };
+}
+
+function pickClubExercise(pool, currentPosition, usedNames){
+  const unused = pool.filter(x => !usedNames.includes(x.name));
+  const exact = unused.filter(x => x.start === currentPosition);
+  if(exact.length) return rand(exact);
+  const readyStart = unused.filter(x => x.start === "ready");
+  if(readyStart.length) return rand(readyStart);
+  if(unused.length) return rand(unused);
+  const exactUsed = pool.filter(x => x.start === currentPosition);
+  if(exactUsed.length) return rand(exactUsed);
+  return pool.length ? rand(pool) : null;
+}
+
   const prasaraFamilies = {
     "Squat":["Deep Squat","Cossack","Squat Rotation","Heels Elevated"],
     "Lunge":["Low Lunge","High Lunge","Twisting Lunge","Lateral Lunge"],
@@ -454,18 +603,75 @@
     return { clubType, nextIndex: (idx + 1) % CLUB_ROTATION.length };
   }
 
-  function generateClubExercises(clubType){
-    const exercises = [];
-    const r = pickExercise(rhythmic, clubType);
-    const b = pickExercise(ballistic, clubType);
-    if (r) exercises.push({ bucket: "Rhythmic", exercise: r });
-    if (b) exercises.push({ bucket: "Ballistic", exercise: b });
-    const g = pickExercise(grinding, clubType);
-    if (g && Math.random() > 0.35) exercises.push({ bucket: "Grinding", exercise: g });
-    return exercises;
+
+function generateClubExercises(clubType){
+  const sequence = [];
+  const chosenExercises = [];
+  const usedNames = [];
+  let currentPosition = "ready";
+
+  const rhythmicPool = clubPool("Rhythmic", clubType);
+  const ballisticPool = clubPool("Ballistic", clubType);
+  const grindingPool = clubPool("Grinding", clubType);
+
+  const rhythmicPick = pickClubExercise(rhythmicPool, currentPosition, usedNames);
+  if(rhythmicPick){
+    sequence.push({
+      type:"exercise",
+      bucket:rhythmicPick.bucket,
+      exercise:rhythmicPick.name,
+      start:rhythmicPick.start,
+      end:rhythmicPick.end
+    });
+    chosenExercises.push({ bucket: rhythmicPick.bucket, exercise: rhythmicPick.name, start: rhythmicPick.start, end: rhythmicPick.end });
+    usedNames.push(rhythmicPick.name);
+    currentPosition = rhythmicPick.end;
   }
 
-  function createKbMemory(){
+  const ballisticPick = pickClubExercise(ballisticPool, currentPosition, usedNames);
+  if(ballisticPick){
+    const bridge = clubBridge(currentPosition, ballisticPick.start);
+    if(bridge) sequence.push(bridge);
+    sequence.push({
+      type:"exercise",
+      bucket:ballisticPick.bucket,
+      exercise:ballisticPick.name,
+      start:ballisticPick.start,
+      end:ballisticPick.end
+    });
+    chosenExercises.push({ bucket: ballisticPick.bucket, exercise: ballisticPick.name, start: ballisticPick.start, end: ballisticPick.end });
+    usedNames.push(ballisticPick.name);
+    currentPosition = ballisticPick.end;
+  }
+
+  if(Math.random() > 0.25){
+    const grindingPick = pickClubExercise(grindingPool, currentPosition, usedNames);
+    if(grindingPick){
+      const bridge = clubBridge(currentPosition, grindingPick.start);
+      if(bridge) sequence.push(bridge);
+      sequence.push({
+        type:"exercise",
+        bucket:grindingPick.bucket,
+        exercise:grindingPick.name,
+        start:grindingPick.start,
+        end:grindingPick.end
+      });
+      chosenExercises.push({ bucket: grindingPick.bucket, exercise: grindingPick.name, start: grindingPick.start, end: grindingPick.end });
+      usedNames.push(grindingPick.name);
+      currentPosition = grindingPick.end;
+    }
+  }
+
+  return {
+    exercises: chosenExercises,
+    sequence,
+    flow: sequence.map(x => x.type === "bridge" ? `[${x.label}]` : x.exercise).join(" → "),
+    endPosition: currentPosition
+  };
+}
+
+function createKbMemory
+(){
     const mem = { patterns:{}, lastCarry:null };
     Object.keys(KB_LIB).forEach(patternKey => {
       mem.patterns[patternKey] = {
@@ -648,11 +854,13 @@
       } else {
         const next = nextFullClubType();
         const clubType = next.clubType;
-        const exercises = generateClubExercises(clubType);
+        const clubPlan = generateClubExercises(clubType);
         session.club = {
           clubType,
-          exercises,
-          flow: exercises.map(x => x.exercise).join(" → ")
+          exercises: clubPlan.exercises,
+          sequence: clubPlan.sequence,
+          flow: clubPlan.flow,
+          endPosition: clubPlan.endPosition
         };
         session.blockTimes.club = rand([15,20]) * 60;
         session.blockTimes.prasara = rand([5,10]) * 60;
@@ -753,7 +961,7 @@
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Clubbell</span>
+          <span>Clubbell · basis model</span>
           <span class="pill">${s.club.clubType.toUpperCase()} · ${fmtMin(s.blockTimes?.club || 0)}</span>
         </button>
         <div class="accordion-content">
@@ -771,23 +979,33 @@
             </div>
             <div class="pill">Hoofdblok</div>
           </div>
-          <div style="display:grid; gap:10px;">
-            ${s.club.exercises.map(x => `
-              <div class="exercise">
-                <div class="ex-left">
-                  <div class="ex-title">${x.exercise}</div>
-                  <div class="ex-meta">${x.bucket}</div>
-                </div>
-                <div class="pill">Club</div>
-              </div>`).join("")}
-          </div>
-          <div class="exercise" style="margin-top:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Flow suggestie</div>
-              <div class="ex-meta">${s.club.flow || "—"}</div>
-            </div>
-            <div class="pill">Flow</div>
-          </div>
+<div class="exercise" style="margin-bottom:10px;">
+  <div class="ex-left">
+    <div class="ex-title">Eindpositie van de flow</div>
+    <div class="ex-meta">${clubPositionLabel(s.club.endPosition)}</div>
+  </div>
+  <div class="pill">Position</div>
+</div>
+<div style="display:grid; gap:10px;">
+  ${s.club.sequence.map((x, idx) => `
+    <div class="exercise">
+      <div class="ex-left">
+        <div class="ex-title">${idx + 1}. ${x.type === "bridge" ? x.label : x.exercise}</div>
+        <div class="ex-meta">${x.type === "bridge"
+          ? `Bridge • ${clubPositionLabel(x.from)} → ${clubPositionLabel(x.to)}`
+          : `${x.bucket} • ${clubPositionLabel(x.start)} → ${clubPositionLabel(x.end)}`}</div>
+      </div>
+      <div class="pill">${x.type === "bridge" ? "Bridge" : "Club"}</div>
+    </div>`).join("")}
+</div>
+<div class="exercise" style="margin-top:10px;">
+  <div class="ex-left">
+    <div class="ex-title">Flow suggestie</div>
+    <div class="ex-meta">${s.club.flow || "—"}</div>
+  </div>
+  <div class="pill">Flow</div>
+</div>
+<p class="small" style="margin-top:10px;">Basis model: de generator probeert nu per stap een start- en eindpositie te matchen. Als dat niet direct kan, voegt hij een halve overgang / bridge toe.</p>
         </div>
       </div>`;
     }
