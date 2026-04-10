@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v3.4</title>
+<title>CST Generator v3.5</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -169,6 +169,12 @@
     border-color: rgba(255,204,102,.4);
     background: rgba(255,204,102,.08);
   }
+  .mt-10{margin-top:10px}
+  .mt-12{margin-top:12px}
+  .mb-10{margin-bottom:10px}
+  .mb-12{margin-bottom:12px}
+  .stack-10{display:grid; gap:10px}
+  .stack-10.mt-12{margin-top:12px}
 
 
 
@@ -178,16 +184,16 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v3.4</h1>
-    <div class="row" style="margin-top:10px;">
+    <h1>CST Generator v3.5</h1>
+    <div class="row mt-10">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset dag</button>
-      <span id="modePill" class="pill">Mode: <strong>-</strong></span>
+      <span id="modePill" class="pill">Mode: <strong>—</strong></span>
             <span id="dayPill" class="pill">Vandaag: <strong>nieuw</strong></span>
       <span id="wakePill" class="pill">Wake Lock: <strong>uit</strong></span>
       <span class="pill beep-pill">Beeps: <strong>3-2-1 + wissel + klaar</strong></span>
     </div>
-    <p class="small" style="margin-top:10px;">Gate bepaalt nu alleen de duur. Om en om: Clubbell + decompressieflow, daarna stand-alone Prasara flow. 0-8 = Intu only, 9-12 = 15 min, 13-15 = 20 min.</p>
+    <p class="small mt-10">Gate bepaalt de trainingsduur. Om en om: Clubbell + decompressieflow, daarna stand-alone flow + decompressie. 0–8 = Intu only · 9–12 = 15 min · 13–15 = 20 min.</p>
   </div>
 
   <div class="grid">
@@ -198,60 +204,18 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v34";
-  const LS_LAST = "cst_last_v34";
+  const LS_DAY = "cst_day_v31";
+  const LS_LAST = "cst_last_v31";
 
   const gateDef = [
     { key:'soreness', label:'Spierpijn / Herstel', choices:['Pijn','Beperkt','Stijf','Licht stijf','Soepel','Fris'] },
     { key:'energy',   label:'Energie / Stress',   choices:['Leeg','Zwaar','Moe','Neutraal','Goed','Scherp'] },
-    { key:'sleep',    label:'Slaapkwaliteit',     choices:['Zeer slecht','Slecht','Onderbroken','Okay','Goed','Herstellend'] },
+    { key:'sleep',    label:'Slaapkwaliteit',     choices:['Zeer slecht','Slecht','Onderbroken','Oké','Goed','Herstellend'] },
   ];
 
   const intu = [
     "Neck CARs","Shoulder Rolls","Arm Circles","Spine Waves","Hip Circles","Knee Circles","Ankle Circles"
   ];
-
-  const rhythmic = [
-    "Front Swing","Two-Handed Front Swing","Side Swing","Side Semi Circle Swing","Pirouette Swing",
-    "Front Pendulum","Two-Handed Front Pendulum","Inside Pendulum","Double Side Pendulum",
-    "Two-Handed Guard Inside Pendulum","Outside Pendulum","Two-Handed Guard Outside Pendulum",
-    "Lunge-Step Pendulum","Two-Handed Guard Lunge-Step Pendulum","Side-Step Pendulum",
-    "Two-Handed Guard Side-Step Pendulum","Front Circle","Back Circle","Inside Circle",
-    "Outside Circle","Two-Handed Side Circle","Alternating Circles: Front Stroke and Backstroke"
-  ];
-
-  const ballistic = [
-    "Front Clean to Order Position","Two-Handed Front Clean to Order Position","Front Clean to Shoulder Park",
-    "Two-Handed Front Clean to Shoulder Park","Front Clean to Flag Position","Two-Handed Front Clean to Flag Position",
-    "Front Clean to Back Position","Two-Handed Front Clean to Back Position","Side Clean to Guard Position",
-    "Side Clean to Shoulder Park","Side Clean to Back Position","Side Clean to Side Flag","Front Torch Jerk",
-    "Two-Handed Front Torch Jerk","Front Jerk","Two-Handed Front Jerk","Shoulder Park Front Jerk",
-    "Two-Handed Shoulder Park Front Jerk","Front Clean + Jerk","Side Torch Jerk","Side Jerk",
-    "Shoulder Park Side Jerk","Side Clean + Jerk","Front Torch Snatch","Two-Handed Front Torch Snatch",
-    "Front Snatch","Two-Handed Front Snatch","Side Torch Snatch","Side Snatch"
-  ];
-
-  const grinding = [
-    "Torch Press","Two-Handed Torch Press","Front Press","Two-Handed Front Press","Flag Press","Two-Handed Flag Press",
-    "Side Torch Press","Side Press","Side Flag Press","Clean and Press","Wrist Cast","Two Handed Wrist Cast — The Crowbar",
-    "Arm Cast","Alternating Arm Cast — Drumming Cast","Two-Handed Arm Cast — The Gama Cast",
-    "Two-Handed Arm Cast Circular Pivot","Two-Handed Arm Cast to Flag Position — The Barbarian","Shoulder Cast",
-    "Two-Handed Shoulder Cast","Shoulder Cast to Side Flag Position — The Muscle Out","Double Shoulder Cast — The Crucifix",
-    "Alternating Shoulder Cast — The Kodo Cast","Head Cast","Shoulder Cast Leverage Hold Variation",
-    "Alternating Head Cast – The See-Saw","Two-Handed Head Cast","Shield Cast","Two-Handed Shield Cast",
-    "Parry Cast","Reverse Parry Cast","Two-Handed Parry Cast"
-  ];
-
-
-const CLUB_POSITION_LABELS = {
-  ready:"Ready",
-  order:"Order",
-  shoulder:"Shoulder Park",
-  flag:"Flag",
-  guard:"Guard",
-  back:"Back",
-  torch:"Torch"
-};
 
 const CLUB_EXERCISES = [
   { name:"Front Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
@@ -355,55 +319,6 @@ function clubPool(bucket, clubType){
   return CLUB_EXERCISES.filter(x => x.bucket === bucket && clubCompatible(x, clubType));
 }
 
-function clubPositionLabel(pos){
-  return CLUB_POSITION_LABELS[pos] || pos || "-";
-}
-
-function clubBridge(fromPos, toPos){
-  if(!fromPos || !toPos || fromPos === toPos) return null;
-  const specific = {
-    "back->shoulder":"Half clean return: Back -> Shoulder Park",
-    "back->order":"Half clean return: Back -> Order",
-    "back->ready":"Return from Back -> Ready",
-    "flag->shoulder":"Half return: Flag -> Shoulder Park",
-    "flag->order":"Half return: Flag -> Order",
-    "flag->ready":"Half return: Flag -> Ready",
-    "guard->order":"Half return: Guard -> Order",
-    "guard->ready":"Return from Guard -> Ready",
-    "shoulder->order":"Half clean drop: Shoulder Park -> Order",
-    "shoulder->ready":"Return from Shoulder Park -> Ready",
-    "order->shoulder":"Half clean rise: Order -> Shoulder Park",
-    "order->ready":"Return from Order -> Ready",
-    "order->torch":"Drive to Torch",
-    "torch->order":"Lower from Torch -> Order",
-    "torch->ready":"Lower from Torch -> Ready",
-    "ready->order":"Front clean to Order",
-    "ready->shoulder":"Front clean to Shoulder Park",
-    "ready->flag":"Front clean to Flag",
-    "ready->guard":"Side clean to Guard",
-    "ready->back":"Front clean to Back"
-  };
-  const key = `${fromPos}->${toPos}`;
-  return {
-    type:"bridge",
-    label: specific[key] || `Half transition: ${clubPositionLabel(fromPos)} -> ${clubPositionLabel(toPos)}`,
-    from: fromPos,
-    to: toPos
-  };
-}
-
-function pickClubExercise(pool, currentPosition, usedNames){
-  const unused = pool.filter(x => !usedNames.includes(x.name));
-  const exact = unused.filter(x => x.start === currentPosition);
-  if(exact.length) return rand(exact);
-  const readyStart = unused.filter(x => x.start === "ready");
-  if(readyStart.length) return rand(readyStart);
-  if(unused.length) return rand(unused);
-  const exactUsed = pool.filter(x => x.start === currentPosition);
-  if(exactUsed.length) return rand(exactUsed);
-  return pool.length ? rand(pool) : null;
-}
-
   const DECOMP_FLOWS = [
     { id:"ground_reset", name:"Ground Reset", focus:"Decompressie, schouders en rug losmaken", use:"Na Clubbell: 1 rustige ronde of zacht herhalen tot de timer klaar is.", sequence:["Child’s Pose","Quadruped","Thread the Needle rechts","Quadruped","Thread the Needle links","Sphinx Pose","Cobra Pose","Child’s Pose"] },
     { id:"spine_unwind", name:"Spine Unwind", focus:"Wervelkolom ontspannen in flexie, extensie en rotatie", use:"Na Clubbell: adem terugvinden en spanning laten zakken.", sequence:["Cat","Cow","Child’s Pose","Cobra Pose","Downward Dog","Seated Twist rechts","Seated Twist links","Forward Fold"] },
@@ -432,7 +347,6 @@ function pickClubExercise(pool, currentPosition, usedNames){
   const btnMain = document.getElementById("btnMain");
   const btnReset = document.getElementById("btnReset");
   const modePill = document.getElementById("modePill");
-  const fullPill = document.getElementById("fullPill");
   const dayPill = document.getElementById("dayPill");
   const wakePill = document.getElementById("wakePill");
 
@@ -455,39 +369,24 @@ function pickClubExercise(pool, currentPosition, usedNames){
     }
     return a;
   }
-  function pickFamilies(obj, count){ return shuffle(Object.keys(obj)).slice(0, count); }
-  function normalize(x){ return x.toLowerCase(); }
-  function isTwoHanded(x){ const s = normalize(x); return s.includes("two-handed") || s.includes("two handed"); }
-  function isDouble(x){ return normalize(x).includes("double"); }
-  function isAlternating(x){ return normalize(x).includes("alternating"); }
-  function filterSingle(arr){ return arr.filter(x => !isTwoHanded(x) && !isDouble(x) && !isAlternating(x)); }
-  function filterDouble(arr){ return arr.filter(x => !isTwoHanded(x)); }
-  function filter2H(arr){ return arr.filter(x => isTwoHanded(x)); }
-  function pickExercise(arr, clubType){
-    let pool = [];
-    if(clubType === "single") pool = filterSingle(arr);
-    if(clubType === "double") pool = filterDouble(arr);
-    if(clubType === "2h") pool = filter2H(arr);
-    return pool.length ? rand(pool) : null;
-  }
 
   function computeBand(total){
-    if(total >= 13) return { band:'20', label:'13-15', cls:'good', minutes:20, intuOnly:false };
-    if(total >= 9)  return { band:'15', label:'9-12', cls:'mid', minutes:15, intuOnly:false };
-    return { band:'intu-only', label:'0-8', cls:'rec', minutes:0, intuOnly:true };
+    if(total >= 13) return { band:'20', label:'13–15', cls:'good', minutes:20, intuOnly:false };
+    if(total >= 9)  return { band:'15', label:'9–12', cls:'mid', minutes:15, intuOnly:false };
+    return { band:'intu-only', label:'0–8', cls:'rec', minutes:0, intuOnly:true };
   }
-  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${mode || '-'}</strong>`; }
+  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${mode || '—'}</strong>`; }
   function setDayPill(state){ dayPill.innerHTML = `Vandaag: <strong>${state || 'nieuw'}</strong>`; }
   function setWakePill(on){ wakePill.innerHTML = `Wake Lock: <strong>${on ? 'aan' : 'uit'}</strong>`; }
   function fmt(sec){
     const m = Math.floor(sec/60), s = sec%60;
     return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
   }
-  function fmtMin(sec){ return sec ? Math.round(sec/60) + " min" : "-"; }
+  function fmtMin(sec){ return sec ? Math.round(sec/60) + " min" : "—"; }
 
   function loadDay(){
     const a = loadJSON(LS_DAY);
-    if(!a || a.day !== todayKey() || !Array.isArray(a.stages)) return null;
+    if(!a || a.day !== todayKey()) return null;
     return a;
   }
   function saveDay(day){ saveJSON(LS_DAY, day); }
@@ -537,79 +436,29 @@ function pickClubExercise(pool, currentPosition, usedNames){
 
 
 function generateClubExercises(clubType){
-  const sequence = [];
-  const chosenExercises = [];
-  const usedNames = [];
-  let currentPosition = "ready";
-
-  const rhythmicPool = clubPool("Rhythmic", clubType);
-  const ballisticPool = clubPool("Ballistic", clubType);
-  const grindingPool = clubPool("Grinding", clubType);
-
-  const rhythmicPick = pickClubExercise(rhythmicPool, currentPosition, usedNames);
-  if(rhythmicPick){
-    sequence.push({
-      type:"exercise",
-      bucket:rhythmicPick.bucket,
-      exercise:rhythmicPick.name,
-      start:rhythmicPick.start,
-      end:rhythmicPick.end
-    });
-    chosenExercises.push({ bucket: rhythmicPick.bucket, exercise: rhythmicPick.name, start: rhythmicPick.start, end: rhythmicPick.end });
-    usedNames.push(rhythmicPick.name);
-    currentPosition = rhythmicPick.end;
-  }
-
-  const ballisticPick = pickClubExercise(ballisticPool, currentPosition, usedNames);
-  if(ballisticPick){
-    const bridge = clubBridge(currentPosition, ballisticPick.start);
-    if(bridge) sequence.push(bridge);
-    sequence.push({
-      type:"exercise",
-      bucket:ballisticPick.bucket,
-      exercise:ballisticPick.name,
-      start:ballisticPick.start,
-      end:ballisticPick.end
-    });
-    chosenExercises.push({ bucket: ballisticPick.bucket, exercise: ballisticPick.name, start: ballisticPick.start, end: ballisticPick.end });
-    usedNames.push(ballisticPick.name);
-    currentPosition = ballisticPick.end;
-  }
-
-  if(Math.random() > 0.25){
-    const grindingPick = pickClubExercise(grindingPool, currentPosition, usedNames);
-    if(grindingPick){
-      const bridge = clubBridge(currentPosition, grindingPick.start);
-      if(bridge) sequence.push(bridge);
-      sequence.push({
-        type:"exercise",
-        bucket:grindingPick.bucket,
-        exercise:grindingPick.name,
-        start:grindingPick.start,
-        end:grindingPick.end
-      });
-      chosenExercises.push({ bucket: grindingPick.bucket, exercise: grindingPick.name, start: grindingPick.start, end: grindingPick.end });
-      usedNames.push(grindingPick.name);
-      currentPosition = grindingPick.end;
-    }
-  }
+  const picks = ["Rhythmic", "Ballistic", "Grinding"]
+    .map(bucket => {
+      const pool = clubPool(bucket, clubType);
+      const pick = pool.length ? rand(pool) : null;
+      return pick ? { bucket, exercise:pick.name } : null;
+    })
+    .filter(Boolean);
 
   return {
-    exercises: chosenExercises,
-    sequence,
-    flow: sequence.map(x => x.type === "bridge" ? `[${x.label}]` : x.exercise).join(" -> "),
-    endPosition: currentPosition
+    sequence: picks,
+    flow: picks.map(x => x.exercise).join(" → ")
   };
 }
+
 
   function buildStages(session){
     const stages = [];
     if(session.dayType === 'clubbell'){
-      stages.push({ key:'club', label:`Clubbell - ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
-      stages.push({ key:'decomp', label:`Decompress flow - ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
+      stages.push({ key:'club', label:`Clubbell · ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
+      stages.push({ key:'decomp', label:`Decompress flow · ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
     } else if(session.dayType === 'standalone'){
-      stages.push({ key:'active', label:`Stand-alone flow - ${fmtMin(session.blockTimes.active)}`, seconds:session.blockTimes.active });
-      stages.push({ key:'decomp', label:`Decompress flow - ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
+      stages.push({ key:'active', label:`Stand-alone flow · ${fmtMin(session.blockTimes.active)}`, seconds:session.blockTimes.active });
+      stages.push({ key:'decomp', label:`Decompress flow · ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
     }
     return stages;
   }
@@ -714,37 +563,61 @@ function generateClubExercises(clubType){
 
   function bindAccordions(){
     const headers = leftCard.querySelectorAll('.accordion-header');
-    headers.forEach(btn => {
+    headers.forEach((btn, index) => {
+      const parent = btn.closest('.accordion');
+      const content = parent?.querySelector('.accordion-content');
+      const contentId = `accordion-content-${index}`;
+      if(content){
+        content.id = contentId;
+        btn.setAttribute("aria-controls", contentId);
+      }
+      btn.setAttribute("aria-expanded", String(parent?.classList.contains('active') || false));
       btn.addEventListener('click', () => {
         const parent = btn.closest('.accordion');
         const isOpen = parent.classList.contains('active');
-        leftCard.querySelectorAll('.accordion').forEach(acc => acc.classList.remove('active'));
-        if(!isOpen) parent.classList.add('active');
+        leftCard.querySelectorAll('.accordion').forEach(acc => {
+          acc.classList.remove('active');
+          const header = acc.querySelector('.accordion-header');
+          if(header) header.setAttribute("aria-expanded", "false");
+        });
+        if(!isOpen){
+          parent.classList.add('active');
+          btn.setAttribute("aria-expanded", "true");
+        }
       });
     });
+  }
+
+  function renderExerciseCard(title, meta, pill, extraClass=""){
+    return `<div class="exercise ${extraClass}">
+      <div class="ex-left">
+        <div class="ex-title">${title}</div>
+        ${meta ? `<div class="ex-meta">${meta}</div>` : ""}
+      </div>
+      ${pill ? `<div class="pill">${pill}</div>` : ""}
+    </div>`;
   }
 
   function renderSession(s){
     let html = `<h2>Vandaag</h2>`;
     if(s.intuOnly){
       html += `
-        <div class="exercise" style="margin-bottom:12px;">
-          <div class="ex-left">
-            <div class="ex-title">Intu only dag</div>
-            <div class="ex-meta">Score 0-8: vandaag alleen Intu. De geplande ${s.dayType === 'clubbell' ? 'Clubbell-dag' : 'stand-alone flowdag'} schuift 1 dag door.</div>
-          </div>
-          <div class="pill">Recovery</div>
-        </div>`;
+        ${renderExerciseCard(
+          "Intu only dag",
+          `Score 0–8: vandaag alleen Intu. De geplande ${s.dayType === 'clubbell' ? 'Clubbell-dag' : 'stand-alone flowdag'} schuift 1 dag door.`,
+          "Recovery",
+          "mb-12"
+        )}`;
     }
 
     html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Intu</span>
-          <span class="pill">7 drills - ${fmtMin(s.blockTimes?.intu || 0)}</span>
+          <span class="pill">7 drills · ${fmtMin(s.blockTimes?.intu || 0)}</span>
         </button>
         <div class="accordion-content">
-          <div style="display:grid; gap:10px; margin-top:12px;">
+          <div class="stack-10 mt-12">
             ${s.intu.map(x => `
               <div class="exercise">
                 <div class="ex-left"><div class="ex-title">${x}</div></div>
@@ -758,91 +631,41 @@ function generateClubExercises(clubType){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Clubbell - basis model</span>
-          <span class="pill">${s.club.clubType.toUpperCase()} - ${fmtMin(s.blockTimes?.club || 0)}</span>
+          <span>Clubbell · simple model</span>
+          <span class="pill">${s.club.clubType.toUpperCase()} · ${fmtMin(s.blockTimes?.club || 0)}</span>
         </button>
         <div class="accordion-content">
-          <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Club type</div>
-              <div class="ex-meta">${s.club.clubType.toUpperCase()}</div>
-            </div>
-            <div class="pill">${s.mode}</div>
-          </div>
-          <div class="exercise" style="margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Richtduur Clubbell</div>
-              <div class="ex-meta">${fmtMin(s.blockTimes?.club || 0)}</div>
-            </div>
-            <div class="pill">Hoofdblok</div>
-          </div>
-<div class="exercise" style="margin-bottom:10px;">
-  <div class="ex-left">
-    <div class="ex-title">Eindpositie van de flow</div>
-    <div class="ex-meta">${clubPositionLabel(s.club.endPosition)}</div>
-  </div>
-  <div class="pill">Position</div>
-</div>
-<div style="display:grid; gap:10px;">
+          ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
+          ${renderExerciseCard("Richtduur Clubbell", fmtMin(s.blockTimes?.club || 0), "Hoofdblok", "mb-10")}
+<div class="stack-10">
   ${s.club.sequence.map((x, idx) => `
     <div class="exercise">
       <div class="ex-left">
-        <div class="ex-title">${idx + 1}. ${x.type === "bridge" ? x.label : x.exercise}</div>
-        <div class="ex-meta">${x.type === "bridge"
-          ? `Bridge - ${clubPositionLabel(x.from)} -> ${clubPositionLabel(x.to)}`
-          : `${x.bucket} - ${clubPositionLabel(x.start)} -> ${clubPositionLabel(x.end)}`}</div>
+        <div class="ex-title">${idx + 1}. ${x.exercise}</div>
+        <div class="ex-meta">${x.bucket}</div>
       </div>
-      <div class="pill">${x.type === "bridge" ? "Bridge" : "Club"}</div>
+      <div class="pill">Club</div>
     </div>`).join("")}
 </div>
-<div class="exercise" style="margin-top:10px;">
-  <div class="ex-left">
-    <div class="ex-title">Flow suggestie</div>
-    <div class="ex-meta">${s.club.flow || "-"}</div>
-  </div>
-  <div class="pill">Flow</div>
-</div>
-<p class="small" style="margin-top:10px;">Basis model: de generator probeert nu per stap een start- en eindpositie te matchen. Als dat niet direct kan, voegt hij een halve overgang / bridge toe.</p>
+${renderExerciseCard("Volgorde", s.club.flow || "—", "Simple", "mt-10")}
+<p class="small mt-10">Simple model: 1 willekeurige rhythmic + 1 willekeurige ballistic + 1 willekeurige grind, gefilterd op het club type van de dag.</p>
         </div>
       </div>`;
     }
-    if(s.activeFlow){
+    
+if(s.activeFlow){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Stand-alone flow - ${s.activeFlow.name}</span>
-          <span class="pill">${fmtMin(s.blockTimes?.active || 0)} - Hoofdblok</span>
+          <span>Stand-alone flow · ${s.activeFlow.name}</span>
+          <span class="pill">${fmtMin(s.blockTimes?.active || 0)} · Hoofdblok</span>
         </button>
         <div class="accordion-content">
-          <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Flow van de dag</div>
-              <div class="ex-meta">${s.activeFlow.name}</div>
-            </div>
-            <div class="pill">${s.activeFlow.bagType} bag</div>
-          </div>
-          <div class="exercise" style="margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Focus</div>
-              <div class="ex-meta">${s.activeFlow.focus}</div>
-            </div>
-            <div class="pill">Activatie</div>
-          </div>
-          <div class="exercise" style="margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Gebruik</div>
-              <div class="ex-meta">${s.activeFlow.use}</div>
-            </div>
-            <div class="pill">Losse sessie</div>
-          </div>
-          <div class="exercise" style="margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Regel</div>
-              <div class="ex-meta">Geen holds. Blijf bewegen. Adem rustig door. Leer de vaste keten.</div>
-            </div>
-            <div class="pill">Flow</div>
-          </div>
-          <div style="display:grid; gap:10px;">
+          ${renderExerciseCard("Flow van de dag", s.activeFlow.name, `${s.activeFlow.bagType} bag`, "mt-12 mb-10")}
+          ${renderExerciseCard("Focus", s.activeFlow.focus, "Activatie", "mb-10")}
+          ${renderExerciseCard("Gebruik", s.activeFlow.use, "Losse sessie", "mb-10")}
+          ${renderExerciseCard("Regel", "Geen holds. Blijf bewegen. Adem rustig door. Leer de vaste keten.", "Flow", "mb-10")}
+          <div class="stack-10">
             ${s.activeFlow.sequence.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
@@ -852,13 +675,7 @@ function generateClubExercises(clubType){
                 <div class="pill">Step</div>
               </div>`).join("")}
           </div>
-          <div class="exercise" style="margin-top:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Volledige keten</div>
-              <div class="ex-meta">${s.activeFlow.sequence.join(" -> ")}</div>
-            </div>
-            <div class="pill">Sequence</div>
-          </div>
+          ${renderExerciseCard("Volledige keten", s.activeFlow.sequence.join(" → "), "Sequence", "mt-10")}
         </div>
       </div>`;
     }
@@ -867,39 +684,15 @@ function generateClubExercises(clubType){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Decompressie - ${s.decompFlow.name}</span>
-          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} - ${s.dayType === "clubbell" ? "Na Clubbell" : "Afronding"}</span>
+          <span>Decompressie · ${s.decompFlow.name}</span>
+          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} · ${s.dayType === "clubbell" ? "Na Clubbell" : "Afronding"}</span>
         </button>
         <div class="accordion-content">
-          <div class="exercise" style="margin-top:12px; margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Flow van de dag</div>
-              <div class="ex-meta">${s.decompFlow.name}</div>
-            </div>
-            <div class="pill">${s.decompFlow.bagType} bag</div>
-          </div>
-          <div class="exercise" style="margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Focus</div>
-              <div class="ex-meta">${s.decompFlow.focus}</div>
-            </div>
-            <div class="pill">Decompressie</div>
-          </div>
-          <div class="exercise" style="margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Gebruik</div>
-              <div class="ex-meta">${s.decompFlow.use}</div>
-            </div>
-            <div class="pill">${s.dayType === "clubbell" ? "Na Clubbell" : "Na stand-alone"}</div>
-          </div>
-          <div class="exercise" style="margin-bottom:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Regel</div>
-              <div class="ex-meta">Zacht, lang en ademend bewegen. Geen forceren. Gebruik dit als afronding.</div>
-            </div>
-            <div class="pill">Flow</div>
-          </div>
-          <div style="display:grid; gap:10px;">
+          ${renderExerciseCard("Flow van de dag", s.decompFlow.name, `${s.decompFlow.bagType} bag`, "mt-12 mb-10")}
+          ${renderExerciseCard("Focus", s.decompFlow.focus, "Decompressie", "mb-10")}
+          ${renderExerciseCard("Gebruik", s.decompFlow.use, s.dayType === "clubbell" ? "Na Clubbell" : "Na stand-alone", "mb-10")}
+          ${renderExerciseCard("Regel", "Zacht, lang en ademend bewegen. Geen forceren. Gebruik dit als afronding.", "Flow", "mb-10")}
+          <div class="stack-10">
             ${s.decompFlow.sequence.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
@@ -909,14 +702,8 @@ function generateClubExercises(clubType){
                 <div class="pill">Step</div>
               </div>`).join("")}
           </div>
-          <div class="exercise" style="margin-top:10px;">
-            <div class="ex-left">
-              <div class="ex-title">Volledige keten</div>
-              <div class="ex-meta">${s.decompFlow.sequence.join(" -> ")}</div>
-            </div>
-            <div class="pill">Sequence</div>
-          </div>
-          <p class="small" style="margin-top:10px;">Shuffle bag: elke bag loopt eerst leeg voordat opnieuw wordt geschud.</p>
+          ${renderExerciseCard("Volledige keten", s.decompFlow.sequence.join(" → "), "Sequence", "mt-10")}
+          <p class="small mt-10">Shuffle bag: elke bag loopt eerst leeg voordat opnieuw wordt geschud.</p>
         </div>
       </div>`;
     }
@@ -924,14 +711,14 @@ function generateClubExercises(clubType){
     const summaryText = s.intuOnly
       ? "Vandaag: alleen Intu. De geplande training schuift 1 dag door."
       : s.dayType === "clubbell"
-      ? "Vandaag: Intu -> Clubbell -> decompressieflow. Short = 15 + 5, Full = 20 + 10."
-      : "Vandaag: Intu -> stand-alone flow -> decompressieflow. Short = 15 + 5, Full = 20 + 10.";
+      ? "Vandaag: Intu → Clubbell → decompressieflow. Short = 15 + 5 · Full = 20 + 10."
+      : "Vandaag: Intu → stand-alone flow → decompressieflow. Short = 15 + 5 · Full = 20 + 10.";
 
     html += `<div class="hr"></div>
       <div class="row">
         <button id="btnStartSession" class="btn primary" ${s.intuOnly ? "disabled" : ""}>Start bloktimer</button>
       </div>
-      <p class="small" style="margin-top:10px;">${summaryText}</p>`;
+      <p class="small mt-10">${summaryText}</p>`;
 
     leftCard.innerHTML = html;
     bindAccordions();
@@ -959,7 +746,7 @@ function generateClubExercises(clubType){
 
   function renderRightPanel(){
     const s = loadDay();
-    if(!s || !Array.isArray(s.stages)){
+    if(!s){
       renderRightNone();
       return;
     }
@@ -969,16 +756,16 @@ function generateClubExercises(clubType){
     rightInner.innerHTML = `
       <h2>Bloktimer</h2>
       <div class="label">Huidig blok</div>
-      <div class="stage-title">${current ? current.label : "-"}</div>
+      <div class="stage-title">${current ? current.label : "—"}</div>
       <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
 
-      <div class="row" style="margin-top:12px;">
+      <div class="row mt-12">
         <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pauze" : "Start"}</button>
         <button id="btnNextStage" class="btn">Volgend blok</button>
         <button id="btnResetTimer" class="btn danger">Reset blokken</button>
       </div>
 
-      <div class="exercise" style="margin-top:12px;">
+      <div class="exercise mt-12">
         <div class="ex-left">
           <div class="ex-title">Volgende</div>
           <div class="ex-meta">${next ? next.label : "Na dit blok ben je klaar."}</div>
@@ -993,12 +780,12 @@ function generateClubExercises(clubType){
           else if(idx === s.currentStageIndex) cls = "active";
           return `<div class="stage-pill ${cls}">
             <span>${st.label}</span>
-            <strong>${idx < s.currentStageIndex ? "OK" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
+            <strong>${idx < s.currentStageIndex ? "✓" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
           </div>`;
         }).join("")}
       </div>
 
-      <div class="small" style="margin-top:12px;">Duidelijke beeps op 3-2-1, blokwissel en einde. Wake Lock probeert je scherm actief te houden tijdens het lopen.</div>
+      <div class="small mt-12">Duidelijke beeps op 3-2-1, blokwissel en einde. Wake Lock probeert je scherm actief te houden tijdens het lopen.</div>
     `;
 
     document.getElementById("btnPlayPause").onclick = () => {
@@ -1193,7 +980,7 @@ function generateClubExercises(clubType){
             <div class="score-row" data-gkey="${g.key}">
               ${[0,1,2,3,4,5].map(n => `<div class="score-btn" data-score="${n}">${n}</div>`).join('')}
             </div>
-            <div class="score-label" id="lbl-${g.key}">-</div>
+            <div class="score-label" id="lbl-${g.key}">—</div>
           </div>
         `).join('')}
         <div class="total">
@@ -1201,11 +988,11 @@ function generateClubExercises(clubType){
             <div class="label">Totaal</div>
             <div class="n" id="totalN">0</div>
           </div>
-          <div id="band" class="badge">-</div>
+          <div id="band" class="badge">—</div>
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Genereer sessie</button>
-          <span class="small">0-8 = alleen Intu, 9-12 = 15 min, 13-15 = 20 min</span>
+          <span class="small">0–8 = alleen Intu · 9–12 = 15 min · 13–15 = 20 min</span>
         </div>
       </div>
     `;
@@ -1225,7 +1012,7 @@ function generateClubExercises(clubType){
       gateDef.forEach(g => {
         const v = scores[g.key];
         const el = document.getElementById(`lbl-${g.key}`);
-        el.textContent = typeof v === 'number' ? g.choices[v] : '-';
+        el.textContent = typeof v === 'number' ? g.choices[v] : '—';
       });
       btnGenerate.disabled = !complete;
     }
@@ -1254,7 +1041,7 @@ function generateClubExercises(clubType){
 
     updateUI();
     renderRightNone();
-    setModePill("-");
+    setModePill("—");
     setDayPill("nieuw");
   }
 
