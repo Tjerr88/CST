@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v3.6</title>
+<title>CST Generator v3.8</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -192,16 +192,15 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v3.6</h1>
+    <h1>CST Generator v3.8</h1>
     <div class="row mt-10">
       <button id="btnMain" class="btn primary">Start</button>
-      <button id="btnReset" class="btn danger">Reset dag</button>
+      <button id="btnReset" class="btn danger">Reset day</button>
       <span id="modePill" class="pill">Mode: <strong>-</strong></span>
-      <span id="dayPill" class="pill">Vandaag: <strong>nieuw</strong></span>
-      <span id="wakePill" class="pill">Wake Lock: <strong>uit</strong></span>
-      <span class="pill beep-pill">Beeps: <strong>3-2-1 + wissel + klaar</strong></span>
+      <span id="dayPill" class="pill">Today: <strong>new</strong></span>
+      <span id="wakePill" class="pill">Wake Lock: <strong>off</strong></span>
+      <span class="pill beep-pill">Beeps: <strong>3-2-1 + switch + done</strong></span>
     </div>
-    <p class="small mt-10">Gate bepaalt de trainingsduur. Om en om: Clubbell + decompressieflow, daarna stand-alone flow + decompressie. 0-8 = Intu only | 9-12 = 15 min | 13-15 = 20 min.</p>
   </div>
 
   <div class="grid">
@@ -212,17 +211,33 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v36";
-  const LS_LAST = "cst_last_v36";
+  const LS_DAY = "cst_day_v38";
+  const LS_LAST = "cst_last_v38";
+  const LS_DAY_LEGACY = "cst_day_v37";
+  const LS_LAST_LEGACY = "cst_last_v37";
 
   const gateDef = [
-    { key:'soreness', label:'Spierpijn / Herstel', choices:['Pijn','Beperkt','Stijf','Licht stijf','Soepel','Fris'] },
-    { key:'energy',   label:'Energie / Stress',   choices:['Leeg','Zwaar','Moe','Neutraal','Goed','Scherp'] },
-    { key:'sleep',    label:'Slaapkwaliteit',     choices:['Zeer slecht','Slecht','Onderbroken','Oke','Goed','Herstellend'] },
+    { key:'soreness', label:'Soreness / Recovery', choices:['Pain','Restricted','Stiff','Slightly stiff','Loose','Fresh'] },
+    { key:'energy',   label:'Energy / Stress',   choices:['Empty','Heavy','Tired','Neutral','Good','Sharp'] },
+    { key:'sleep',    label:'Sleep quality',     choices:['Very poor','Poor','Interrupted','OK','Good','Restorative'] },
   ];
 
   const intu = [
-    "Neck CARs","Shoulder Rolls","Arm Circles","Spine Waves","Hip Circles","Knee Circles","Ankle Circles"
+    "Loose Noose — 3x per kant",
+    "Neck Nod Mobility Drill — 3x per kant",
+    "Shoulder Roll — 3x per schouder",
+    "Arm Screw Mobility Drill — 3x per kant",
+    "Hitch Hiker Mobility Drill — 5 cirkels per arm",
+    "Wrist Chopper Drill — 5 reps",
+    "Jellyfish Drill — 5 reps per hand",
+    "Okay Cone — 5 reps op en neer",
+    "Thoracic Circle Mobility Drill — 5 cw + 5 ccw",
+    "Taiji Twist — 10x per kant",
+    "Hula Hoop Mobility Drill — 5 cw + 5 ccw",
+    "Lumbar Circle Mobility Drill — 5 cw + 5 ccw",
+    "Hip Drill — 3x per kant",
+    "Knee Circle Drill — 10 per richting",
+    "Ankle Roll Mobility Drill — 3 reps per voet"
   ];
 
 const CLUB_EXERCISES = [
@@ -331,40 +346,40 @@ function clubPool(bucket, clubType){
     {
       id:"hip_melt",
       name:"Hip Melt",
-      focus:"Heupen, adductoren en enkels losmaken met zachte full-body aanvulling",
-      use:"Na Clubbell: zacht en ademend bewegen. 5 min = 5 shapes, 10 min = 7 shapes.",
+      focus:"Loosen hips, adductors and ankles with a gentle full body addition",
+      use:"After Clubbell: move gently and breathe smoothly. 5 min = 5 shapes, 10 min = 7 shapes.",
       sequence5:["Deep Squat","Cossack rechts","Cossack links","Forward Fold","Child's Pose"],
       sequence7:["Deep Squat","Cossack rechts","Cossack links","Forward Fold","Child's Pose","Downward Dog","Mountain Pose"]
     },
     {
       id:"spine_soother",
       name:"Spine Soother",
-      focus:"Wervelkolom ontspannen in flexie, extensie en rotatie met zachte full-body lengte",
-      use:"Na Clubbell: spanning laten zakken en de hele keten meenemen. 5 min = 5 shapes, 10 min = 7 shapes.",
+      focus:"Relax the spine through flexion, extension and rotation with gentle full body length",
+      use:"After Clubbell: let tension drop and include the whole chain. 5 min = 5 shapes, 10 min = 7 shapes.",
       sequence5:["Cat","Cow","Thread the Needle rechts","Thread the Needle links","Forward Fold"],
       sequence7:["Cat","Cow","Thread the Needle rechts","Thread the Needle links","Forward Fold","Downward Dog","Child's Pose"]
     },
     {
       id:"open_exhale",
       name:"Open Exhale",
-      focus:"Borst, voorkant lichaam en heupflexoren openen met zachte afronding voor het hele lichaam",
-      use:"Na Clubbell: open en rustig uitademen. 5 min = 5 shapes, 10 min = 7 shapes.",
+      focus:"Open the chest, front body and hip flexors with a gentle whole body finish",
+      use:"After Clubbell: open up and exhale calmly. 5 min = 5 shapes, 10 min = 7 shapes.",
       sequence5:["Low Lunge rechts","Upward Dog","Low Lunge links","Forward Fold","Child's Pose"],
       sequence7:["Low Lunge rechts","Upward Dog","Low Lunge links","Forward Fold","Child's Pose","Downward Dog","Mountain Pose"]
     },
     {
       id:"floor_unwind",
       name:"Floor Unwind",
-      focus:"Schouders, rug en grondwerk met zachte full-body afronding",
-      use:"Na Clubbell: laag bij de grond en herstellend bewegen. 5 min = 5 shapes, 10 min = 7 shapes.",
+      focus:"Shoulders, back and floor work with a gentle full body finish",
+      use:"After Clubbell: stay low to the ground and move restoratively. 5 min = 5 shapes, 10 min = 7 shapes.",
       sequence5:["Child's Pose","Quadruped","Sphinx Pose","Thread the Needle rechts","Thread the Needle links"],
       sequence7:["Child's Pose","Quadruped","Sphinx Pose","Thread the Needle rechts","Thread the Needle links","Cobra Pose","Forward Fold"]
     },
     {
       id:"standing_ease",
       name:"Standing Ease",
-      focus:"Achterlijn, benen en rustige staande reset met zachte full-body aanvulling",
-      use:"Na Clubbell: staand uitspoelen zonder forceren. 5 min = 5 shapes, 10 min = 7 shapes.",
+      focus:"Posterior chain, legs and a calm standing reset with a gentle full body addition",
+      use:"After Clubbell: flush out standing without forcing. 5 min = 5 shapes, 10 min = 7 shapes.",
       sequence5:["Mountain Pose","Forward Fold","Half Lift","Chair Pose","Mountain Pose"],
       sequence7:["Mountain Pose","Forward Fold","Half Lift","Chair Pose","Mountain Pose","Downward Dog","Child's Pose"]
     }
@@ -374,80 +389,80 @@ function clubPool(bucket, clubType){
     {
       id:"hip_engine",
       name:"Hip Engine",
-      focus:"Heupen, adductoren en enkels met full-body uitbreiding en subtiele pit",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Hips, adductors and ankles with full body expansion and subtle intensity",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Deep Squat","Cossack rechts","Cossack links","Forward Fold","Half Lift","Low Lunge rechts","Low Lunge links","Mountain Pose"],
       sequence10:["Deep Squat","Cossack rechts","Cossack links","Forward Fold","Half Lift","Low Lunge rechts","Low Lunge links","Mountain Pose","Downward Dog","Chair Pose"]
     },
     {
       id:"spine_engine",
       name:"Spine Engine",
-      focus:"Flexie, extensie en rotatie van de wervelkolom met full-body integratie",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Spinal flexion, extension and rotation with full body integration",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Cat","Cow","Thread the Needle rechts","Thread the Needle links","Cobra Pose","Downward Dog","Forward Fold","Mountain Pose"],
       sequence10:["Cat","Cow","Thread the Needle rechts","Thread the Needle links","Cobra Pose","Downward Dog","Forward Fold","Mountain Pose","Half Lift","Chair Pose"]
     },
     {
       id:"open_engine",
       name:"Open Engine",
-      focus:"Voorkant lichaam, borst en heupflexoren met vloeiende full-body uitbreiding",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Front body, chest and hip flexors with fluid full body expansion",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Low Lunge rechts","Upward Dog","Downward Dog","Low Lunge links","Forward Fold","Half Lift","Chair Pose","Mountain Pose"],
       sequence10:["Low Lunge rechts","Upward Dog","Downward Dog","Low Lunge links","Forward Fold","Half Lift","Chair Pose","Mountain Pose","Downward Dog","Forward Fold"]
     },
     {
       id:"balance_chain",
       name:"Balance Chain",
-      focus:"Balans, heupcontrole en enkelcontrole met staande trainingstaal",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Balance, hip control and ankle control with standing practice",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Mountain Pose","Tree Pose rechts","Chair Pose","Forward Fold","Half Lift","Tree Pose links","Chair Pose","Mountain Pose"],
       sequence10:["Mountain Pose","Tree Pose rechts","Chair Pose","Forward Fold","Half Lift","Tree Pose links","Chair Pose","Mountain Pose","Forward Fold","Half Lift"]
     },
     {
       id:"floor_to_stand",
       name:"Floor to Stand",
-      focus:"Van de grond naar stand en terug met full-body overgangspractice",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"From the floor to standing and back with full body transition practice",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Child's Pose","Quadruped","Downward Dog","Forward Fold","Half Lift","Mountain Pose","Chair Pose","Child's Pose"],
       sequence10:["Child's Pose","Quadruped","Downward Dog","Forward Fold","Half Lift","Mountain Pose","Chair Pose","Child's Pose","Cobra Pose","Mountain Pose"]
     },
     {
       id:"lunge_wave",
       name:"Lunge Wave",
-      focus:"Lunges, benen en heupen met vloeiende full-body uitbreiding",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Lunges, legs and hips with fluid full body expansion",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Low Lunge rechts","Downward Dog","Low Lunge links","Forward Fold","Chair Pose","Half Lift","Mountain Pose","Downward Dog"],
       sequence10:["Low Lunge rechts","Downward Dog","Low Lunge links","Forward Fold","Chair Pose","Half Lift","Mountain Pose","Downward Dog","Upward Dog","Forward Fold"]
     },
     {
       id:"twist_wave",
       name:"Twist Wave",
-      focus:"Rotatie van rug en schouders met full-body uitbreiding",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Back and shoulder rotation with full body expansion",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Quadruped","Thread the Needle rechts","Thread the Needle links","Seated Twist rechts","Seated Twist links","Forward Fold","Half Lift","Mountain Pose"],
       sequence10:["Quadruped","Thread the Needle rechts","Thread the Needle links","Seated Twist rechts","Seated Twist links","Forward Fold","Half Lift","Mountain Pose","Chair Pose","Downward Dog"]
     },
     {
       id:"squat_flow",
       name:"Squat Flow",
-      focus:"Squatpatroon, heupen en enkels met duidelijke onderlichaam-prikkel",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Squat pattern, hips and ankles with a clear lower body stimulus",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Deep Squat","Chair Pose","Forward Fold","Half Lift","Low Lunge rechts","Low Lunge links","Mountain Pose","Deep Squat"],
       sequence10:["Deep Squat","Chair Pose","Forward Fold","Half Lift","Low Lunge rechts","Low Lunge links","Mountain Pose","Deep Squat","Cossack rechts","Cossack links"]
     },
     {
       id:"dog_line",
       name:"Dog Line",
-      focus:"Schouders, achterlijn en heupen met Downward Dog als centrale hub",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"Shoulders, posterior chain and hips with Downward Dog as the central hub",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Downward Dog","Forward Fold","Half Lift","Upward Dog","Downward Dog","Low Lunge rechts","Low Lunge links","Child's Pose"],
       sequence10:["Downward Dog","Forward Fold","Half Lift","Upward Dog","Downward Dog","Low Lunge rechts","Low Lunge links","Child's Pose","Mountain Pose","Forward Fold"]
     },
     {
       id:"mixed_engine",
       name:"Mixed Engine",
-      focus:"All-round flow met duidelijke full-body practice en subtiele pit",
-      use:"Stand-alone hoofdtraining: 15 min = 8 shapes, 20 min = 10 shapes.",
+      focus:"All-round flow with clear full body practice and subtle intensity",
+      use:"Stand-alone main training: 15 min = 8 shapes, 20 min = 10 shapes.",
       sequence8:["Deep Squat","Forward Fold","Half Lift","Downward Dog","Low Lunge rechts","Low Lunge links","Chair Pose","Mountain Pose"],
       sequence10:["Deep Squat","Forward Fold","Half Lift","Downward Dog","Low Lunge rechts","Low Lunge links","Chair Pose","Mountain Pose","Upward Dog","Child's Pose"]
     }
@@ -492,31 +507,59 @@ function clubPool(bucket, clubType){
     if(total >= 9)  return { band:'15', label:'9-12', cls:'mid', minutes:15, intuOnly:false };
     return { band:'intu-only', label:'0-8', cls:'rec', minutes:0, intuOnly:true };
   }
-  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${mode || "-"}</strong>`; }
-  function setDayPill(state){ dayPill.innerHTML = `Vandaag: <strong>${state || 'nieuw'}</strong>`; }
-  function setWakePill(on){ wakePill.innerHTML = `Wake Lock: <strong>${on ? 'aan' : 'uit'}</strong>`; }
+  function formatModeLabel(mode){
+    if(mode === "INTU ONLY") return "Intu only";
+    if(mode === "CLUBBELL DAY") return "Clubbell day";
+    if(mode === "STAND-ALONE FLOW DAY") return "Stand-alone flow day";
+    return mode || "-";
+  }
+  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${cleanText(formatModeLabel(mode))}</strong>`; }
+  function setDayPill(state){ dayPill.innerHTML = `Today: <strong>${state || 'new'}</strong>`; }
+  function setWakePill(on){ wakePill.innerHTML = `Wake Lock: <strong>${on ? 'on' : 'off'}</strong>`; }
   function fmt(sec){
     const m = Math.floor(sec/60), s = sec%60;
     return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
   }
   function fmtMin(sec){ return sec ? Math.round(sec/60) + " min" : "-"; }
+  function cleanText(value){
+    return String(value ?? "")
+      .replaceAll("â€”", "-")
+      .replace(/\bOke\b/g, "OK")
+      .replace(/\bfull-body\b/gi, "full body")
+      .replace(/\bper kant\b/gi, "per side")
+      .replace(/\bper schouder\b/gi, "per shoulder")
+      .replace(/\bcirkels per arm\b/gi, "circles per arm")
+      .replace(/\bper hand\b/gi, "per hand")
+      .replace(/\bop en neer\b/gi, "up and down")
+      .replace(/\bper richting\b/gi, "per direction")
+      .replace(/\bper voet\b/gi, "per foot");
+  }
+
+  function getDefaultLastState(){
+    return { lastClubType:null, decompBag:[], standaloneBag:[] };
+  }
 
   function loadDay(){
-    const a = loadJSON(LS_DAY);
+    const a = loadJSON(LS_DAY) || loadJSON(LS_DAY_LEGACY);
     if(!a || a.day !== todayKey()) return null;
     return a;
   }
   function saveDay(day){ saveJSON(LS_DAY, day); }
-  function loadLast(){ return loadJSON(LS_LAST) || { lastClubType:null, decompBag:[], standaloneBag:[], nextDayType:'clubbell' }; }
+  function loadLast(){
+    return {
+      ...getDefaultLastState(),
+      ...(loadJSON(LS_LAST) || loadJSON(LS_LAST_LEGACY) || {})
+    };
+  }
   function saveLast(v){ saveJSON(LS_LAST, v); }
 
-  function isYesterday(dateStr){
-    if(!dateStr) return false;
-    const d = new Date();
-    const y = new Date(d);
-    y.setDate(d.getDate() - 1);
-    const yKey = y.getFullYear() + "-" + String(y.getMonth()+1).padStart(2,"0") + "-" + String(y.getDate()).padStart(2,"0");
-    return dateStr === yKey;
+  function dayNumberFromKey(key){
+    const [y,m,d] = key.split("-").map(Number);
+    return Math.floor(Date.UTC(y, m-1, d) / 86400000);
+  }
+
+  function calendarDayType(key){
+    return dayNumberFromKey(key) % 2 === 0 ? 'clubbell' : 'standalone';
   }
 
   function nextFullClubType(){
@@ -537,16 +580,27 @@ function clubPool(bucket, clubType){
     return pool.length ? pool[pool.length - 1].type : "single";
   }
 
-  function deriveFlowFocusKey(flow){
-    if(!flow || !flow.id) return null;
+  const DECOMP_FLOW_BY_ID = new Map(DECOMP_FLOWS.map(flow => [flow.id, flow]));
+  const STANDALONE_FLOW_BY_ID = new Map(STANDALONE_FLOWS.map(flow => [flow.id, flow]));
+  const FLOW_FOCUS_BY_ID = {
+    hip_melt:"hip",
+    hip_engine:"hip",
+    squat_flow:"hip",
+    lunge_wave:"hip",
+    spine_soother:"spine",
+    spine_engine:"spine",
+    twist_wave:"spine",
+    open_exhale:"open",
+    open_engine:"open",
+    dog_line:"open",
+    floor_unwind:"floor",
+    floor_to_stand:"floor",
+    standing_ease:"standing",
+    balance_chain:"standing"
+  };
 
-    const id = flow.id;
-    if(id === "hip_melt" || id === "hip_engine" || id === "squat_flow" || id === "lunge_wave") return "hip";
-    if(id === "spine_soother" || id === "spine_engine" || id === "twist_wave") return "spine";
-    if(id === "open_exhale" || id === "open_engine" || id === "dog_line") return "open";
-    if(id === "floor_unwind" || id === "floor_to_stand") return "floor";
-    if(id === "standing_ease" || id === "balance_chain") return "standing";
-    return null;
+  function deriveFlowFocusKey(flow){
+    return flow?.id ? (FLOW_FOCUS_BY_ID[flow.id] || null) : null;
   }
 
   function nextDecompFlow(excludedFocusKey = null){
@@ -557,7 +611,7 @@ function clubPool(bucket, clubType){
     }
 
     let flowId = bag.find(id => {
-      const flow = DECOMP_FLOWS.find(x => x.id === id);
+      const flow = DECOMP_FLOW_BY_ID.get(id);
       return !excludedFocusKey || deriveFlowFocusKey(flow) !== excludedFocusKey;
     });
 
@@ -566,7 +620,7 @@ function clubPool(bucket, clubType){
     } else {
       bag = shuffle(DECOMP_FLOWS.map(x => x.id));
       bag = bag.filter(id => {
-        const flow = DECOMP_FLOWS.find(x => x.id === id);
+        const flow = DECOMP_FLOW_BY_ID.get(id);
         return !excludedFocusKey || deriveFlowFocusKey(flow) !== excludedFocusKey;
       });
       flowId = bag.shift();
@@ -574,7 +628,7 @@ function clubPool(bucket, clubType){
 
     last.decompBag = bag;
     saveLast(last);
-    return DECOMP_FLOWS.find(x => x.id === flowId) || DECOMP_FLOWS[0];
+    return DECOMP_FLOW_BY_ID.get(flowId) || DECOMP_FLOWS[0];
   }
 
   function nextStandaloneFlow(){
@@ -586,35 +640,35 @@ function clubPool(bucket, clubType){
     const flowId = bag.shift();
     last.standaloneBag = bag;
     saveLast(last);
-    return STANDALONE_FLOWS.find(x => x.id === flowId) || STANDALONE_FLOWS[0];
+    return STANDALONE_FLOW_BY_ID.get(flowId) || STANDALONE_FLOWS[0];
   }
 
 
 
-function generateClubExercises(clubType){
-  const picks = ["Rhythmic", "Ballistic", "Grinding"]
-    .map(bucket => {
-      const pool = clubPool(bucket, clubType);
-      const pick = pool.length ? rand(pool) : null;
-      return pick ? { bucket, exercise:pick.name } : null;
-    })
-    .filter(Boolean);
+  function generateClubExercises(clubType){
+    const sequence = ["Rhythmic", "Ballistic", "Grinding"]
+      .map(bucket => {
+        const pool = clubPool(bucket, clubType);
+        const pick = pool.length ? rand(pool) : null;
+        return pick ? { bucket, exercise:pick.name } : null;
+      })
+      .filter(Boolean);
 
-  return {
-    sequence: picks,
-    flow: picks.map(x => x.exercise).join(" -> ")
-  };
-}
+    return {
+      sequence,
+      flow: sequence.map(x => x.exercise).join(" -> ")
+    };
+  }
 
 
   function buildStages(session){
     const stages = [];
     if(session.dayType === 'clubbell'){
       stages.push({ key:'club', label:`Clubbell | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
-      stages.push({ key:'decomp', label:`Decompress flow | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
+      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
     } else if(session.dayType === 'standalone'){
       stages.push({ key:'active', label:`Stand-alone flow | ${fmtMin(session.blockTimes.active)}`, seconds:session.blockTimes.active });
-      stages.push({ key:'decomp', label:`Decompress flow | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
+      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
     }
     return stages;
   }
@@ -622,7 +676,7 @@ function generateClubExercises(clubType){
   function generateSession(mode, total){
     const last = loadLast();
     const band = computeBand(total);
-    const dayType = last.nextDayType === 'standalone' ? 'standalone' : 'clubbell';
+    const dayType = calendarDayType(todayKey());
 
     const session = {
       day: todayKey(),
@@ -645,22 +699,15 @@ function generateClubExercises(clubType){
     };
 
     if(band.intuOnly){
-      saveLast({
-        lastClubType: last.lastClubType || null,
-        decompBag: Array.isArray(last.decompBag) ? last.decompBag : [],
-        standaloneBag: Array.isArray(last.standaloneBag) ? last.standaloneBag : [],
-        nextDayType: dayType
-      });
+      saveLast(last);
     } else if(dayType === 'clubbell'){
       const clubType = nextFullClubType();
       const clubPlan = generateClubExercises(clubType);
       const flow = nextDecompFlow();
       session.club = {
         clubType,
-        exercises: clubPlan.exercises,
         sequence: clubPlan.sequence,
-        flow: clubPlan.flow,
-        endPosition: clubPlan.endPosition
+        flow: clubPlan.flow
       };
       session.decompFlow = {
         id: flow.id,
@@ -668,16 +715,15 @@ function generateClubExercises(clubType){
         focus: flow.focus,
         use: flow.use,
         sequence: (band.minutes === 20 ? flow.sequence7 : flow.sequence5).slice(),
-        bagType: 'Decompressie'
+        bagType: 'Decompress'
       };
       session.blockTimes.club = band.minutes * 60;
       session.blockTimes.decomp = (band.minutes === 20 ? 10 : 5) * 60;
       const lastState = loadLast();
       saveLast({
         lastClubType: clubType,
-        decompBag: Array.isArray(lastState.decompBag) ? lastState.decompBag : [],
-        standaloneBag: Array.isArray(lastState.standaloneBag) ? lastState.standaloneBag : [],
-        nextDayType: 'standalone'
+        decompBag: lastState.decompBag,
+        standaloneBag: lastState.standaloneBag
       });
     } else {
       const activeFlow = nextStandaloneFlow();
@@ -696,16 +742,15 @@ function generateClubExercises(clubType){
         focus: decompFlow.focus,
         use: decompFlow.use,
         sequence: (band.minutes === 20 ? decompFlow.sequence7 : decompFlow.sequence5).slice(),
-        bagType: 'Decompressie'
+        bagType: 'Decompress'
       };
       session.blockTimes.active = band.minutes * 60;
       session.blockTimes.decomp = (band.minutes === 20 ? 10 : 5) * 60;
       const lastState = loadLast();
       saveLast({
         lastClubType: last.lastClubType || null,
-        decompBag: Array.isArray(lastState.decompBag) ? lastState.decompBag : [],
-        standaloneBag: Array.isArray(lastState.standaloneBag) ? lastState.standaloneBag : [],
-        nextDayType: 'clubbell'
+        decompBag: lastState.decompBag,
+        standaloneBag: lastState.standaloneBag
       });
     }
 
@@ -746,20 +791,26 @@ function generateClubExercises(clubType){
   function renderExerciseCard(title, meta, pill, extraClass=""){
     return `<div class="exercise ${extraClass}">
       <div class="ex-left">
-        <div class="ex-title">${title}</div>
-        ${meta ? `<div class="ex-meta">${meta}</div>` : ""}
+        <div class="ex-title">${cleanText(title)}</div>
+        ${meta ? `<div class="ex-meta">${cleanText(meta)}</div>` : ""}
       </div>
-      ${pill ? `<div class="pill">${pill}</div>` : ""}
+      ${pill ? `<div class="pill">${cleanText(pill)}</div>` : ""}
     </div>`;
   }
 
   function renderSession(s){
-    let html = `<h2>Vandaag</h2>`;
+    const summaryText = s.intuOnly
+      ? "Today is recovery-focused: Intu only. The calendar cycle still continues as normal."
+      : s.dayType === "clubbell"
+      ? "Today: Intu, then Clubbell, then finish with decompress. Short block = 15 + 5, long block = 20 + 10."
+      : "Today: Intu, then stand-alone flow, then finish with decompress. Short block = 15 + 5, long block = 20 + 10.";
+
+    let html = `<h2>Today</h2>`;
     if(s.intuOnly){
       html += `
         ${renderExerciseCard(
-          "Intu only dag",
-          `Score 0-8: vandaag alleen Intu. De geplande ${s.dayType === 'clubbell' ? 'Clubbell-dag' : 'stand-alone flowdag'} schuift 1 dag door.`,
+          "Intu-only day",
+          `Score 0-8: Intu only today. The calendar cycle still continues as normal.`,
           "Recovery",
           "mb-12"
         )}`;
@@ -769,13 +820,13 @@ function generateClubExercises(clubType){
       <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Intu</span>
-          <span class="pill">7 drills | ${fmtMin(s.blockTimes?.intu || 0)}</span>
+          <span class="pill">15 drills | ${fmtMin(s.blockTimes?.intu || 0)}</span>
         </button>
         <div class="accordion-content">
           <div class="stack-10 mt-12">
             ${s.intu.map(x => `
               <div class="exercise">
-                <div class="ex-left"><div class="ex-title">${x}</div></div>
+                <div class="ex-left"><div class="ex-title">${cleanText(x)}</div></div>
                 <div class="pill">Intu</div>
               </div>`).join("")}
           </div>
@@ -786,24 +837,24 @@ function generateClubExercises(clubType){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Clubbell | simple model</span>
+          <span>Clubbell | basic selection</span>
           <span class="pill">${s.club.clubType.toUpperCase()} | ${fmtMin(s.blockTimes?.club || 0)}</span>
         </button>
         <div class="accordion-content">
           ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
-          ${renderExerciseCard("Richtduur Clubbell", fmtMin(s.blockTimes?.club || 0), "Hoofdblok", "mb-10")}
+          ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), "Main block", "mb-10")}
 <div class="stack-10">
   ${s.club.sequence.map((x, idx) => `
     <div class="exercise">
       <div class="ex-left">
-        <div class="ex-title">${idx + 1}. ${x.exercise}</div>
-        <div class="ex-meta">${x.bucket}</div>
+        <div class="ex-title">${idx + 1}. ${cleanText(x.exercise)}</div>
+        <div class="ex-meta">${cleanText(x.bucket)}</div>
       </div>
       <div class="pill">Club</div>
     </div>`).join("")}
 </div>
- ${renderExerciseCard("Volgorde", s.club.flow || "-", "Simple", "mt-10")}
-<p class="small mt-10">Simple model: 1 willekeurige rhythmic + 1 willekeurige ballistic + 1 willekeurige grind, gefilterd op het club type van de dag.</p>
+ ${renderExerciseCard("Order", s.club.flow || "-", "Basic", "mt-10")}
+<p class="small mt-10">Basic selection: 1 random rhythmic, 1 random ballistic and 1 random grind, filtered by the club type of the day.</p>
         </div>
       </div>`;
     }
@@ -813,24 +864,24 @@ if(s.activeFlow){
       <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Stand-alone flow | ${s.activeFlow.name}</span>
-          <span class="pill">${fmtMin(s.blockTimes?.active || 0)} | Hoofdblok</span>
+          <span class="pill">${fmtMin(s.blockTimes?.active || 0)} | Main block</span>
         </button>
         <div class="accordion-content">
-          ${renderExerciseCard("Flow van de dag", s.activeFlow.name, `${s.activeFlow.bagType} bag`, "mt-12 mb-10")}
-          ${renderExerciseCard("Focus", s.activeFlow.focus, "Activatie", "mb-10")}
-          ${renderExerciseCard("Gebruik", s.activeFlow.use, "Losse sessie", "mb-10")}
-          ${renderExerciseCard("Regel", "Geen holds. Blijf bewegen. Adem rustig door. Leer de vaste keten.", "Flow", "mb-10")}
+          ${renderExerciseCard("Flow of the day", s.activeFlow.name, `${s.activeFlow.bagType} bag`, "mt-12 mb-10")}
+          ${renderExerciseCard("Focus", s.activeFlow.focus, "Activation", "mb-10")}
+          ${renderExerciseCard("Use", s.activeFlow.use, "Stand-alone session", "mb-10")}
+          ${renderExerciseCard("Rule", "No holds. Keep moving. Breathe steadily. Learn the fixed chain.", "Flow", "mb-10")}
           <div class="stack-10">
             ${s.activeFlow.sequence.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${x}</div>
-                  <div class="ex-meta">${idx < s.activeFlow.sequence.length - 1 ? `Ga door naar: ${s.activeFlow.sequence[idx + 1]}` : "Rond af en begin opnieuw of ga door naar decompressie."}</div>
+                  <div class="ex-title">${idx + 1}. ${cleanText(x)}</div>
+                  <div class="ex-meta">${idx < s.activeFlow.sequence.length - 1 ? `Continue to: ${cleanText(s.activeFlow.sequence[idx + 1])}` : "Finish and restart, or continue to decompress."}</div>
                 </div>
                 <div class="pill">Step</div>
               </div>`).join("")}
           </div>
-          ${renderExerciseCard("Volledige keten", s.activeFlow.sequence.join(" -> "), "Sequence", "mt-10")}
+          ${renderExerciseCard("Full chain", s.activeFlow.sequence.join(" -> "), "Sequence", "mt-10")}
         </div>
       </div>`;
     }
@@ -839,44 +890,49 @@ if(s.activeFlow){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Decompressie | ${s.decompFlow.name}</span>
-          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} | ${s.dayType === "clubbell" ? "Na Clubbell" : "Afronding"}</span>
+          <span>Decompress | ${s.decompFlow.name}</span>
+          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} | ${s.dayType === "clubbell" ? "After Clubbell" : "Finish"}</span>
         </button>
         <div class="accordion-content">
-          ${renderExerciseCard("Flow van de dag", s.decompFlow.name, `${s.decompFlow.bagType} bag`, "mt-12 mb-10")}
-          ${renderExerciseCard("Focus", s.decompFlow.focus, "Decompressie", "mb-10")}
-          ${renderExerciseCard("Gebruik", s.decompFlow.use, s.dayType === "clubbell" ? "Na Clubbell" : "Na stand-alone", "mb-10")}
-          ${renderExerciseCard("Regel", "Zacht, lang en ademend bewegen. Geen forceren. Gebruik dit als afronding.", "Flow", "mb-10")}
+          ${renderExerciseCard("Flow of the day", s.decompFlow.name, `${s.decompFlow.bagType} bag`, "mt-12 mb-10")}
+          ${renderExerciseCard("Focus", s.decompFlow.focus, "Decompress", "mb-10")}
+          ${renderExerciseCard("Use", s.decompFlow.use, s.dayType === "clubbell" ? "After Clubbell" : "After stand-alone", "mb-10")}
+          ${renderExerciseCard("Rule", "Move gently, long and with the breath. Do not force it. Use this as your finish.", "Flow", "mb-10")}
           <div class="stack-10">
             ${s.decompFlow.sequence.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${x}</div>
-                  <div class="ex-meta">${idx < s.decompFlow.sequence.length - 1 ? `Ga door naar: ${s.decompFlow.sequence[idx + 1]}` : "Rond af en begin opnieuw of stop rustig."}</div>
+                  <div class="ex-title">${idx + 1}. ${cleanText(x)}</div>
+                  <div class="ex-meta">${idx < s.decompFlow.sequence.length - 1 ? `Continue to: ${cleanText(s.decompFlow.sequence[idx + 1])}` : "Finish, restart, or stop calmly."}</div>
                 </div>
                 <div class="pill">Step</div>
               </div>`).join("")}
           </div>
-          ${renderExerciseCard("Volledige keten", s.decompFlow.sequence.join(" -> "), "Sequence", "mt-10")}
-          <p class="small mt-10">Shuffle bag: elke bag loopt eerst leeg voordat opnieuw wordt geschud.</p>
+          ${renderExerciseCard("Full chain", s.decompFlow.sequence.join(" -> "), "Sequence", "mt-10")}
+          <p class="small mt-10">Shuffle bag: each bag is emptied before it gets reshuffled.</p>
         </div>
       </div>`;
     }
 
-    const summaryText = s.intuOnly
-      ? "Vandaag: alleen Intu. De geplande training schuift 1 dag door."
-      : s.dayType === "clubbell"
-      ? "Vandaag: Intu -> Clubbell -> decompressieflow. Short = 15 + 5 | Full = 20 + 10."
-      : "Vandaag: Intu -> stand-alone flow -> decompressieflow. Short = 15 + 5 | Full = 20 + 10.";
-
-    html += `<div class="hr"></div>
+    html += `<div class="hr"></div>`;
+    if(!s.intuOnly){
+      html += `
       <div class="row">
-        <button id="btnStartSession" class="btn primary" ${s.intuOnly ? "disabled" : ""}>Start bloktimer</button>
-      </div>
-      <p class="small mt-10">${summaryText}</p>`;
+        <button id="btnStartSession" class="btn primary">Start block timer</button>
+      </div>`;
+    }
+    html += `<p class="small mt-10">${summaryText}</p>`;
 
     leftCard.innerHTML = html;
     bindAccordions();
+    const accordions = leftCard.querySelectorAll(".accordion");
+    const defaultOpenIndex = s.club || s.activeFlow ? 1 : 0;
+    const defaultAccordion = accordions[defaultOpenIndex] || accordions[0];
+    if(defaultAccordion){
+      defaultAccordion.classList.add("active");
+      const header = defaultAccordion.querySelector(".accordion-header");
+      if(header) header.setAttribute("aria-expanded", "true");
+    }
     const startBtn = document.getElementById("btnStartSession");
     if(startBtn){
       startBtn.onclick = () => {
@@ -886,7 +942,7 @@ if(s.activeFlow){
     }
     const modeLabel = s.mode;
     setModePill(modeLabel);
-    setDayPill("vastgezet");
+    setDayPill("locked");
     renderRightPanel();
   }
 
@@ -896,36 +952,72 @@ if(s.activeFlow){
   }
 
   function renderRightNone(){
-    rightInner.innerHTML = `<h2>Status</h2><p class="small">Geen actieve timer.</p>`;
+    rightInner.innerHTML = `<h2>Status</h2><p class="small">No active timer.</p>`;
   }
 
-  function renderRightPanel(){
-    const s = loadDay();
+  function syncRightPanel(s){
     if(!s){
       renderRightNone();
       return;
     }
+
+    const current = getCurrentStage(s);
+    const next = s.stages[s.currentStageIndex + 1] || null;
+    const currentLabel = document.getElementById("currentStageLabel");
+    const timeDisplay = document.getElementById("timeDisplay");
+    const playPauseBtn = document.getElementById("btnPlayPause");
+    const nextStageMeta = document.getElementById("nextStageMeta");
+
+    if(!currentLabel || !timeDisplay || !playPauseBtn || !nextStageMeta){
+      renderRightPanel(s);
+      return;
+    }
+
+    currentLabel.textContent = current ? current.label : "-";
+    timeDisplay.textContent = fmt(s.currentStageLeft || 0);
+    playPauseBtn.textContent = s.isRunning ? "Pause" : "Start";
+    nextStageMeta.textContent = next ? next.label : "You are done after this block.";
+
+    document.querySelectorAll(".stage-pill").forEach((pill, idx) => {
+      pill.classList.remove("active", "done");
+      if(idx < s.currentStageIndex) pill.classList.add("done");
+      else if(idx === s.currentStageIndex) pill.classList.add("active");
+
+      const timeEl = pill.querySelector(".stage-time");
+      if(timeEl){
+        timeEl.textContent = idx < s.currentStageIndex ? "OK" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(s.stages[idx].seconds);
+      }
+    });
+  }
+
+  function renderRightPanel(session = loadDay()){
+    const s = session;
+    if(!s){
+      renderRightNone();
+      return;
+    }
+
     const current = getCurrentStage(s);
     const next = s.stages[s.currentStageIndex + 1] || null;
 
     rightInner.innerHTML = `
-      <h2>Bloktimer</h2>
-      <div class="label">Huidig blok</div>
-      <div class="stage-title">${current ? current.label : "-"}</div>
+      <h2>Timer</h2>
+      <div class="label">Current block</div>
+      <div id="currentStageLabel" class="stage-title">${current ? current.label : "-"}</div>
       <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
 
       <div class="row mt-12">
-        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pauze" : "Start"}</button>
-        <button id="btnNextStage" class="btn">Volgend blok</button>
-        <button id="btnResetTimer" class="btn danger">Reset blokken</button>
+        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : "Start"}</button>
+        <button id="btnNextStage" class="btn">Next block</button>
+        <button id="btnResetTimer" class="btn danger">Reset blocks</button>
       </div>
 
       <div class="exercise mt-12">
         <div class="ex-left">
-          <div class="ex-title">Volgende</div>
-          <div class="ex-meta">${next ? next.label : "Na dit blok ben je klaar."}</div>
+          <div class="ex-title">Next</div>
+          <div id="nextStageMeta" class="ex-meta">${next ? next.label : "You are done after this block."}</div>
         </div>
-        <div class="pill">${next ? "Hierna" : "Laatste"}</div>
+        <div class="pill">${next ? "Up next" : "Last"}</div>
       </div>
 
       <div class="timeline">
@@ -935,12 +1027,12 @@ if(s.activeFlow){
           else if(idx === s.currentStageIndex) cls = "active";
           return `<div class="stage-pill ${cls}">
             <span>${st.label}</span>
-            <strong>${idx < s.currentStageIndex ? "OK" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
+            <strong class="stage-time">${idx < s.currentStageIndex ? "OK" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
           </div>`;
         }).join("")}
       </div>
 
-      <div class="small mt-12">Duidelijke beeps op 3-2-1, blokwissel en einde. Wake Lock probeert je scherm actief te houden tijdens het lopen.</div>
+      <div class="small mt-12">Clear beeps at 3-2-1, on block change, and at the end. Wake Lock tries to keep your screen active while the timer is running.</div>
     `;
 
     document.getElementById("btnPlayPause").onclick = () => {
@@ -1033,7 +1125,7 @@ if(s.activeFlow){
         if([3,2,1].includes(d.currentStageLeft) && d.lastCountdownBeep !== d.currentStageLeft){
           d.lastCountdownBeep = d.currentStageLeft;
           saveDay(d);
-          renderRightPanel();
+          syncRightPanel(d);
           await patternCountdown(d.currentStageLeft);
           return;
         }
@@ -1042,13 +1134,13 @@ if(s.activeFlow){
       if(d.currentStageLeft <= 0){
         d.isRunning = false;
         saveDay(d);
-        renderRightPanel();
+        syncRightPanel(d);
         await advanceStage(false);
         return;
       }
 
       saveDay(d);
-      renderRightPanel();
+      syncRightPanel(d);
     }, 1000);
   }
 
@@ -1127,7 +1219,7 @@ if(s.activeFlow){
     const scores = { soreness:_raw.soreness, energy:_raw.energy, sleep:_raw.sleep };
 
     leftCard.innerHTML = `
-      <h2>Recovery Gate</h2>
+      <h2>Recovery Check</h2>
       <div class="gate-grid">
         ${gateDef.map(g => `
           <div class="gate-row">
@@ -1140,14 +1232,14 @@ if(s.activeFlow){
         `).join('')}
         <div class="total">
           <div>
-            <div class="label">Totaal</div>
+            <div class="label">Total</div>
             <div class="n" id="totalN">0</div>
           </div>
           <div id="band" class="badge">-</div>
         </div>
         <div class="row">
-          <button id="btnGenerate" class="btn primary" disabled>Genereer sessie</button>
-          <span class="small">0-8 = alleen Intu | 9-12 = 15 min | 13-15 = 20 min</span>
+          <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
+          <span class="small">0-8 = Intu only | 9-12 = 15 min | 13-15 = 20 min | the day type follows the calendar date</span>
         </div>
       </div>
     `;
@@ -1197,13 +1289,21 @@ if(s.activeFlow){
     updateUI();
     renderRightNone();
     setModePill("-");
-    setDayPill("nieuw");
+    setDayPill("new");
   }
 
   function boot(){
     const day = loadDay();
+    if(day && loadJSON(LS_DAY_LEGACY)){
+      saveDay(day);
+      localStorage.removeItem(LS_DAY_LEGACY);
+    }
+    if(loadJSON(LS_LAST_LEGACY) && !loadJSON(LS_LAST)){
+      saveLast(loadLast());
+      localStorage.removeItem(LS_LAST_LEGACY);
+    }
     if(day){
-      btnMain.textContent = "Open sessie";
+      btnMain.textContent = "Open session";
       renderSession(day);
     } else {
       btnMain.textContent = "Start";
@@ -1214,6 +1314,9 @@ if(s.activeFlow){
   btnMain.onclick = boot;
   btnReset.onclick = async () => {
     localStorage.removeItem(LS_DAY);
+    localStorage.removeItem(LS_DAY_LEGACY);
+    localStorage.removeItem(LS_LAST);
+    localStorage.removeItem(LS_LAST_LEGACY);
     if(timer) clearInterval(timer);
     timer = null;
     await releaseWakeLock();
