@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v3.5</title>
+<title>CST Generator v3.6</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -192,7 +192,7 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v3.5</h1>
+    <h1>CST Generator v3.6</h1>
     <div class="row mt-10">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset dag</button>
@@ -212,8 +212,8 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v31";
-  const LS_LAST = "cst_last_v31";
+  const LS_DAY = "cst_day_v36";
+  const LS_LAST = "cst_last_v36";
 
   const gateDef = [
     { key:'soreness', label:'Spierpijn / Herstel', choices:['Pijn','Beperkt','Stijf','Licht stijf','Soepel','Fris'] },
@@ -453,7 +453,11 @@ function clubPool(bucket, clubType){
     }
   ];
 
-  const CLUB_ROTATION = ["single","double","single","2h","single","double"];
+  const CLUB_TYPE_WEIGHTS = [
+    { type:"single", weight:55 },
+    { type:"2h", weight:30 },
+    { type:"double", weight:15 }
+  ];
 
   const leftCard = document.getElementById("leftCard");
   const rightInner = document.getElementById("rightInner");
@@ -503,7 +507,7 @@ function clubPool(bucket, clubType){
     return a;
   }
   function saveDay(day){ saveJSON(LS_DAY, day); }
-  function loadLast(){ return loadJSON(LS_LAST) || { nextClubIndex:0, decompBag:[], standaloneBag:[], nextDayType:'clubbell' }; }
+  function loadLast(){ return loadJSON(LS_LAST) || { lastClubType:null, decompBag:[], standaloneBag:[], nextDayType:'clubbell' }; }
   function saveLast(v){ saveJSON(LS_LAST, v); }
 
   function isYesterday(dateStr){
@@ -517,9 +521,20 @@ function clubPool(bucket, clubType){
 
   function nextFullClubType(){
     const last = loadLast();
-    const idx = Number.isInteger(last.nextClubIndex) ? last.nextClubIndex : 0;
-    const clubType = CLUB_ROTATION[idx % CLUB_ROTATION.length];
-    return { clubType, nextIndex: (idx + 1) % CLUB_ROTATION.length };
+    const previousType = last.lastClubType || null;
+    const pool = CLUB_TYPE_WEIGHTS.filter(x => x.type !== previousType);
+
+    const totalWeight = pool.reduce((sum, item) => sum + item.weight, 0);
+    let roll = Math.random() * totalWeight;
+
+    for(const item of pool){
+      if(roll < item.weight){
+        return item.type;
+      }
+      roll -= item.weight;
+    }
+
+    return pool.length ? pool[pool.length - 1].type : "single";
   }
 
   function deriveFlowFocusKey(flow){
@@ -631,14 +646,13 @@ function generateClubExercises(clubType){
 
     if(band.intuOnly){
       saveLast({
-        nextClubIndex: last.nextClubIndex || 0,
+        lastClubType: last.lastClubType || null,
         decompBag: Array.isArray(last.decompBag) ? last.decompBag : [],
         standaloneBag: Array.isArray(last.standaloneBag) ? last.standaloneBag : [],
         nextDayType: dayType
       });
     } else if(dayType === 'clubbell'){
-      const next = nextFullClubType();
-      const clubType = next.clubType;
+      const clubType = nextFullClubType();
       const clubPlan = generateClubExercises(clubType);
       const flow = nextDecompFlow();
       session.club = {
@@ -660,7 +674,7 @@ function generateClubExercises(clubType){
       session.blockTimes.decomp = (band.minutes === 20 ? 10 : 5) * 60;
       const lastState = loadLast();
       saveLast({
-        nextClubIndex: next.nextIndex,
+        lastClubType: clubType,
         decompBag: Array.isArray(lastState.decompBag) ? lastState.decompBag : [],
         standaloneBag: Array.isArray(lastState.standaloneBag) ? lastState.standaloneBag : [],
         nextDayType: 'standalone'
@@ -688,7 +702,7 @@ function generateClubExercises(clubType){
       session.blockTimes.decomp = (band.minutes === 20 ? 10 : 5) * 60;
       const lastState = loadLast();
       saveLast({
-        nextClubIndex: last.nextClubIndex || 0,
+        lastClubType: last.lastClubType || null,
         decompBag: Array.isArray(lastState.decompBag) ? lastState.decompBag : [],
         standaloneBag: Array.isArray(lastState.standaloneBag) ? lastState.standaloneBag : [],
         nextDayType: 'clubbell'
