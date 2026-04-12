@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v3.8</title>
+<title>CST Generator v3.9</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -185,14 +185,52 @@
   .stack-10.mt-12{margin-top:12px}
 
 
+  .intu-item{
+    border:1px solid var(--line);
+    background:var(--surface2);
+    border-radius:12px;
+    overflow:hidden;
+  }
+  .intu-summary{
+    list-style:none;
+    cursor:pointer;
+    padding:10px 12px;
+    display:flex;
+    gap:10px;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  .intu-summary::-webkit-details-marker{display:none}
+  .intu-summary::after{
+    content:"\25B6";
+    color:var(--muted);
+    transition:transform .2s ease;
+    flex:0 0 auto;
+    margin-top:2px;
+  }
+  .intu-item[open] .intu-summary::after{transform:rotate(90deg)}
+  .intu-summary:hover,
+  .intu-summary:focus-visible{background:rgba(255,255,255,.03); outline:none}
+  .intu-body{
+    border-top:1px solid var(--line);
+    padding:10px 12px 12px;
+    color:var(--muted);
+    font-size:12px;
+    line-height:1.45;
+  }
+  .finish-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px}
+  .btn.finish{border-color: rgba(95,208,138,0.45); background: rgba(95,208,138,0.12);}
+  .btn.finish[disabled]{opacity:.55}
+  #confettiLayer{position:fixed; inset:0; pointer-events:none; z-index:9999}
 
 </style>
 </head>
 <body>
+<canvas id="confettiLayer"></canvas>
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v3.8</h1>
+    <h1>CST Generator v3.9</h1>
     <div class="row mt-10">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset day</button>
@@ -211,10 +249,14 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v38";
-  const LS_LAST = "cst_last_v38";
-  const LS_DAY_LEGACY = "cst_day_v37";
-  const LS_LAST_LEGACY = "cst_last_v37";
+  const LS_DAY = "cst_day_v39";
+  const LS_LAST = "cst_last_v39";
+  const LS_DAY_LEGACY = "cst_day_v38";
+  const LS_LAST_LEGACY = "cst_last_v38";
+  const LS_DAY_LEGACY_2 = "cst_day_v37";
+  const LS_LAST_LEGACY_2 = "cst_last_v37";
+  const LS_COMPLETED = "cst_completed_v39";
+  const LS_COMPLETED_LEGACY = "cst_completed_v38";
 
   const gateDef = [
     { key:'soreness', label:'Soreness / Recovery', choices:['Pain','Restricted','Stiff','Slightly stiff','Loose','Fresh'] },
@@ -223,21 +265,81 @@
   ];
 
   const intu = [
-    "Loose Noose — 3x per kant",
-    "Neck Nod Mobility Drill — 3x per kant",
-    "Shoulder Roll — 3x per schouder",
-    "Arm Screw Mobility Drill — 3x per kant",
-    "Hitch Hiker Mobility Drill — 5 cirkels per arm",
-    "Wrist Chopper Drill — 5 reps",
-    "Jellyfish Drill — 5 reps per hand",
-    "Okay Cone — 5 reps op en neer",
-    "Thoracic Circle Mobility Drill — 5 cw + 5 ccw",
-    "Taiji Twist — 10x per kant",
-    "Hula Hoop Mobility Drill — 5 cw + 5 ccw",
-    "Lumbar Circle Mobility Drill — 5 cw + 5 ccw",
-    "Hip Drill — 3x per kant",
-    "Knee Circle Drill — 10 per richting",
-    "Ankle Roll Mobility Drill — 3 reps per voet"
+    {
+      title:"Loose Noose",
+      reps:"3x per side",
+      description:"Drop your ear toward your shoulder, pull the opposite shoulder down, and gently lift your jaw. Melt into the side of the neck, then repeat on both sides."
+    },
+    {
+      title:"Neck Nod Mobility Drill",
+      reps:"3x per side",
+      description:"Turn your head to one side, tip the back of the head toward the opposite shoulder without untwisting, let the shoulder drop, then look up. Keep the motion small and smooth."
+    },
+    {
+      title:"Shoulder Roll",
+      reps:"3x per shoulder",
+      description:"Hold one wrist behind your back, lift that shoulder, roll it backward, and turn the thumb outward. Keep the elbow straight and do not twist your torso."
+    },
+    {
+      title:"Arm Screw Mobility Drill",
+      reps:"3x per side",
+      description:"Lift the arms to shoulder height, shrug and roll one shoulder forward while sinking slightly to that side. Let the opposite arm rotate the other way as if you are wringing out tension."
+    },
+    {
+      title:"Hitch Hiker Mobility Drill",
+      reps:"5 circles per arm",
+      description:"Keep the upper arm level, start with the thumb pointing toward your nose, then rotate it outward and spiral the forearm around until the elbow locks. Reverse the path on the way back."
+    },
+    {
+      title:"Wrist Chopper Drill",
+      reps:"5 reps",
+      description:"Raise your arms on a diagonal as if holding chopper handlebars. Lift the wrists, draw the knuckles toward the forearm, pause briefly, then press the palms forward."
+    },
+    {
+      title:"Jellyfish Drill",
+      reps:"5 reps per hand",
+      description:"Make a tight fist, actively press through the knuckles, then fully open the fingers and wave them back toward the forearm. Release all tension at the end of each rep."
+    },
+    {
+      title:"Okay Cone",
+      reps:"5 reps up and down",
+      description:"Form an okay sign, stack the fingertips, spread and extend the fingers fully, then reshape the hand into a cone. Move smoothly between open and closed positions."
+    },
+    {
+      title:"Thoracic Circle Mobility Drill",
+      reps:"5 clockwise + 5 counter-clockwise",
+      description:"Lift the chest, slide the ribs to the side, round the mid-back behind you, move through the other side, and return to tall posture. Make big, calm circles from the thoracic spine."
+    },
+    {
+      title:"Taiji Twist",
+      reps:"10x per side",
+      description:"Rotate loosely from the trunk to the right and left while the arms swing freely and tap the ribs and sides. Stay relaxed, rhythmic, and unforced."
+    },
+    {
+      title:"Hula Hoop Mobility Drill",
+      reps:"5 clockwise + 5 counter-clockwise",
+      description:"Draw a large circle with the pelvis by tucking, lifting one hip, arching, lifting the other hip, and returning to center. Think of a slow hula-hoop motion from the hips."
+    },
+    {
+      title:"Lumbar Circle Mobility Drill",
+      reps:"5 clockwise + 5 counter-clockwise",
+      description:"With soft knees, hang forward, rotate through one side, extend through the back, travel to the other side, and return to the forward fold. Let the lower back move in a slow, smooth circle."
+    },
+    {
+      title:"Hip Drill",
+      reps:"3x per side",
+      description:"Stand on one leg and swing the other straight leg forward, out to the side, and behind you with an active foot and a long knee. Create a controlled hip circle in the air."
+    },
+    {
+      title:"Knee Circle Drill",
+      reps:"10 per direction",
+      description:"Lift the thigh to hip height, extend the lower leg, pull the toes toward the shin, and rotate from the hip and knee so the heel moves outward. Perform controlled rotations both ways."
+    },
+    {
+      title:"Ankle Roll Mobility Drill",
+      reps:"3 reps per foot",
+      description:"Roll across the outside of the foot toward the big toe, let the knee and heel turn with it, curl the toes, then return under control. Move slowly and with clear ankle intent."
+    }
   ];
 
 const CLUB_EXERCISES = [
@@ -481,15 +583,25 @@ function clubPool(bucket, clubType){
   const modePill = document.getElementById("modePill");
   const dayPill = document.getElementById("dayPill");
   const wakePill = document.getElementById("wakePill");
+  const DAY_KEYS = [LS_DAY, LS_DAY_LEGACY, LS_DAY_LEGACY_2];
+  const LAST_KEYS = [LS_LAST, LS_LAST_LEGACY, LS_LAST_LEGACY_2];
+  const COMPLETED_KEYS = [LS_COMPLETED, LS_COMPLETED_LEGACY];
 
   let timer = null;
   let audioCtx = null;
   let wakeLock = null;
+  let cachedDay = null;
+  let cachedLast = null;
+  let cachedCompleted = null;
 
-  function todayKey(){
+  function dateKeyForOffset(days){
     const d = new Date();
+    d.setHours(12,0,0,0);
+    d.setDate(d.getDate() + days);
     return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
   }
+  function todayKey(){ return dateKeyForOffset(0); }
+  function yesterdayKey(){ return dateKeyForOffset(-1); }
   function loadJSON(k){ try{ const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch { return null; } }
   function saveJSON(k,v){ localStorage.setItem(k, JSON.stringify(v)); }
   function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
@@ -513,9 +625,13 @@ function clubPool(bucket, clubType){
     if(mode === "STAND-ALONE FLOW DAY") return "Stand-alone flow day";
     return mode || "-";
   }
-  function setModePill(mode){ modePill.innerHTML = `Mode: <strong>${cleanText(formatModeLabel(mode))}</strong>`; }
-  function setDayPill(state){ dayPill.innerHTML = `Today: <strong>${state || 'new'}</strong>`; }
-  function setWakePill(on){ wakePill.innerHTML = `Wake Lock: <strong>${on ? 'on' : 'off'}</strong>`; }
+  function setPillValue(pill, value){
+    const strong = pill?.querySelector("strong");
+    if(strong) strong.textContent = value;
+  }
+  function setModePill(mode){ setPillValue(modePill, cleanText(formatModeLabel(mode))); }
+  function setDayPill(state){ setPillValue(dayPill, state || "new"); }
+  function setWakePill(on){ setPillValue(wakePill, on ? "on" : "off"); }
   function fmt(sec){
     const m = Math.floor(sec/60), s = sec%60;
     return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
@@ -539,27 +655,54 @@ function clubPool(bucket, clubType){
     return { lastClubType:null, decompBag:[], standaloneBag:[] };
   }
 
+  function removeStorageKeys(keys){
+    keys.forEach(key => localStorage.removeItem(key));
+  }
+
+  function readFirstJSON(keys){
+    for(const key of keys){
+      const value = loadJSON(key);
+      if(value) return value;
+    }
+    return null;
+  }
+
   function loadDay(){
-    const a = loadJSON(LS_DAY) || loadJSON(LS_DAY_LEGACY);
-    if(!a || a.day !== todayKey()) return null;
-    return a;
+    if(cachedDay?.day === todayKey()) return cachedDay;
+    const day = readFirstJSON(DAY_KEYS);
+    cachedDay = day && day.day === todayKey() ? day : null;
+    return cachedDay;
   }
-  function saveDay(day){ saveJSON(LS_DAY, day); }
+  function saveDay(day){
+    cachedDay = day;
+    saveJSON(LS_DAY, day);
+  }
   function loadLast(){
-    return {
+    if(cachedLast) return { ...cachedLast };
+    cachedLast = {
       ...getDefaultLastState(),
-      ...(loadJSON(LS_LAST) || loadJSON(LS_LAST_LEGACY) || {})
+      ...(readFirstJSON(LAST_KEYS) || {})
     };
+    return { ...cachedLast };
   }
-  function saveLast(v){ saveJSON(LS_LAST, v); }
-
-  function dayNumberFromKey(key){
-    const [y,m,d] = key.split("-").map(Number);
-    return Math.floor(Date.UTC(y, m-1, d) / 86400000);
+  function saveLast(v){
+    cachedLast = { ...getDefaultLastState(), ...v };
+    saveJSON(LS_LAST, cachedLast);
+  }
+  function loadCompleted(){
+    if(cachedCompleted !== null) return cachedCompleted;
+    cachedCompleted = readFirstJSON(COMPLETED_KEYS);
+    return cachedCompleted;
+  }
+  function saveCompleted(v){
+    cachedCompleted = v;
+    saveJSON(LS_COMPLETED, v);
   }
 
-  function calendarDayType(key){
-    return dayNumberFromKey(key) % 2 === 0 ? 'clubbell' : 'standalone';
+  function computeTrainingDayType(){
+    const completed = loadCompleted();
+    if(!completed || completed.day !== yesterdayKey()) return 'clubbell';
+    return completed.dayType === 'clubbell' ? 'standalone' : 'clubbell';
   }
 
   function nextFullClubType(){
@@ -676,7 +819,7 @@ function clubPool(bucket, clubType){
   function generateSession(mode, total){
     const last = loadLast();
     const band = computeBand(total);
-    const dayType = calendarDayType(todayKey());
+    const dayType = computeTrainingDayType();
 
     const session = {
       day: todayKey(),
@@ -695,7 +838,9 @@ function clubPool(bucket, clubType){
       currentStageIndex: 0,
       currentStageLeft: 0,
       isRunning: false,
-      lastCountdownBeep: null
+      lastCountdownBeep: null,
+      completed: false,
+      completedAt: null
     };
 
     if(band.intuOnly){
@@ -800,10 +945,10 @@ function clubPool(bucket, clubType){
 
   function renderSession(s){
     const summaryText = s.intuOnly
-      ? "Today is recovery-focused: Intu only. The calendar cycle still continues as normal."
+      ? "Today is recovery-focused: Intu only. Because no Clubbell or stand-alone session is completed today, tomorrow defaults back to Clubbell."
       : s.dayType === "clubbell"
-      ? "Today: Intu, then Clubbell, then finish with decompress. Short block = 15 + 5, long block = 20 + 10."
-      : "Today: Intu, then stand-alone flow, then finish with decompress. Short block = 15 + 5, long block = 20 + 10.";
+      ? "Today: Intu, then Clubbell, then finish with decompress. Finish this session to unlock a stand-alone day tomorrow. Short block = 15 + 5, long block = 20 + 10."
+      : "Today: Intu, then stand-alone flow, then finish with decompress. Finish this session and tomorrow returns to Clubbell. Short block = 15 + 5, long block = 20 + 10.";
 
     let html = `<h2>Today</h2>`;
     if(s.intuOnly){
@@ -825,10 +970,15 @@ function clubPool(bucket, clubType){
         <div class="accordion-content">
           <div class="stack-10 mt-12">
             ${s.intu.map(x => `
-              <div class="exercise">
-                <div class="ex-left"><div class="ex-title">${cleanText(x)}</div></div>
-                <div class="pill">Intu</div>
-              </div>`).join("")}
+              <details class="intu-item">
+                <summary class="intu-summary">
+                  <div class="ex-left">
+                    <div class="ex-title">${cleanText(x.title)} - ${cleanText(x.reps)}</div>
+                  </div>
+                  <div class="pill">Intu</div>
+                </summary>
+                <div class="intu-body">${cleanText(x.description)}</div>
+              </details>`).join("")}
           </div>
         </div>
       </div>`;
@@ -917,8 +1067,10 @@ if(s.activeFlow){
     html += `<div class="hr"></div>`;
     if(!s.intuOnly){
       html += `
-      <div class="row">
+      <div class="finish-row">
         <button id="btnStartSession" class="btn primary">Start block timer</button>
+        <button id="btnFinishSession" class="btn finish" ${s.completed ? 'disabled' : ''}>${s.completed ? 'Completed' : 'Finish session'}</button>
+        <span class="small">${s.completed ? 'Saved as completed for today.' : 'Use Finish when the training is actually done.'}</span>
       </div>`;
     }
     html += `<p class="small mt-10">${summaryText}</p>`;
@@ -939,6 +1091,10 @@ if(s.activeFlow){
         if(s.intuOnly) return;
         startSequence();
       };
+    }
+    const finishBtn = document.getElementById("btnFinishSession");
+    if(finishBtn){
+      finishBtn.onclick = finishSession;
     }
     const modeLabel = s.mode;
     setModePill(modeLabel);
@@ -1010,6 +1166,7 @@ if(s.activeFlow){
         <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : "Start"}</button>
         <button id="btnNextStage" class="btn">Next block</button>
         <button id="btnResetTimer" class="btn danger">Reset blocks</button>
+        ${!s.intuOnly ? `<button id="btnFinishRight" class="btn finish" ${s.completed ? "disabled" : ""}>${s.completed ? "Completed" : "Finish"}</button>` : ""}
       </div>
 
       <div class="exercise mt-12">
@@ -1043,6 +1200,8 @@ if(s.activeFlow){
     };
     document.getElementById("btnNextStage").onclick = () => advanceStage(true);
     document.getElementById("btnResetTimer").onclick = resetSequence;
+    const finishRight = document.getElementById("btnFinishRight");
+    if(finishRight) finishRight.onclick = finishSession;
   }
 
   async function ensureAudio(){
@@ -1214,6 +1373,75 @@ if(s.activeFlow){
     renderRightPanel();
   }
 
+  function celebrateConfetti(){
+    const canvas = document.getElementById('confettiLayer');
+    if(!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+    canvas.width = Math.floor(w * dpr);
+    canvas.height = Math.floor(h * dpr);
+    canvas.style.width = w + 'px';
+    canvas.style.height = h + 'px';
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+
+    const pieces = Array.from({length: 140}, () => ({
+      x: Math.random() * w,
+      y: -20 - Math.random() * h * 0.25,
+      size: 4 + Math.random() * 8,
+      vx: -2 + Math.random() * 4,
+      vy: 2 + Math.random() * 4,
+      rot: Math.random() * Math.PI * 2,
+      vr: -0.2 + Math.random() * 0.4,
+      hue: Math.floor(Math.random() * 360)
+    }));
+
+    const start = performance.now();
+    function frame(now){
+      const elapsed = now - start;
+      ctx.clearRect(0,0,w,h);
+      pieces.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.vy += 0.03;
+        p.rot += p.vr;
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.fillStyle = `hsl(${p.hue} 90% 60%)`;
+        ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size * 0.6);
+        ctx.restore();
+      });
+      if(elapsed < 2200){
+        requestAnimationFrame(frame);
+      } else {
+        ctx.clearRect(0,0,w,h);
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  async function finishSession(){
+    const d = loadDay();
+    if(!d || d.intuOnly || d.completed) return;
+    d.completed = true;
+    d.completedAt = new Date().toISOString();
+    d.isRunning = false;
+    saveDay(d);
+    saveCompleted({
+      day: d.day,
+      dayType: d.dayType,
+      completedAt: d.completedAt
+    });
+    if(timer) clearInterval(timer);
+    timer = null;
+    await releaseWakeLock();
+    await patternDone();
+    celebrateConfetti();
+    renderSession(d);
+  }
+
   function renderGate(existing){
     const _raw = existing?.scores ?? { soreness:null, energy:null, sleep:null };
     const scores = { soreness:_raw.soreness, energy:_raw.energy, sleep:_raw.sleep };
@@ -1239,7 +1467,7 @@ if(s.activeFlow){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Intu only | 9-12 = 15 min | 13-15 = 20 min | the day type follows the calendar date</span>
+          <span class="small">0-8 = Intu only | 9-12 = 15 min | 13-15 = 20 min | Clubbell is the default, standalone only follows a completed Clubbell day</span>
         </div>
       </div>
     `;
@@ -1292,16 +1520,24 @@ if(s.activeFlow){
     setDayPill("new");
   }
 
+  function migrateLegacyStorage(day){
+    if(day && (loadJSON(LS_DAY_LEGACY) || loadJSON(LS_DAY_LEGACY_2))){
+      saveDay(day);
+      removeStorageKeys([LS_DAY_LEGACY, LS_DAY_LEGACY_2]);
+    }
+    if((loadJSON(LS_LAST_LEGACY) || loadJSON(LS_LAST_LEGACY_2)) && !loadJSON(LS_LAST)){
+      saveLast(loadLast());
+      removeStorageKeys([LS_LAST_LEGACY, LS_LAST_LEGACY_2]);
+    }
+    if(loadJSON(LS_COMPLETED_LEGACY) && !loadJSON(LS_COMPLETED)){
+      saveCompleted(loadCompleted());
+      removeStorageKeys([LS_COMPLETED_LEGACY]);
+    }
+  }
+
   function boot(){
     const day = loadDay();
-    if(day && loadJSON(LS_DAY_LEGACY)){
-      saveDay(day);
-      localStorage.removeItem(LS_DAY_LEGACY);
-    }
-    if(loadJSON(LS_LAST_LEGACY) && !loadJSON(LS_LAST)){
-      saveLast(loadLast());
-      localStorage.removeItem(LS_LAST_LEGACY);
-    }
+    migrateLegacyStorage(day);
     if(day){
       btnMain.textContent = "Open session";
       renderSession(day);
@@ -1313,10 +1549,10 @@ if(s.activeFlow){
 
   btnMain.onclick = boot;
   btnReset.onclick = async () => {
-    localStorage.removeItem(LS_DAY);
-    localStorage.removeItem(LS_DAY_LEGACY);
-    localStorage.removeItem(LS_LAST);
-    localStorage.removeItem(LS_LAST_LEGACY);
+    cachedDay = null;
+    cachedLast = null;
+    cachedCompleted = null;
+    removeStorageKeys([...DAY_KEYS, ...LAST_KEYS, ...COMPLETED_KEYS]);
     if(timer) clearInterval(timer);
     timer = null;
     await releaseWakeLock();
