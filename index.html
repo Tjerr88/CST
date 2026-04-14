@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v3.9</title>
+<title>CST Generator v4.0</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -230,7 +230,7 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v3.9</h1>
+    <h1>CST Generator v4.0</h1>
     <div class="row mt-10">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset day</button>
@@ -386,10 +386,10 @@ const CLUB_EXERCISES = [
   { name:"Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["single","double"] },
   { name:"Two-Handed Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["2h"] },
   { name:"Front Clean + Jerk", bucket:"Ballistic", start:"ready", end:"order", modes:["single","double"] },
-  { name:"Side Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
-  { name:"Side Jerk", bucket:"Ballistic", start:"guard", end:"guard", modes:["single","double"] },
-  { name:"Shoulder Park Side Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["single","double"] },
-  { name:"Side Clean + Jerk", bucket:"Ballistic", start:"ready", end:"guard", modes:["single","double"] },
+  { name:"Side Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Side Jerk", bucket:"Ballistic", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Shoulder Park Side Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["2h"] },
+  { name:"Side Clean + Jerk", bucket:"Ballistic", start:"ready", end:"guard", modes:["2h"] },
 
   { name:"Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
   { name:"Two-Handed Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["2h"] },
@@ -455,6 +455,43 @@ function clubPool(bucket, clubType){
   ];
 
   const FAMILY_BY_KEY = Object.fromEntries(YOGA_FAMILIES.map(f => [f.key, f]));
+
+  const ANIMAL_FLOW_BLOCKS = [
+    { family:"Base", name:"Deep Ape", meta:"Base" },
+    { family:"Base", name:"Beast", meta:"Base" },
+    { family:"Base", name:"Loaded Beast", meta:"Base" },
+    { family:"Base", name:"Crab", meta:"Base" },
+    { family:"Transition", name:"Underswitch", meta:"Level 1" },
+    { family:"Transition", name:"Underswitch Tap", meta:"Level 1" },
+    { family:"Transition", name:"Side Kickthrough", meta:"Level 1" },
+    { family:"Transition", name:"Scorpion Switch", meta:"Level 1" },
+    { family:"Reach", name:"Crab Reach", meta:"Level 1" },
+    { family:"Reach", name:"Scorpion Reach", meta:"Level 1" },
+    { family:"Reach", name:"Beast Reach", meta:"Level 1" },
+    { family:"Reach", name:"Wave Unload", meta:"Loaded Beast" },
+    { family:"Travel", name:"Forward Traveling Ape", meta:"Traveling form" },
+    { family:"Travel", name:"Lateral Traveling Ape", meta:"Traveling form" },
+    { family:"Travel", name:"Forward Traveling Beast", meta:"Traveling form" },
+    { family:"Travel", name:"Reverse Traveling Beast", meta:"Traveling form" },
+    { family:"Travel", name:"Lateral Traveling Beast", meta:"Traveling form" },
+    { family:"Travel", name:"Forward Traveling Crab", meta:"Traveling form" },
+    { family:"Travel", name:"Reverse Traveling Crab", meta:"Traveling form" },
+    { family:"Level 2", name:"Reaching Underswitch", meta:"L2 core" },
+    { family:"Level 2", name:"Underswitch to Deep Ape", meta:"L2 core" },
+    { family:"Level 2", name:"Scorpion Sweep", meta:"L2 core" },
+    { family:"Level 2", name:"Roll Through", meta:"L2 core" },
+    { family:"Locomotion", name:"Bear", meta:"Locomotion" },
+    { family:"Locomotion", name:"Leopard", meta:"Locomotion" },
+    { family:"Locomotion", name:"Crocodile Crawl", meta:"Locomotion" }
+  ];
+
+  function nextAnimalFlow(previous = null){
+    let pool = ANIMAL_FLOW_BLOCKS.slice();
+    if(previous && pool.length > 1){
+      pool = pool.filter(x => x.name !== previous);
+    }
+    return shuffle(pool).slice(0, 8 + Math.floor(Math.random() * 3));
+  }
 
   const CLUB_TYPE_WEIGHTS = [
     { type:"single", weight:55 },
@@ -542,7 +579,8 @@ function getDefaultLastState(){
     return {
       lastClubType:null,
       familyBags:{},
-      familyLastPick:{}
+      familyLastPick:{},
+      lastAnimalFlow:null
     };
   }
 
@@ -691,10 +729,10 @@ function getDefaultLastState(){
     const stages = [];
     if(session.dayType === 'clubbell'){
       stages.push({ key:'club', label:`Clubbell | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
-      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
+      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
     } else if(session.dayType === 'standalone'){
       stages.push({ key:'active', label:`Stand-alone flow | ${fmtMin(session.blockTimes.active)}`, seconds:session.blockTimes.active });
-      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp });
+      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
     }
     return stages;
   }
@@ -747,22 +785,22 @@ function getDefaultLastState(){
         bagType: 'Decompress'
       };
       session.blockTimes.club = band.minutes * 60;
-      session.blockTimes.decomp = (band.minutes === 20 ? 10 : 5) * 60;
+      session.blockTimes.decomp = 5 * 60;
       last.lastClubType = clubType;
       saveLast(last);
     } else {
-      const activeShapes = buildFamilyPractice("standalone", last);
+      const activeBlocks = nextAnimalFlow(last.lastAnimalFlow || null);
       const decompShapes = buildFamilyPractice("decompress", last);
       session.activeFlow = {
-        name: "Stand-alone practice",
-        focus: "6 families | 1 family gets 2 shapes",
-        use: "Stand-alone: use these 7 words. Build your own order and transitions. Keep moving and solve the flow yourself.",
-        picks: activeShapes,
-        sequence: activeShapes.map(x => x.shape),
-        bagType: 'Stand-alone'
+        name: "Animal Flow practice",
+        focus: "Simple generator | 8-10 blocks",
+        use: "Animal Flow: move with control, keep the tempo calm, and use these blocks as your practice for today.",
+        picks: activeBlocks,
+        sequence: activeBlocks.map(x => x.name),
+        bagType: 'Animal Flow'
       };
       session.decompFlow = {
-        name: "Decompress practice",
+        name: "Prasara decompressie",
         focus: "6 families | 1 shape per family",
         use: "Finish with these 6 words. Move gently, make the links yourself, and let the breath slow things down.",
         picks: decompShapes,
@@ -770,7 +808,8 @@ function getDefaultLastState(){
         bagType: 'Decompress'
       };
       session.blockTimes.active = band.minutes * 60;
-      session.blockTimes.decomp = (band.minutes === 20 ? 10 : 5) * 60;
+      session.blockTimes.decomp = 5 * 60;
+      last.lastAnimalFlow = activeBlocks.length ? activeBlocks[activeBlocks.length - 1].name : null;
       saveLast(last);
     }
 
@@ -822,8 +861,8 @@ function getDefaultLastState(){
     const summaryText = s.intuOnly
       ? "Today is recovery-focused: Intu only. Because no Clubbell or stand-alone session is completed today, tomorrow defaults back to Clubbell."
       : s.dayType === "clubbell"
-      ? "Today: Intu, then Clubbell, then finish with a 6-word decompress practice. Finish this session to unlock a stand-alone day tomorrow. Short block = 15 + 5, long block = 20 + 10."
-      : "Today: Intu, then a 7-word stand-alone practice, then finish with a 6-word decompress practice. Finish this session and tomorrow returns to Clubbell. Short block = 15 + 5, long block = 20 + 10.";
+      ? "Today: Intu, then Clubbell, then finish with a 6-word Prasara decompressie. Finish this session to unlock an Animal Flow day tomorrow. Short block = 15 + 5, long block = 20 + 5."
+      : "Today: Intu, then Animal Flow, then finish with a 6-word Prasara decompressie. Finish this session and tomorrow returns to Clubbell. Short block = 15 + 5, long block = 20 + 5.";
 
     let html = `<h2>Today</h2>`;
     if(s.intuOnly){
@@ -889,25 +928,25 @@ if(s.activeFlow){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Stand-alone practice</span>
+          <span>Animal Flow</span>
           <span class="pill">${fmtMin(s.blockTimes?.active || 0)} | Main block</span>
         </button>
         <div class="accordion-content">
-          ${renderExerciseCard("Practice", s.activeFlow.name, `${s.activeFlow.bagType} vocab`, "mt-12 mb-10")}
-          ${renderExerciseCard("Focus", s.activeFlow.focus, "Open vocab", "mb-10")}
-          ${renderExerciseCard("Use", s.activeFlow.use, "Stand-alone session", "mb-10")}
-          ${renderExerciseCard("Rule", "No fixed sentence. Use these 7 shapes as words. Keep moving, choose your own order, and make the transitions yourself.", "Flow", "mb-10")}
+          ${renderExerciseCard("Practice", s.activeFlow.name, `${s.activeFlow.bagType}`, "mt-12 mb-10")}
+          ${renderExerciseCard("Focus", s.activeFlow.focus, "Movement practice", "mb-10")}
+          ${renderExerciseCard("Use", s.activeFlow.use, "Animal Flow day", "mb-10")}
+          ${renderExerciseCard("Rule", "Use these 8-10 Animal Flow blocks as your list for today. Keep it smooth, controlled and athletic, but not rushed.", "Flow", "mb-10")}
           <div class="stack-10">
             ${s.activeFlow.picks.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${cleanText(x.shape)}</div>
-                  <div class="ex-meta">${cleanText(x.familyName)}${x.isExtra ? " | extra shape from this family" : ""}</div>
+                  <div class="ex-title">${idx + 1}. ${cleanText(x.name)}</div>
+                  <div class="ex-meta">${cleanText(x.family)} | ${cleanText(x.meta || "")}</div>
                 </div>
-                <div class="pill">${x.isExtra ? "Extra" : "Word"}</div>
+                <div class="pill">Block</div>
               </div>`).join("")}
           </div>
-          ${renderExerciseCard("Prompt", "Find your own sequence. Travel between low and high, left and right, push and fold, twist and stand.", "Practice", "mt-10")}
+          ${renderExerciseCard("Prompt", "Let the blocks guide the session. Stay smooth, keep the breath calm, and avoid turning it into a max-effort skill test.", "Practice", "mt-10")}
         </div>
       </div>`;
     }
@@ -1007,8 +1046,8 @@ if(s.activeFlow){
 
     currentLabel.textContent = current ? current.label : "-";
     timeDisplay.textContent = fmt(s.currentStageLeft || 0);
-    playPauseBtn.textContent = s.isRunning ? "Pause" : "Start";
-    nextStageMeta.textContent = next ? next.label : "You are done after this block.";
+    playPauseBtn.textContent = s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompressie" : "Start");
+    nextStageMeta.textContent = next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block.";
 
     rightInner.querySelectorAll(".stage-pill").forEach((pill, idx) => {
       pill.classList.remove("active", "done");
@@ -1039,7 +1078,7 @@ if(s.activeFlow){
       <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
 
       <div class="row mt-12">
-        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : "Start"}</button>
+        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompressie" : "Start")}</button>
         <button id="btnNextStage" class="btn">Next block</button>
         <button id="btnResetTimer" class="btn danger">Reset blocks</button>
         ${!s.intuOnly ? `<button id="btnFinishRight" class="btn finish" ${s.completed ? "disabled" : ""}>${s.completed ? "Completed" : "Finish"}</button>` : ""}
@@ -1048,7 +1087,7 @@ if(s.activeFlow){
       <div class="exercise mt-12">
         <div class="ex-left">
           <div class="ex-title">Next</div>
-          <div id="nextStageMeta" class="ex-meta">${next ? next.label : "You are done after this block."}</div>
+          <div id="nextStageMeta" class="ex-meta">${next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block."}</div>
         </div>
         <div class="pill">${next ? "Up next" : "Last"}</div>
       </div>
@@ -1065,7 +1104,7 @@ if(s.activeFlow){
         }).join("")}
       </div>
 
-      <div class="small mt-12">Clear beeps at 3-2-1, on block change, and at the end. Wake Lock tries to keep your screen active while the timer is running.</div>
+      <div class="small mt-12">Clear beeps at 3-2-1, on block change, and at the end. Decompressie never auto-starts: press Start yourself when you are ready. Wake Lock tries to keep your screen active while the timer is running.</div>
     `;
 
     document.getElementById("btnPlayPause").onclick = () => {
@@ -1221,12 +1260,14 @@ if(s.activeFlow){
     d.currentStageIndex += 1;
     d.currentStageLeft = d.stages[d.currentStageIndex].seconds;
     d.lastCountdownBeep = null;
-    if(!manual) d.isRunning = true;
+    const nextStage = d.stages[d.currentStageIndex];
+    const shouldAutoRun = !nextStage?.manualStart && !manual;
+    d.isRunning = shouldAutoRun;
     saveDay(d);
     renderRightPanel();
     await patternStageChange();
 
-    if(manual){
+    if(!shouldAutoRun){
       d.isRunning = false;
       saveDay(d);
       renderRightPanel();
@@ -1343,7 +1384,7 @@ if(s.activeFlow){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Intu only | 9-12 = 15 min | 13-15 = 20 min | Clubbell is the default, standalone only follows a completed Clubbell day</span>
+          <span class="small">0-8 = Intu only | 9-12 = 15 min | 13-15 = 20 min | Clubbell is the default, Animal Flow only follows a completed Clubbell day</span>
         </div>
       </div>
     `;
