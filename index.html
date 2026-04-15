@@ -221,6 +221,20 @@
   .finish-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px}
   .btn.finish{border-color: rgba(95,208,138,0.45); background: rgba(95,208,138,0.12);}
   .btn.finish[disabled]{opacity:.55}
+  .tabbar{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .tab{appearance:none; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--muted); border-radius:999px; padding:8px 12px; font-weight:800; cursor:pointer}
+  .tab.active{color:var(--text); border-color: rgba(122,167,255,0.45); background: rgba(122,167,255,0.10);}
+  .panel{display:none}
+  .panel.active{display:block}
+  .settings-grid{display:grid; grid-template-columns:1fr; gap:12px}
+  @media (min-width: 880px){ .settings-grid{ grid-template-columns: 1fr 1fr; } }
+  .setting-list{display:grid; gap:12px}
+  .kv{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
+  .kv select{width:220px; max-width:100%; padding:9px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text)}
+  .toggle-list{display:grid; gap:10px}
+  .toggle-item{display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface2)}
+  .toggle-item input{accent-color:#7aa7ff; width:18px; height:18px}
+  .settings-note{font-size:12px; color:var(--muted); line-height:1.4}
   #confettiLayer{position:fixed; inset:0; pointer-events:none; z-index:9999}
 
 </style>
@@ -239,12 +253,25 @@
       <span id="wakePill" class="pill">Wake Lock: <strong>off</strong></span>
       <span class="pill beep-pill">Beeps: <strong>3-2-1 + switch + done</strong></span>
     </div>
+    <div class="tabbar">
+      <button type="button" class="tab active" data-tab="today">Today</button>
+      <button type="button" class="tab" data-tab="settings">Settings</button>
+    </div>
   </div>
 
-  <div class="grid">
-    <div id="leftCard" class="card"></div>
-    <div id="rightCard" class="card"><div id="rightInner"></div></div>
-  </div>
+  <section id="panel-today" class="panel active">
+    <div class="grid">
+      <div id="leftCard" class="card"></div>
+      <div id="rightCard" class="card"><div id="rightInner"></div></div>
+    </div>
+  </section>
+
+  <section id="panel-settings" class="panel">
+    <div class="settings-grid">
+      <div id="settingsCstCard" class="card"></div>
+      <div id="settingsAfCard" class="card"></div>
+    </div>
+  </section>
 </div>
 
 <script>
@@ -456,41 +483,214 @@ function clubPool(bucket, clubType){
 
   const FAMILY_BY_KEY = Object.fromEntries(YOGA_FAMILIES.map(f => [f.key, f]));
 
-  const ANIMAL_FLOW_BLOCKS = [
-    { family:"Base", name:"Deep Ape", meta:"Base" },
-    { family:"Base", name:"Beast", meta:"Base" },
-    { family:"Base", name:"Loaded Beast", meta:"Base" },
-    { family:"Base", name:"Crab", meta:"Base" },
-    { family:"Transition", name:"Underswitch", meta:"Level 1" },
-    { family:"Transition", name:"Underswitch Tap", meta:"Level 1" },
-    { family:"Transition", name:"Side Kickthrough", meta:"Level 1" },
-    { family:"Transition", name:"Scorpion Switch", meta:"Level 1" },
-    { family:"Reach", name:"Crab Reach", meta:"Level 1" },
-    { family:"Reach", name:"Scorpion Reach", meta:"Level 1" },
-    { family:"Reach", name:"Beast Reach", meta:"Level 1" },
-    { family:"Reach", name:"Wave Unload", meta:"Loaded Beast" },
-    { family:"Travel", name:"Forward Traveling Ape", meta:"Traveling form" },
-    { family:"Travel", name:"Lateral Traveling Ape", meta:"Traveling form" },
-    { family:"Travel", name:"Forward Traveling Beast", meta:"Traveling form" },
-    { family:"Travel", name:"Reverse Traveling Beast", meta:"Traveling form" },
-    { family:"Travel", name:"Lateral Traveling Beast", meta:"Traveling form" },
-    { family:"Travel", name:"Forward Traveling Crab", meta:"Traveling form" },
-    { family:"Travel", name:"Reverse Traveling Crab", meta:"Traveling form" },
-    { family:"Level 2", name:"Reaching Underswitch", meta:"L2 core" },
-    { family:"Level 2", name:"Underswitch to Deep Ape", meta:"L2 core" },
-    { family:"Level 2", name:"Scorpion Sweep", meta:"L2 core" },
-    { family:"Level 2", name:"Roll Through", meta:"L2 core" },
-    { family:"Locomotion", name:"Bear", meta:"Locomotion" },
-    { family:"Locomotion", name:"Leopard", meta:"Locomotion" },
-    { family:"Locomotion", name:"Crocodile Crawl", meta:"Locomotion" }
+  const CST_SETTINGS_KEY = "cst_settings_v1";
+  const AF_SETTINGS_KEY = "cst_af_settings_v1";
+  const AF_HB_KEY = "cst_af_hb_state_v1";
+  const AF_BASE_LABEL = { CRAB:"Crab", BEAST:"Beast", LOADED_BEAST:"Loaded Beast", APE:"Deep Ape" };
+
+  function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function afHashStrToSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h>>>0; }
+  function afChoice(rng, arr){ return arr[Math.floor(rng()*arr.length)]; }
+  function getAFSettings(){
+    const base = { lengthMode:"random", startBase:"random", includeTF:false, includeHB:false };
+    try{
+      const stored = JSON.parse(localStorage.getItem(AF_SETTINGS_KEY) || "{}");
+      return { ...base, ...stored };
+    } catch { return base; }
+  }
+  function setAFSettings(next){ localStorage.setItem(AF_SETTINGS_KEY, JSON.stringify(next)); }
+
+  function getCSTSettings(){
+    const base = { clubTypes:{ single:true, double:true, "2h":true } };
+    try{
+      const stored = JSON.parse(localStorage.getItem(CST_SETTINGS_KEY) || "{}");
+      const next = { ...base, ...stored, clubTypes:{ ...base.clubTypes, ...(stored.clubTypes || {}) } };
+      if(!Object.values(next.clubTypes).some(Boolean)) next.clubTypes.single = true;
+      return next;
+    } catch { return base; }
+  }
+  function setCSTSettings(next){
+    const current = getCSTSettings();
+    const merged = { ...current, ...next, clubTypes:{ ...current.clubTypes, ...((next && next.clubTypes) || {}) } };
+    if(!Object.values(merged.clubTypes).some(Boolean)) merged.clubTypes.single = true;
+    localStorage.setItem(CST_SETTINGS_KEY, JSON.stringify(merged));
+  }
+
+  const AF_MOVES = {
+    SET_BEAST_FROM_APE: { id:"SET_BEAST_FROM_APE", name:"Set Beast", kind:"SET", start:"APE", end:"BEAST", family:"SET", phase:"L1" },
+    SET_CRAB_FROM_APE: { id:"SET_CRAB_FROM_APE", name:"Set Crab", kind:"SET", start:"APE", end:"CRAB", family:"SET", phase:"L1" },
+    SET_LB_FROM_APE: { id:"SET_LB_FROM_APE", name:"Set Loaded Beast", kind:"SET", start:"APE", end:"LOADED_BEAST", family:"SET", phase:"L1" },
+    APE_REACH: { id:"APE_REACH", name:"Ape Reach", kind:"FSS", start:"APE", end:"APE", family:"FSS", phase:"L1" },
+    TF_APE_FWD: { id:"TF_APE_FWD", name:"Forward Traveling Ape", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
+    TF_APE_LAT1: { id:"TF_APE_LAT1", name:"Lateral Traveling Ape (Low Hip)", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
+    TF_APE_LAT2: { id:"TF_APE_LAT2", name:"Lateral Traveling Ape (High Hip)", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
+    TF_APE_LAT3: { id:"TF_APE_LAT3", name:"Lateral Traveling Ape (Reaching)", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
+
+    SET_LB_FROM_BEAST: { id:"SET_LB_FROM_BEAST", name:"Set Loaded Beast", kind:"SET", start:"BEAST", end:"LOADED_BEAST", family:"SET", phase:"L1" },
+    SET_APE_FROM_BEAST: { id:"SET_APE_FROM_BEAST", name:"Set Deep Ape", kind:"SET", start:"BEAST", end:"APE", family:"SET", phase:"L1" },
+    US_B2C: { id:"US_B2C", name:"Underswitch", kind:"ST", start:"BEAST", end:"CRAB", family:"US", phase:"L1" },
+    UST_BEAST: { id:"UST_BEAST", name:"Underswitch Tap", kind:"ST", start:"BEAST", end:"BEAST", family:"UST", phase:"L1" },
+    SKT_BEAST: { id:"SKT_BEAST", name:"Side Kickthrough", kind:"ST", start:"BEAST", end:"BEAST", family:"SKT", phase:"L1" },
+    SS_B2C: { id:"SS_B2C", name:"Scorpion Switch", kind:"ST", start:"BEAST", end:"CRAB", family:"SCORPION", phase:"L1" },
+    SR_BEAST: { id:"SR_BEAST", name:"Scorpion Reach", kind:"FSS", start:"BEAST", end:"BEAST", family:"FSS", phase:"L1" },
+    TF_BEAST_FWD: { id:"TF_BEAST_FWD", name:"Forward Traveling Beast", kind:"TF", start:"BEAST", end:"BEAST", family:"TF", phase:"L1_TF" },
+    TF_BEAST_REV: { id:"TF_BEAST_REV", name:"Reverse Traveling Beast", kind:"TF", start:"BEAST", end:"BEAST", family:"TF", phase:"L1_TF" },
+    TF_BEAST_LAT: { id:"TF_BEAST_LAT", name:"Lateral Traveling Beast", kind:"TF", start:"BEAST", end:"BEAST", family:"TF", phase:"L1_TF" },
+
+    SET_APE_FROM_CRAB: { id:"SET_APE_FROM_CRAB", name:"Set Deep Ape", kind:"SET", start:"CRAB", end:"APE", family:"SET", phase:"L1" },
+    US_C2B: { id:"US_C2B", name:"Underswitch", kind:"ST", start:"CRAB", end:"BEAST", family:"US", phase:"L1" },
+    UST_CRAB: { id:"UST_CRAB", name:"Underswitch Tap", kind:"ST", start:"CRAB", end:"CRAB", family:"UST", phase:"L1" },
+    JUS_CRAB: { id:"JUS_CRAB", name:"Jumping Underswitch", kind:"ST", start:"CRAB", end:"CRAB", family:"US", phase:"L1" },
+    FS_CRAB: { id:"FS_CRAB", name:"Full Scorpion", kind:"ST", start:"CRAB", end:"CRAB", family:"SCORPION", phase:"L1" },
+    CRAB_REACH: { id:"CRAB_REACH", name:"Crab Reach", kind:"FSS", start:"CRAB", end:"CRAB", family:"FSS", phase:"L1" },
+    US_C2LB: { id:"US_C2LB", name:"Underswitch to Loaded Beast", kind:"ST", start:"CRAB", end:"LOADED_BEAST", family:"US", phase:"L1" },
+    TF_CRAB_FWD: { id:"TF_CRAB_FWD", name:"Forward Traveling Crab", kind:"TF", start:"CRAB", end:"CRAB", family:"TF", phase:"L1_TF" },
+    TF_CRAB_REV: { id:"TF_CRAB_REV", name:"Reverse Traveling Crab", kind:"TF", start:"CRAB", end:"CRAB", family:"TF", phase:"L1_TF" },
+
+    SET_BEAST_FROM_LB: { id:"SET_BEAST_FROM_LB", name:"Set Beast", kind:"SET", start:"LOADED_BEAST", end:"BEAST", family:"SET", phase:"L1" },
+    SET_APE_FROM_LB: { id:"SET_APE_FROM_LB", name:"Set Deep Ape", kind:"SET", start:"LOADED_BEAST", end:"APE", family:"SET", phase:"L1" },
+    FSTEP_LB: { id:"FSTEP_LB", name:"Front Step", kind:"ST", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FRONT", phase:"L1" },
+    FST_LB: { id:"FST_LB", name:"Front Step Through", kind:"ST", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FRONT", phase:"L1" },
+    FKT_LB: { id:"FKT_LB", name:"Front Kickthrough", kind:"ST", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FRONT", phase:"L1" },
+    US_LB2C: { id:"US_LB2C", name:"Underswitch", kind:"ST", start:"LOADED_BEAST", end:"CRAB", family:"US", phase:"L1" },
+    LBU_LB: { id:"LBU_LB", name:"Loaded Beast Unload", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
+    WU_LB: { id:"WU_LB", name:"Wave Unload", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
+    SR_LB: { id:"SR_LB", name:"Scorpion Reach", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
+    BR_LB: { id:"BR_LB", name:"Beast Reach", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
+
+    RUS_APE: { id:"RUS_APE", name:"Reaching Underswitch", kind:"ST", start:"APE", end:"CRAB", family:"L2_CORE", phase:"L2_CORE" },
+    USA_CRAB: { id:"USA_CRAB", name:"Underswitch to Deep Ape", kind:"ST", start:"CRAB", end:"APE", family:"L2_CORE", phase:"L2_CORE" },
+    SSWEEP_APE: { id:"SSWEEP_APE", name:"Scorpion Sweep", kind:"ST", start:"APE", end:"APE", family:"L2_CORE", phase:"L2_CORE" },
+    RT_CRAB: { id:"RT_CRAB", name:"Roll Through", kind:"ST", start:"CRAB", end:"CRAB", family:"L2_CORE", phase:"L2_CORE" },
+
+    CROCR_CRAB: { id:"CROCR_CRAB", name:"Crocodile Roll", kind:"ST", start:"CRAB", end:"CRAB", family:"ADV", phase:"L2_ADV" },
+    PO_CRAB: { id:"PO_CRAB", name:"Pop Out", kind:"ST", start:"CRAB", end:"APE", family:"ADV", phase:"L2_ADV" },
+
+    BEAR_BEAST: { id:"BEAR_BEAST", name:"Bear", kind:"TF", start:"BEAST", end:"BEAST", family:"LOCO", phase:"LOCO" },
+    LEOPARD_BEAST: { id:"LEOPARD_BEAST", name:"Leopard", kind:"TF", start:"BEAST", end:"BEAST", family:"LOCO", phase:"LOCO" },
+    CROC_CRAWL_CRAB: { id:"CROC_CRAWL_CRAB", name:"Crocodile Crawl", kind:"TF", start:"CRAB", end:"CRAB", family:"LOCO", phase:"LOCO" }
+  };
+
+  const AF_ALLOWED = {
+    APE: ["APE_REACH","SET_BEAST_FROM_APE","SET_CRAB_FROM_APE","SET_LB_FROM_APE","TF_APE_FWD","TF_APE_LAT1","TF_APE_LAT2","TF_APE_LAT3","RUS_APE","SSWEEP_APE"],
+    BEAST: ["SET_LB_FROM_BEAST","SET_APE_FROM_BEAST","US_B2C","UST_BEAST","SKT_BEAST","SS_B2C","SR_BEAST","TF_BEAST_FWD","TF_BEAST_REV","TF_BEAST_LAT","BEAR_BEAST","LEOPARD_BEAST"],
+    CRAB: ["SET_APE_FROM_CRAB","US_C2B","UST_CRAB","JUS_CRAB","FS_CRAB","CRAB_REACH","US_C2LB","TF_CRAB_FWD","TF_CRAB_REV","USA_CRAB","RT_CRAB","CROCR_CRAB","PO_CRAB","CROC_CRAWL_CRAB"],
+    LOADED_BEAST: ["SET_BEAST_FROM_LB","SET_APE_FROM_LB","FSTEP_LB","FST_LB","FKT_LB","US_LB2C","LBU_LB","WU_LB","SR_LB","BR_LB"]
+  };
+
+  const AF_HB_SESSIONS = [
+    { id:'HB1', title:'Session 1 - Assessment', focus:'Check prerequisites', pass:'Circumference brace, 90 degrees wrist extension, 180 degrees shoulder flexion, and close-the-gap all present without obvious compensation.', items:['Circumference brace check','Wrist extension 90 degrees check','Shoulder flexion 180 degrees check','Close the gap check'] },
+    { id:'HB2', title:'Session 2 - Preparation', focus:'Restore range and scapular basics', pass:'Re-test from Session 1 looks cleaner or fully passes.', items:['Wrist flexor stretch 2 min','Shoulder flexion lat stretch 2 min','FRC floor swimmer 3-5 reps','Floor pike 2-3 x 30s','Scapular depression 2-3 x 30s','Prone protraction 2-3 x 30s','Prone 45 retraction 2-3 x 30s'] },
+    { id:'HB3', title:'Session 3 - Floor Pike threshold', focus:'Own elevation and closed gap', pass:'3 x 30s Floor Pike with clean shoulder elevation and stable position.', items:['Prep warm-up','Floor Pike 3 x 30s','Rest as needed, keep positions clean'] },
+    { id:'HB4', title:'Session 4 - Pike 90 baseline', focus:'Build the first big threshold', pass:'1 x 60s Pike 90 with solid shape.', items:['Prep warm-up','Pike 90 threshold holds','Stop before losing position'] },
+    { id:'HB5', title:'Session 5 - Back to Wall Supported Tuck', focus:'Supported tuck conditioning', pass:'3 holds of 20-30s with controlled exit and knees pulling down.', items:['Prep warm-up','Back to wall supported tuck 3 holds','Exit with control every rep'] },
+    { id:'HB6', title:'Session 6 - Stomach to Wall Supported Tuck', focus:'More specific wall line', pass:'3 holds of 15-20s with hands placed well and knees at or below hip line.', items:['Prep warm-up','Stomach to wall supported tuck 3 holds','Leave enough energy to come down safely'] },
+    { id:'HB7', title:'Session 7 - Spinning Out', focus:'Safe exit strategy', pass:'5 controlled spin-outs with no panic or sloppy landings.', items:['Warm-up','Practice spin-out from supported position','Keep it smooth and reflexive'] },
+    { id:'HB8', title:'Session 8 - HHMB Kick Ups', focus:'Entry mechanics', pass:'5 controlled kick-up reps with a clear tuck intention and light landing.', items:['Warm-up','HHMB kick ups 5 quality attempts','Do not chase tired reps'] },
+    { id:'HB9', title:'Session 9 - Levitating SKT with Wall', focus:'AF entry option 1', pass:'3-5 good reps per side with clean exit via HHMB.', items:['Warm-up','Levitating SKT with wall','3-5 quality reps per side'] },
+    { id:'HB10', title:'Session 10 - LTA2 with Wall', focus:'AF entry option 2', pass:'3-5 good reps per side with controlled return to Deep Ape.', items:['Warm-up','LTA2 with wall','3-5 quality reps per side'] },
+    { id:'HB11', title:'Session 11 - Stomach to Wall Freestanding', focus:'First freestanding releases', pass:'3 successful best-effort reps of 1-3 seconds with open shoulder line.', items:['Warm-up','Stomach to wall freestanding attempts','Short, fresh efforts only'] },
+    { id:'HB12', title:'Session 12 - Freestanding Tuck Attempts', focus:'Own the skill', pass:'3 reps of 1-5 seconds with one of the accepted leg positions and a clearly open shoulder line.', items:['Warm-up','Freestanding attempts from LTA2 or Levitating SKT','Stop when quality drops'] }
   ];
 
-  function nextAnimalFlow(previous = null){
-    let pool = ANIMAL_FLOW_BLOCKS.slice();
-    if(previous && pool.length > 1){
-      pool = pool.filter(x => x.name !== previous);
+  function getAFHBState(){
+    try { return JSON.parse(localStorage.getItem(AF_HB_KEY) || '{"index":0,"attempts":0}'); }
+    catch(e){ return { index:0, attempts:0 }; }
+  }
+  function setAFHBState(state){ localStorage.setItem(AF_HB_KEY, JSON.stringify(state)); }
+
+  function afIsMoveEnabled(move, flags, includeL1TF){
+    if (move.phase === "L1_TF") return includeL1TF;
+    if (move.phase === "L2_ADV") return flags.advancedEnabled;
+    if (move.phase === "LOCO") return flags.locomotionEnabled;
+    return true;
+  }
+  function afGetAllowedFromBase(base, flags, includeL1TF){
+    return (AF_ALLOWED[base] || []).map(id => AF_MOVES[id]).filter(move => afIsMoveEnabled(move, flags, includeL1TF));
+  }
+  function afScoreMove(move, prevMove, stepIndex, history, flags){
+    let score = 1;
+    if (!prevMove){
+      if (move.kind === "SET") score -= 0.8;
+      if (move.kind === "FSS") score += 0.3;
+      return score;
     }
-    return shuffle(pool).slice(0, 8 + Math.floor(Math.random() * 3));
+    if (move.id === prevMove.id) score -= 4;
+    if (move.family === prevMove.family) score -= 1.5;
+    if (move.kind === prevMove.kind && move.kind !== "SET") score -= 0.5;
+    if (stepIndex < 2 && move.kind === "SET") score -= 1.2;
+    if (prevMove.id === "CRAB_REACH" && ["US_C2B", "UST_CRAB", "JUS_CRAB", "FS_CRAB", "US_C2LB", "USA_CRAB", "RT_CRAB"].includes(move.id)) score += 1.2;
+    if (prevMove.id === "BR_LB" && move.id === "FSTEP_LB") score += 1.2;
+    if (prevMove.id === "FSTEP_LB" && move.id === "FST_LB") score += 1.4;
+    if (prevMove.id === "FST_LB" && move.id === "FKT_LB") score += 1.2;
+    if (prevMove.id === "RUS_APE" && ["CRAB_REACH","US_C2B","RT_CRAB","CROCR_CRAB","USA_CRAB"].includes(move.id)) score += 1.3;
+    if (prevMove.id === "USA_CRAB" && ["APE_REACH","RUS_APE","SSWEEP_APE","TF_APE_LAT1","TF_APE_LAT2","TF_APE_LAT3"].includes(move.id)) score += 1.4;
+    if (prevMove.id === "SSWEEP_APE" && ["RUS_APE","APE_REACH","SET_BEAST_FROM_APE","SET_LB_FROM_APE"].includes(move.id)) score += 1.2;
+    if (prevMove.id === "RT_CRAB" && ["CROCR_CRAB","CRAB_REACH","USA_CRAB","US_C2B"].includes(move.id)) score += 1.3;
+    if (prevMove.id === "CROCR_CRAB" && move.id === "PO_CRAB") score += 2.0;
+    if (prevMove.id === "PO_CRAB" && ["RUS_APE","APE_REACH","SSWEEP_APE"].includes(move.id)) score += 1.5;
+    if (flags.locomotionEnabled && move.phase === "LOCO") score += 0.6;
+    if (prevMove.phase === "LOCO" && move.phase === "LOCO") score -= 1.0;
+    const recent = history.slice(-2);
+    const recentFSS = recent.filter(x => x.kind === "FSS").length;
+    if (move.kind === "FSS" && recentFSS >= 2) score -= 1.8;
+    const recentSets = recent.filter(x => x.kind === "SET").length;
+    if (move.kind === "SET" && recentSets >= 1) score -= 1.4;
+    const recentAdvanced = recent.filter(x => x.phase === "L2_ADV").length;
+    if (move.phase === "L2_ADV" && recentAdvanced >= 1) score -= 1.8;
+    const recentLoco = recent.filter(x => x.phase === "LOCO").length;
+    if (move.phase === "LOCO" && recentLoco >= 1) score -= 1.2;
+    return score;
+  }
+  function afWeightedPick(rng, moves, prevMove, stepIndex, history, flags){
+    const weighted = moves.map(move => ({ move, weight: Math.max(0.1, afScoreMove(move, prevMove, stepIndex, history, flags)) }));
+    const total = weighted.reduce((sum, x) => sum + x.weight, 0);
+    let r = rng() * total;
+    for (const item of weighted){ r -= item.weight; if (r <= 0) return item.move; }
+    return weighted[weighted.length - 1].move;
+  }
+  function afGetReturnCandidates(fromBase, targetBase, flags, includeL1TF){
+    return afGetAllowedFromBase(fromBase, flags, includeL1TF).filter(move => move.end === targetBase);
+  }
+  function buildAnimalFlowSequence(seedKey, opts = {}){
+    const rng = afMulberry32(afHashStrToSeed(seedKey));
+    const includeL1TF = !!opts.includeTF;
+    const length = opts.length === "random" ? (8 + Math.floor(rng() * 3)) : Number(opts.length);
+    const startBase = opts.startBase === "random" ? afChoice(rng, ["CRAB","BEAST","LOADED_BEAST","APE"]) : opts.startBase;
+    const flags = { advancedEnabled: rng() < 0.15, locomotionEnabled: rng() < 0.25 };
+    let currentBase = startBase;
+    let prevMove = null;
+    const steps = [];
+    steps.push({ index:1, start:startBase, moveId:`SET_${startBase}`, name:`Set ${AF_BASE_LABEL[startBase]}`, kind:"SET", end:startBase, family:"SET", phase:"BASE" });
+    const middleCount = Math.max(0, length - 2);
+    for (let i = 0; i < middleCount; i++){
+      const allowed = afGetAllowedFromBase(currentBase, flags, includeL1TF);
+      const candidates = allowed.filter(move => {
+        if (move.id === prevMove?.id && allowed.length > 1) return false;
+        const returnOptions = afGetReturnCandidates(move.end, startBase, flags, includeL1TF);
+        return returnOptions.length > 0;
+      });
+      const pool = candidates.length ? candidates : allowed;
+      const chosen = afWeightedPick(rng, pool, prevMove, i + 1, steps, flags);
+      steps.push({ index:steps.length + 1, start:currentBase, moveId:chosen.id, name:chosen.name, kind:chosen.kind, end:chosen.end, family:chosen.family, phase:chosen.phase });
+      currentBase = chosen.end;
+      prevMove = chosen;
+    }
+    let returnCandidates = afGetReturnCandidates(currentBase, startBase, flags, includeL1TF);
+    if (!returnCandidates.length){
+      const safeFlags = { ...flags, advancedEnabled:false, locomotionEnabled:false };
+      returnCandidates = afGetReturnCandidates(currentBase, startBase, safeFlags, false);
+    }
+    const finalMove = afWeightedPick(rng, returnCandidates, prevMove, steps.length, steps, flags);
+    steps.push({ index:steps.length + 1, start:currentBase, moveId:finalMove.id, name:finalMove.name, kind:finalMove.kind, end:finalMove.end, family:finalMove.family, phase:finalMove.phase, isReturn:true });
+    return { seedKey, length, startBase, includeTF:includeL1TF, includeHB:!!opts.includeHB, advancedEnabled:flags.advancedEnabled, locomotionEnabled:flags.locomotionEnabled, endBase:finalMove.end, steps };
+  }
+  function afPhaseTag(step){
+    if (step.phase === "L2_CORE") return "L2 CORE";
+    if (step.phase === "L2_ADV") return "ADV";
+    if (step.phase === "LOCO") return "LOCO";
+    if (step.phase === "L1_TF") return "L1 TF";
+    return null;
   }
 
   const CLUB_TYPE_WEIGHTS = [
@@ -501,6 +701,8 @@ function clubPool(bucket, clubType){
 
   const leftCard = document.getElementById("leftCard");
   const rightInner = document.getElementById("rightInner");
+  const settingsCstCard = document.getElementById("settingsCstCard");
+  const settingsAfCard = document.getElementById("settingsAfCard");
   const btnMain = document.getElementById("btnMain");
   const btnReset = document.getElementById("btnReset");
   const modePill = document.getElementById("modePill");
@@ -579,8 +781,7 @@ function getDefaultLastState(){
     return {
       lastClubType:null,
       familyBags:{},
-      familyLastPick:{},
-      lastAnimalFlow:null
+      familyLastPick:{}
     };
   }
 
@@ -635,16 +836,20 @@ function getDefaultLastState(){
   }
 
   function nextFullClubType(lastState = loadLast()){
+    const cstSettings = getCSTSettings();
+    let pool = CLUB_TYPE_WEIGHTS.filter(x => cstSettings.clubTypes?.[x.type]);
+    if(!pool.length) pool = CLUB_TYPE_WEIGHTS.filter(x => x.type === "single");
     const previousType = lastState.lastClubType || null;
-    const pool = CLUB_TYPE_WEIGHTS.filter(x => x.type !== previousType);
+    if(pool.length > 1){
+      const withoutPrevious = pool.filter(x => x.type !== previousType);
+      if(withoutPrevious.length) pool = withoutPrevious;
+    }
 
     const totalWeight = pool.reduce((sum, item) => sum + item.weight, 0);
     let roll = Math.random() * totalWeight;
 
     for(const item of pool){
-      if(roll < item.weight){
-        return item.type;
-      }
+      if(roll < item.weight) return item.type;
       roll -= item.weight;
     }
 
@@ -712,7 +917,8 @@ function getDefaultLastState(){
   function generateClubExercises(clubType){
     const sequence = ["Rhythmic", "Ballistic", "Grinding"]
       .map(bucket => {
-        const pool = clubPool(bucket, clubType);
+        let pool = clubPool(bucket, clubType);
+        if(!pool.length) pool = CLUB_EXERCISES.filter(x => x.bucket === bucket);
         const pick = pool.length ? rand(pool) : null;
         return pick ? { bucket, exercise:pick.name } : null;
       })
@@ -761,7 +967,8 @@ function getDefaultLastState(){
       isRunning: false,
       lastCountdownBeep: null,
       completed: false,
-      completedAt: null
+      completedAt: null,
+      settingsUsed:{ cst:getCSTSettings(), af:getAFSettings() }
     };
 
 
@@ -772,6 +979,7 @@ function getDefaultLastState(){
       const clubPlan = generateClubExercises(clubType);
       const decompShapes = buildFamilyPractice("decompress", last);
       session.club = {
+        allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
         clubType,
         sequence: clubPlan.sequence,
         flow: clubPlan.flow
@@ -789,18 +997,23 @@ function getDefaultLastState(){
       last.lastClubType = clubType;
       saveLast(last);
     } else {
-      const activeBlocks = nextAnimalFlow(last.lastAnimalFlow || null);
+      const afSettings = getAFSettings();
+      const afSequence = buildAnimalFlowSequence(`${todayKey()}|animal-flow`, {
+        length: afSettings.lengthMode,
+        startBase: afSettings.startBase,
+        includeTF: afSettings.includeTF,
+        includeHB: afSettings.includeHB
+      });
       const decompShapes = buildFamilyPractice("decompress", last);
       session.activeFlow = {
         name: "Animal Flow practice",
-        focus: "Simple generator | 8-10 blocks",
-        use: "Animal Flow: move with control, keep the tempo calm, and use these blocks as your practice for today.",
-        picks: activeBlocks,
-        sequence: activeBlocks.map(x => x.name),
-        bagType: 'Animal Flow'
+        focus: "Closed-loop generator | exact AF engine",
+        use: "Animal Flow day: follow the sequence as written. The flow starts from a base, only uses allowed next moves, and closes the loop back to the start base.",
+        bagType: 'Animal Flow',
+        ...afSequence
       };
       session.decompFlow = {
-        name: "Prasara decompressie",
+        name: "Decompress practice",
         focus: "6 families | 1 shape per family",
         use: "Finish with these 6 words. Move gently, make the links yourself, and let the breath slow things down.",
         picks: decompShapes,
@@ -809,7 +1022,6 @@ function getDefaultLastState(){
       };
       session.blockTimes.active = band.minutes * 60;
       session.blockTimes.decomp = 5 * 60;
-      last.lastAnimalFlow = activeBlocks.length ? activeBlocks[activeBlocks.length - 1].name : null;
       saveLast(last);
     }
 
@@ -861,8 +1073,8 @@ function getDefaultLastState(){
     const summaryText = s.intuOnly
       ? "Today is recovery-focused: Intu only. Because no Clubbell or stand-alone session is completed today, tomorrow defaults back to Clubbell."
       : s.dayType === "clubbell"
-      ? "Today: Intu, then Clubbell, then finish with a 6-word Prasara decompressie. Finish this session to unlock an Animal Flow day tomorrow. Short block = 15 + 5, long block = 20 + 5."
-      : "Today: Intu, then Animal Flow, then finish with a 6-word Prasara decompressie. Finish this session and tomorrow returns to Clubbell. Short block = 15 + 5, long block = 20 + 5.";
+      ? "Today: Intu, then Clubbell, then finish with a 6-word Decompress practice. Finish this session to unlock an Animal Flow day tomorrow. Short block = 15 + 5, long block = 20 + 5."
+      : "Today: Intu, then Animal Flow, then finish with a 6-word Decompress practice. Finish this session and tomorrow returns to Clubbell. Short block = 15 + 5, long block = 20 + 5.";
 
     let html = `<h2>Today</h2>`;
     if(s.intuOnly){
@@ -907,6 +1119,7 @@ function getDefaultLastState(){
         <div class="accordion-content">
           ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
           ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), "Main block", "mb-10")}
+          ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
 <div class="stack-10">
   ${s.club.sequence.map((x, idx) => `
     <div class="exercise">
@@ -935,22 +1148,32 @@ if(s.activeFlow){
           ${renderExerciseCard("Practice", s.activeFlow.name, `${s.activeFlow.bagType}`, "mt-12 mb-10")}
           ${renderExerciseCard("Focus", s.activeFlow.focus, "Movement practice", "mb-10")}
           ${renderExerciseCard("Use", s.activeFlow.use, "Animal Flow day", "mb-10")}
-          ${renderExerciseCard("Rule", "Use these 8-10 Animal Flow blocks as your list for today. Keep it smooth, controlled and athletic, but not rushed.", "Flow", "mb-10")}
+          ${renderExerciseCard("Rule", "Closed-loop logic only. Start from a base, only use allowed next moves, and finish back at the same base.", "Flow", "mb-10")}
+          <div class="exercise mb-10">
+            <div class="ex-left">
+              <div class="ex-title">Settings used today</div>
+              <div class="ex-meta">Base: ${cleanText(AF_BASE_LABEL[s.activeFlow.startBase])} | Length: ${cleanText(String(s.activeFlow.length))} | L1 TF: ${s.activeFlow.includeTF ? 'ON' : 'OFF'} | Advanced: ${s.activeFlow.advancedEnabled ? 'ON' : 'OFF'} | Locomotion: ${s.activeFlow.locomotionEnabled ? 'ON' : 'OFF'} | HB: ${s.activeFlow.includeHB ? 'ON' : 'OFF'}</div>
+            </div>
+            <div class="pill">Locked today</div>
+          </div>
           <div class="stack-10">
-            ${s.activeFlow.picks.map((x, idx) => `
+            ${s.activeFlow.steps.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
                   <div class="ex-title">${idx + 1}. ${cleanText(x.name)}</div>
-                  <div class="ex-meta">${cleanText(x.family)} | ${cleanText(x.meta || "")}</div>
+                  <div class="ex-meta">${cleanText(AF_BASE_LABEL[x.start])} -> ${cleanText(AF_BASE_LABEL[x.end])}${afPhaseTag(x) ? ` | ${cleanText(afPhaseTag(x))}` : ''}${x.isReturn ? ' | return' : ''}</div>
                 </div>
-                <div class="pill">Block</div>
+                <div class="pill">${cleanText(x.kind)}</div>
               </div>`).join("")}
           </div>
-          ${renderExerciseCard("Prompt", "Let the blocks guide the session. Stay smooth, keep the breath calm, and avoid turning it into a max-effort skill test.", "Practice", "mt-10")}
+          ${s.activeFlow.includeHB ? `<details class="mt-12"><summary>Hand Balancing track</summary><div class="detailsBody" id="afHbTrackWrap"></div></details>` : ''}
+          <details class="mt-12">
+            <summary>Debug path</summary>
+            <div class="detailsBody small">${cleanText(s.activeFlow.steps.map(x => `${AF_BASE_LABEL[x.start]} -> ${x.name} -> ${AF_BASE_LABEL[x.end]} [${x.phase}]`).join(' | '))}</div>
+          </details>
         </div>
       </div>`;
     }
-
 
     if(s.decompFlow){
       html += `
@@ -1011,10 +1234,139 @@ if(s.activeFlow){
     if(finishBtn){
       finishBtn.onclick = finishSession;
     }
+    if(s.activeFlow){
+      renderAFHBTrack(s.activeFlow);
+    }
     const modeLabel = s.mode;
     setModePill(modeLabel);
     setDayPill("locked");
     renderRightPanel();
+  }
+
+
+  function renderAFHBTrack(activeFlow){
+    const wrap = document.getElementById('afHbTrackWrap');
+    if(!wrap) return;
+    const state = getAFHBState();
+    const idx = Math.max(0, Math.min(AF_HB_SESSIONS.length - 1, state.index || 0));
+    const session = AF_HB_SESSIONS[idx];
+    wrap.innerHTML = `
+      <div class="pillline">
+        <span>Progress: <b>${idx + 1}/${AF_HB_SESSIONS.length}</b></span>
+        <span>•</span>
+        <span>Repeats: <b>${state.attempts || 0}</b></span>
+      </div>
+      <div class="mt-12">
+        ${renderExerciseCard(session.title, session.focus, 'HB', 'mb-10')}
+        <div class="sectionTitle">Work</div>
+        <ul class="checklist">${session.items.map(item => `<li><span class="dot"></span>${cleanText(item)}</li>`).join('')}</ul>
+        <div class="sectionTitle mt-12">Pass when</div>
+        <div class="small">${cleanText(session.pass)}</div>
+        <div class="row mt-12">
+          <button type="button" class="btn good" id="afHbPass">Passed</button>
+          <button type="button" class="btn" id="afHbRepeat">Repeat</button>
+          <button type="button" class="btn danger" id="afHbReset">Reset HB</button>
+        </div>
+      </div>`;
+    document.getElementById('afHbPass').onclick = () => { setAFHBState({ index:Math.min(AF_HB_SESSIONS.length - 1, idx + 1), attempts:0 }); renderAFHBTrack(activeFlow); };
+    document.getElementById('afHbRepeat').onclick = () => { setAFHBState({ index:idx, attempts:(state.attempts || 0) + 1 }); renderAFHBTrack(activeFlow); };
+    document.getElementById('afHbReset').onclick = () => { setAFHBState({ index:0, attempts:0 }); renderAFHBTrack(activeFlow); };
+  }
+
+
+  function renderSettings(){
+    const cst = getCSTSettings();
+    const af = getAFSettings();
+    settingsCstCard.innerHTML = `
+      <h2>CST settings</h2>
+      <div class="setting-list">
+        <div class="settings-note">These settings affect newly generated sessions. Today's locked session does not change until you reset the day.</div>
+        <div class="exercise">
+          <div class="ex-left">
+            <div class="ex-title">Allowed club types</div>
+            <div class="ex-meta">At least one must stay on. Clubbell days only use enabled types.</div>
+          </div>
+          <div class="pill">CST</div>
+        </div>
+        <div class="toggle-list">
+          ${[
+            { key:'single', label:'Single Club' },
+            { key:'double', label:'Double Club' },
+            { key:'2h', label:'2-Hand Club' }
+          ].map(item => `
+            <label class="toggle-item">
+              <span>${item.label}</span>
+              <input type="checkbox" data-cst-club="${item.key}" ${cst.clubTypes?.[item.key] ? 'checked' : ''}>
+            </label>`).join('')}
+        </div>
+      </div>`;
+
+    settingsAfCard.innerHTML = `
+      <h2>Animal Flow settings</h2>
+      <div class="setting-list">
+        <div class="settings-note">These settings apply to the next Animal Flow day you generate. The generated sequence still uses closed-loop base logic and may enable Advanced or Locomotion automatically.</div>
+        <div class="kv">
+          <label class="label">Length</label>
+          <select id="afSettingsLength">
+            <option value="random">Random 8-10</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+          </select>
+        </div>
+        <div class="kv">
+          <label class="label">Start base</label>
+          <select id="afSettingsStartBase">
+            <option value="random">Random</option>
+            <option value="CRAB">Crab</option>
+            <option value="BEAST">Beast</option>
+            <option value="LOADED_BEAST">Loaded Beast</option>
+            <option value="APE">Deep Ape</option>
+          </select>
+        </div>
+        <div class="toggle-list">
+          <label class="toggle-item"><span>Include Level 1 Traveling Forms</span><input type="checkbox" id="afSettingsIncludeTF" ${af.includeTF ? 'checked' : ''}></label>
+          <label class="toggle-item"><span>Include Hand Balancing track</span><input type="checkbox" id="afSettingsIncludeHB" ${af.includeHB ? 'checked' : ''}></label>
+        </div>
+      </div>`;
+
+    const afLength = document.getElementById('afSettingsLength');
+    const afStartBase = document.getElementById('afSettingsStartBase');
+    const afIncludeTF = document.getElementById('afSettingsIncludeTF');
+    const afIncludeHB = document.getElementById('afSettingsIncludeHB');
+    if(afLength) afLength.value = af.lengthMode;
+    if(afStartBase) afStartBase.value = af.startBase;
+    const persistAF = () => setAFSettings({
+      lengthMode:afLength.value,
+      startBase:afStartBase.value,
+      includeTF:afIncludeTF.checked,
+      includeHB:afIncludeHB.checked
+    });
+    [afLength, afStartBase, afIncludeTF, afIncludeHB].forEach(el => el && el.addEventListener('change', persistAF));
+
+    settingsCstCard.querySelectorAll('[data-cst-club]').forEach(input => {
+      input.addEventListener('change', () => {
+        const next = getCSTSettings();
+        next.clubTypes[input.dataset.cstClub] = input.checked;
+        if(!Object.values(next.clubTypes).some(Boolean)){
+          next.clubTypes[input.dataset.cstClub] = true;
+        }
+        setCSTSettings(next);
+        renderSettings();
+      });
+    });
+  }
+
+  function initTabs(){
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === tab));
+        const name = tab.dataset.tab;
+        document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+        const target = document.getElementById(`panel-${name}`);
+        if(target) target.classList.add('active');
+      });
+    });
   }
 
   function getCurrentStage(session){
@@ -1463,6 +1815,7 @@ if(s.activeFlow){
   function boot(){
     const day = loadDay();
     migrateLegacyStorage(day);
+    renderSettings();
     if(day){
       btnMain.textContent = "Open session";
       renderSession(day);
@@ -1472,7 +1825,12 @@ if(s.activeFlow){
     }
   }
 
-  btnMain.onclick = boot;
+  btnMain.onclick = () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === 'today'));
+    document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
+    document.getElementById('panel-today')?.classList.add('active');
+    boot();
+  };
   btnReset.onclick = async () => {
     cachedDay = null;
     cachedLast = null;
@@ -1486,6 +1844,7 @@ if(s.activeFlow){
 
 
   setWakePill(false);
+  initTabs();
   boot();
 })();
 </script>
