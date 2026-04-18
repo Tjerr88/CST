@@ -1151,6 +1151,7 @@ function getDefaultLastState(){
       mode: band.intuOnly ? 'INTU ONLY' : (dayType === 'clubbell' ? 'CLUBBELL DAY' : 'STAND-ALONE FLOW DAY'),
       dayType,
       intuOnly: band.intuOnly,
+      countsTowardProgression: false,
       delayedPlannedDay: band.intuOnly,
       intu: intu.slice(),
       club: null,
@@ -1202,6 +1203,7 @@ function getDefaultLastState(){
       };
       session.blockTimes.club = getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
+      session.countsTowardProgression = !!band.useProgression;
       last.lastClubType = clubType;
       saveLast(last);
       saveProgressCached(progress);
@@ -2053,7 +2055,7 @@ if(s.activeFlow){
       dayType: d.dayType,
       completedAt: d.completedAt
     });
-    if(d.dayType === 'clubbell'){
+    if(d.dayType === 'clubbell' && d.countsTowardProgression){
       const progress = loadProgressCached();
       progress.sessionInPhase = (progress.sessionInPhase || 0) + 1;
       if(progress.sessionInPhase >= 12){
