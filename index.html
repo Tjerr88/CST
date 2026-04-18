@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator v4.0</title>
+<title>CST Generator V4</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -133,7 +133,7 @@
     transition:transform .2s ease;
     flex:0 0 auto;
   }
-  .accordion.active .accordion-header::after{
+  .accordion.active > .accordion-header::after{
     transform:rotate(90deg);
   }
   .accordion-content{
@@ -141,7 +141,7 @@
     padding:0 12px 12px;
     border-top:1px solid var(--line);
   }
-  .accordion.active .accordion-content{
+  .accordion.active > .accordion-content{
     display:block;
   }
 
@@ -235,6 +235,8 @@
   .toggle-item{display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface2)}
   .toggle-item input{accent-color:#7aa7ff; width:18px; height:18px}
   .settings-note{font-size:12px; color:var(--muted); line-height:1.4}
+  .hidden-advanced{display:none}
+  .hidden-advanced.active{display:grid; gap:10px}
   #confettiLayer{position:fixed; inset:0; pointer-events:none; z-index:9999}
 
 </style>
@@ -244,7 +246,7 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator v4.0</h1>
+    <h1>CST Generator V4</h1>
     <div class="row mt-10">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset day</button>
@@ -276,14 +278,15 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v39";
-  const LS_LAST = "cst_last_v39";
+  const LS_DAY = "cst_day_v40";
+  const LS_LAST = "cst_last_v40";
   const LS_DAY_LEGACY = "cst_day_v38";
   const LS_LAST_LEGACY = "cst_last_v38";
   const LS_DAY_LEGACY_2 = "cst_day_v37";
   const LS_LAST_LEGACY_2 = "cst_last_v37";
-  const LS_COMPLETED = "cst_completed_v39";
+  const LS_COMPLETED = "cst_completed_v40";
   const LS_COMPLETED_LEGACY = "cst_completed_v38";
+  const LS_PROGRESS = "cst_progress_v40";
 
   const gateDef = [
     { key:'soreness', label:'Soreness / Recovery', choices:['Pain','Restricted','Stiff','Slightly stiff','Loose','Fresh'] },
@@ -370,95 +373,139 @@
   ];
 
 const CLUB_EXERCISES = [
-  { name:"Front Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Two-Handed Front Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["2h"] },
-  { name:"Side Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Side Semi Circle Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Pirouette Swing", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Two-Handed Front Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["2h"] },
-  { name:"Inside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Double Side Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["double"] },
-  { name:"Two-Handed Guard Inside Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
-  { name:"Outside Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Two-Handed Guard Outside Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
-  { name:"Lunge-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Two-Handed Guard Lunge-Step Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
-  { name:"Side-Step Pendulum", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Two-Handed Guard Side-Step Pendulum", bucket:"Rhythmic", start:"guard", end:"guard", modes:["2h"] },
-  { name:"Front Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Back Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Inside Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Outside Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["single","double"] },
-  { name:"Two-Handed Side Circle", bucket:"Rhythmic", start:"ready", end:"ready", modes:["2h"] },
-  { name:"Alternating Circles: Front Stroke and Backstroke", bucket:"Rhythmic", start:"ready", end:"ready", modes:["double"] },
+  { name:"Front Swing", bucket:"Rhythmic", subcategory:"swing", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Front Swing", bucket:"Rhythmic", subcategory:"swing", start:"ready", end:"ready", modes:["2h"] },
+  { name:"Side Swing", bucket:"Rhythmic", subcategory:"swing", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Side Semi Circle Swing", bucket:"Rhythmic", subcategory:"swing", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Pirouette Swing", bucket:"Rhythmic", subcategory:"swing", start:"ready", end:"ready", modes:["single","double"] },
 
-  { name:"Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order", modes:["single","double"] },
-  { name:"Two-Handed Front Clean to Order Position", bucket:"Ballistic", start:"ready", end:"order", modes:["2h"] },
-  { name:"Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder", modes:["single","double"] },
-  { name:"Two-Handed Front Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder", modes:["2h"] },
-  { name:"Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag", modes:["single","double"] },
-  { name:"Two-Handed Front Clean to Flag Position", bucket:"Ballistic", start:"ready", end:"flag", modes:["2h"] },
-  { name:"Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back", modes:["single","double"] },
-  { name:"Two-Handed Front Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back", modes:["2h"] },
-  { name:"Side Clean to Guard Position", bucket:"Ballistic", start:"ready", end:"guard", modes:["single","double"] },
-  { name:"Side Clean to Shoulder Park", bucket:"Ballistic", start:"ready", end:"shoulder", modes:["single","double"] },
-  { name:"Side Clean to Back Position", bucket:"Ballistic", start:"ready", end:"back", modes:["single","double"] },
-  { name:"Side Clean to Side Flag", bucket:"Ballistic", start:"ready", end:"flag", modes:["single","double"] },
+  { name:"Front Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Front Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"ready", end:"ready", modes:["2h"] },
+  { name:"Inside Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Double Side Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"ready", end:"ready", modes:["double"] },
+  { name:"Two-Handed Guard Inside Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Outside Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Guard Outside Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Lunge-Step Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Guard Lunge-Step Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Side-Step Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Guard Side-Step Pendulum", bucket:"Rhythmic", subcategory:"pendulum", start:"guard", end:"guard", modes:["2h"] },
 
-  { name:"Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
-  { name:"Two-Handed Front Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["2h"] },
-  { name:"Front Jerk", bucket:"Ballistic", start:"order", end:"order", modes:["single","double"] },
-  { name:"Two-Handed Front Jerk", bucket:"Ballistic", start:"order", end:"order", modes:["2h"] },
-  { name:"Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["single","double"] },
-  { name:"Two-Handed Shoulder Park Front Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["2h"] },
-  { name:"Front Clean + Jerk", bucket:"Ballistic", start:"ready", end:"order", modes:["single","double"] },
-  { name:"Side Torch Jerk", bucket:"Ballistic", start:"torch", end:"torch", modes:["2h"] },
-  { name:"Side Jerk", bucket:"Ballistic", start:"guard", end:"guard", modes:["2h"] },
-  { name:"Shoulder Park Side Jerk", bucket:"Ballistic", start:"shoulder", end:"shoulder", modes:["2h"] },
-  { name:"Side Clean + Jerk", bucket:"Ballistic", start:"ready", end:"guard", modes:["2h"] },
+  { name:"Front Circle", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Front 3/4 Circle", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Back Circle", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Back 3/4 Circle", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Inside Circle", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Outside Circle", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["single","double"] },
+  { name:"Two-Handed Side Circle", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["2h"] },
+  { name:"Alternating Circles: Front Stroke and Backstroke", bucket:"Rhythmic", subcategory:"circle", start:"ready", end:"ready", modes:["double"] },
 
-  { name:"Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
-  { name:"Two-Handed Front Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["2h"] },
-  { name:"Front Snatch", bucket:"Ballistic", start:"ready", end:"torch", modes:["single","double"] },
-  { name:"Two-Handed Front Snatch", bucket:"Ballistic", start:"ready", end:"torch", modes:["2h"] },
-  { name:"Side Torch Snatch", bucket:"Ballistic", start:"torch", end:"torch", modes:["single","double"] },
-  { name:"Side Snatch", bucket:"Ballistic", start:"ready", end:"torch", modes:["single","double"] },
+  { name:"Front Clean to Order Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"order", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Order Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"order", modes:["2h"] },
+  { name:"Front Clean to Shoulder Park", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"shoulder", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Shoulder Park", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"shoulder", modes:["2h"] },
+  { name:"Front Clean to Flag Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Flag Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"flag", modes:["2h"] },
+  { name:"Front Clean to Back Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"back", modes:["single","double"] },
+  { name:"Two-Handed Front Clean to Back Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"back", modes:["2h"] },
+  { name:"Side Clean to Guard Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"guard", modes:["single","double"] },
+  { name:"Side Clean to Shoulder Park", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"shoulder", modes:["single","double"] },
+  { name:"Side Clean to Back Position", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"back", modes:["single","double"] },
+  { name:"Side Clean to Side Flag", bucket:"Ballistic", subcategory:"clean", start:"ready", end:"flag", modes:["single","double"] },
 
-  { name:"Torch Press", bucket:"Grinding", start:"torch", end:"torch", modes:["single","double"] },
-  { name:"Two-Handed Torch Press", bucket:"Grinding", start:"torch", end:"torch", modes:["2h"] },
-  { name:"Front Press", bucket:"Grinding", start:"order", end:"order", modes:["single","double"] },
-  { name:"Two-Handed Front Press", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
-  { name:"Flag Press", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
-  { name:"Two-Handed Flag Press", bucket:"Grinding", start:"flag", end:"flag", modes:["2h"] },
-  { name:"Side Torch Press", bucket:"Grinding", start:"torch", end:"torch", modes:["single","double"] },
-  { name:"Side Press", bucket:"Grinding", start:"guard", end:"guard", modes:["single","double"] },
-  { name:"Side Flag Press", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
-  { name:"Clean and Press", bucket:"Grinding", start:"ready", end:"order", modes:["single","double"] },
+  { name:"Front Torch Jerk", bucket:"Ballistic", subcategory:"jerk", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Front Torch Jerk", bucket:"Ballistic", subcategory:"jerk", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Front Jerk", bucket:"Ballistic", subcategory:"jerk", start:"order", end:"order", modes:["single","double"] },
+  { name:"Two-Handed Front Jerk", bucket:"Ballistic", subcategory:"jerk", start:"order", end:"order", modes:["2h"] },
+  { name:"Shoulder Park Front Jerk", bucket:"Ballistic", subcategory:"jerk", start:"shoulder", end:"shoulder", modes:["single","double"] },
+  { name:"Two-Handed Shoulder Park Front Jerk", bucket:"Ballistic", subcategory:"jerk", start:"shoulder", end:"shoulder", modes:["2h"] },
+  { name:"Front Clean + Jerk", bucket:"Ballistic", subcategory:"jerk", start:"ready", end:"order", modes:["single","double"] },
+  { name:"Side Torch Jerk", bucket:"Ballistic", subcategory:"jerk", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Side Jerk", bucket:"Ballistic", subcategory:"jerk", start:"guard", end:"guard", modes:["2h"] },
+  { name:"Shoulder Park Side Jerk", bucket:"Ballistic", subcategory:"jerk", start:"shoulder", end:"shoulder", modes:["2h"] },
+  { name:"Side Clean + Jerk", bucket:"Ballistic", subcategory:"jerk", start:"ready", end:"guard", modes:["2h"] },
 
-  { name:"Wrist Cast", bucket:"Grinding", start:"order", end:"order", modes:["single","double"] },
-  { name:"Two Handed Wrist Cast - The Crowbar", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
-  { name:"Arm Cast", bucket:"Grinding", start:"order", end:"order", modes:["single","double"] },
-  { name:"Alternating Arm Cast - Drumming Cast", bucket:"Grinding", start:"order", end:"order", modes:["double"] },
-  { name:"Two-Handed Arm Cast - The Gama Cast", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
-  { name:"Two-Handed Arm Cast Circular Pivot", bucket:"Grinding", start:"order", end:"order", modes:["2h"] },
-  { name:"Two-Handed Arm Cast to Flag Position - The Barbarian", bucket:"Grinding", start:"order", end:"flag", modes:["2h"] },
-  { name:"Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["single","double"] },
-  { name:"Two-Handed Shoulder Cast", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["2h"] },
-  { name:"Shoulder Cast to Side Flag Position - The Muscle Out", bucket:"Grinding", start:"shoulder", end:"flag", modes:["single","double"] },
-  { name:"Double Shoulder Cast - The Crucifix", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["double"] },
-  { name:"Alternating Shoulder Cast - The Kodo Cast", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["double"] },
-  { name:"Head Cast", bucket:"Grinding", start:"back", end:"back", modes:["single","double"] },
-  { name:"Shoulder Cast Leverage Hold Variation", bucket:"Grinding", start:"shoulder", end:"shoulder", modes:["single","double"] },
-  { name:"Alternating Head Cast - The See-Saw", bucket:"Grinding", start:"back", end:"back", modes:["double"] },
-  { name:"Two-Handed Head Cast", bucket:"Grinding", start:"back", end:"back", modes:["2h"] },
-  { name:"Shield Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
-  { name:"Two-Handed Shield Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["2h"] },
-  { name:"Parry Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
-  { name:"Reverse Parry Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["single","double"] },
-  { name:"Two-Handed Parry Cast", bucket:"Grinding", start:"flag", end:"flag", modes:["2h"] }
+  { name:"Front Torch Snatch", bucket:"Ballistic", subcategory:"snatch", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Front Torch Snatch", bucket:"Ballistic", subcategory:"snatch", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Front Snatch", bucket:"Ballistic", subcategory:"snatch", start:"ready", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Front Snatch", bucket:"Ballistic", subcategory:"snatch", start:"ready", end:"torch", modes:["2h"] },
+  { name:"Side Torch Snatch", bucket:"Ballistic", subcategory:"snatch", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Side Snatch", bucket:"Ballistic", subcategory:"snatch", start:"ready", end:"torch", modes:["single","double"] },
+
+  { name:"Torch Press", bucket:"Grinding", subcategory:"press", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Two-Handed Torch Press", bucket:"Grinding", subcategory:"press", start:"torch", end:"torch", modes:["2h"] },
+  { name:"Front Press", bucket:"Grinding", subcategory:"press", start:"order", end:"order", modes:["single","double"] },
+  { name:"Two-Handed Front Press", bucket:"Grinding", subcategory:"press", start:"order", end:"order", modes:["2h"] },
+  { name:"Flag Press", bucket:"Grinding", subcategory:"press", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Flag Press", bucket:"Grinding", subcategory:"press", start:"flag", end:"flag", modes:["2h"] },
+  { name:"Side Torch Press", bucket:"Grinding", subcategory:"press", start:"torch", end:"torch", modes:["single","double"] },
+  { name:"Side Press", bucket:"Grinding", subcategory:"press", start:"guard", end:"guard", modes:["single","double"] },
+  { name:"Side Flag Press", bucket:"Grinding", subcategory:"press", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Clean and Press", bucket:"Grinding", subcategory:"press", start:"ready", end:"order", modes:["single","double"] },
+
+  { name:"Wrist Cast", bucket:"Grinding", subcategory:"cast", start:"order", end:"order", modes:["single","double"] },
+  { name:"Two Handed Wrist Cast - The Crowbar", bucket:"Grinding", subcategory:"cast", start:"order", end:"order", modes:["2h"] },
+  { name:"Arm Cast", bucket:"Grinding", subcategory:"cast", start:"order", end:"order", modes:["single","double"] },
+  { name:"Alternating Arm Cast - Drumming Cast", bucket:"Grinding", subcategory:"cast", start:"order", end:"order", modes:["double"] },
+  { name:"Two-Handed Arm Cast - The Gama Cast", bucket:"Grinding", subcategory:"cast", start:"order", end:"order", modes:["2h"] },
+  { name:"Two-Handed Arm Cast Circular Pivot", bucket:"Grinding", subcategory:"cast", start:"order", end:"order", modes:["2h"] },
+  { name:"Two-Handed Arm Cast to Flag Position - The Barbarian", bucket:"Grinding", subcategory:"cast", start:"order", end:"flag", modes:["2h"] },
+  { name:"Shoulder Cast", bucket:"Grinding", subcategory:"cast", start:"shoulder", end:"shoulder", modes:["single","double"] },
+  { name:"Two-Handed Shoulder Cast", bucket:"Grinding", subcategory:"cast", start:"shoulder", end:"shoulder", modes:["2h"] },
+  { name:"Shoulder Cast to Side Flag Position - The Muscle Out", bucket:"Grinding", subcategory:"cast", start:"shoulder", end:"flag", modes:["single","double"] },
+  { name:"Double Shoulder Cast - The Crucifix", bucket:"Grinding", subcategory:"cast", start:"shoulder", end:"shoulder", modes:["double"] },
+  { name:"Alternating Shoulder Cast - The Kodo Cast", bucket:"Grinding", subcategory:"cast", start:"shoulder", end:"shoulder", modes:["double"] },
+  { name:"Head Cast", bucket:"Grinding", subcategory:"cast", start:"back", end:"back", modes:["single","double"] },
+  { name:"Shoulder Cast Leverage Hold Variation", bucket:"Grinding", subcategory:"cast", start:"shoulder", end:"shoulder", modes:["single","double"] },
+  { name:"Alternating Head Cast - The See-Saw", bucket:"Grinding", subcategory:"cast", start:"back", end:"back", modes:["double"] },
+  { name:"Two-Handed Head Cast", bucket:"Grinding", subcategory:"cast", start:"back", end:"back", modes:["2h"] },
+  { name:"Shield Cast", bucket:"Grinding", subcategory:"cast", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Shield Cast", bucket:"Grinding", subcategory:"cast", start:"flag", end:"flag", modes:["2h"] },
+  { name:"Parry Cast", bucket:"Grinding", subcategory:"cast", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Reverse Parry Cast", bucket:"Grinding", subcategory:"cast", start:"flag", end:"flag", modes:["single","double"] },
+  { name:"Two-Handed Parry Cast", bucket:"Grinding", subcategory:"cast", start:"flag", end:"flag", modes:["2h"] },
+
+  { name:"Shouldered Squat", bucket:"Grinding", subcategory:"lower", start:"shoulder", end:"shoulder", modes:["single","double","2h"] },
+  { name:"Barbarian Squat", bucket:"Grinding", subcategory:"lower", start:"flag", end:"flag", modes:["single","double","2h"] },
+  { name:"Forward Lunge", bucket:"Grinding", subcategory:"lower", start:"order", end:"order", modes:["single","double","2h"] },
+  { name:"Reverse Lunge", bucket:"Grinding", subcategory:"lower", start:"order", end:"order", modes:["single","double","2h"] },
+  { name:"Side Lunge", bucket:"Grinding", subcategory:"lower", start:"order", end:"order", modes:["single","double","2h"] },
+  { name:"Cossack Squat", bucket:"Grinding", subcategory:"lower", start:"order", end:"order", modes:["single","double","2h"] },
+  { name:"Curtsy Lunge", bucket:"Grinding", subcategory:"lower", start:"order", end:"order", modes:["single","double","2h"] }
 ];
 
+const BUCKETS = ["Rhythmic","Ballistic","Grinding"];
+const SUBCATEGORY_ORDER = {
+  Rhythmic:["swing","pendulum","circle"],
+  Ballistic:["clean","jerk","snatch"],
+  Grinding:["press","cast","lower"]
+};
+const PHASES = [
+  { id:1, name:"1+1+1", patterns:[{ Rhythmic:1, Ballistic:1, Grinding:1 }] },
+  { id:2, name:"2+1+1", patterns:[
+    { Rhythmic:2, Ballistic:1, Grinding:1 },
+    { Rhythmic:1, Ballistic:2, Grinding:1 },
+    { Rhythmic:1, Ballistic:1, Grinding:2 }
+  ]},
+  { id:3, name:"2+2+1", patterns:[
+    { Rhythmic:2, Ballistic:2, Grinding:1 },
+    { Rhythmic:2, Ballistic:1, Grinding:2 },
+    { Rhythmic:1, Ballistic:2, Grinding:2 }
+  ]},
+  { id:4, name:"2+2+2", patterns:[{ Rhythmic:2, Ballistic:2, Grinding:2 }] },
+  { id:5, name:"3+2+2", patterns:[
+    { Rhythmic:3, Ballistic:2, Grinding:2 },
+    { Rhythmic:2, Ballistic:3, Grinding:2 },
+    { Rhythmic:2, Ballistic:2, Grinding:3 }
+  ]},
+  { id:6, name:"3+3+2", patterns:[
+    { Rhythmic:3, Ballistic:3, Grinding:2 },
+    { Rhythmic:3, Ballistic:2, Grinding:3 },
+    { Rhythmic:2, Ballistic:3, Grinding:3 }
+  ]},
+  { id:7, name:"3+3+3", patterns:[{ Rhythmic:3, Ballistic:3, Grinding:3 }] }
+];
+const PHASE_DURATIONS = [15,20,25,30];
 function clubCompatible(exercise, clubType){
   const modes = exercise.modes || ["single","double"];
   if(clubType === "single") return modes.includes("single");
@@ -488,11 +535,101 @@ function clubPool(bucket, clubType){
   const AF_HB_KEY = "cst_af_hb_state_v1";
   const AF_BASE_LABEL = { CRAB:"Crab", BEAST:"Beast", LOADED_BEAST:"Loaded Beast", APE:"Deep Ape" };
 
-  function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const PROGRESS_DEFAULT = {
+  phaseIndex:0,
+  sessionInPhase:0,
+  awaitingDecision:false,
+  subcategoryBags:{ Rhythmic:[], Ballistic:[], Grinding:[] },
+  subcategoryLast:{ Rhythmic:null, Ballistic:null, Grinding:null }
+};
+function getProgress(){
+  try{
+    const stored = JSON.parse(localStorage.getItem(LS_PROGRESS) || "{}");
+    return {
+      ...PROGRESS_DEFAULT,
+      ...stored,
+      subcategoryBags:{ ...PROGRESS_DEFAULT.subcategoryBags, ...(stored.subcategoryBags || {}) },
+      subcategoryLast:{ ...PROGRESS_DEFAULT.subcategoryLast, ...(stored.subcategoryLast || {}) }
+    };
+  } catch {
+    return { ...PROGRESS_DEFAULT, subcategoryBags:{...PROGRESS_DEFAULT.subcategoryBags}, subcategoryLast:{...PROGRESS_DEFAULT.subcategoryLast} };
+  }
+}
+function saveProgress(next){
+  const merged = {
+    ...PROGRESS_DEFAULT,
+    ...next,
+    subcategoryBags:{ ...PROGRESS_DEFAULT.subcategoryBags, ...((next && next.subcategoryBags) || {}) },
+    subcategoryLast:{ ...PROGRESS_DEFAULT.subcategoryLast, ...((next && next.subcategoryLast) || {}) }
+  };
+  localStorage.setItem(LS_PROGRESS, JSON.stringify(merged));
+  return merged;
+}
+function resetProgressToPhase1(){
+  return saveProgress({ ...PROGRESS_DEFAULT, subcategoryBags:{ Rhythmic:[], Ballistic:[], Grinding:[] }, subcategoryLast:{ Rhythmic:null, Ballistic:null, Grinding:null } });
+}
+function getCurrentPhase(progress){ return PHASES[Math.max(0, Math.min(PHASES.length - 1, progress.phaseIndex || 0))]; }
+function getCurrentPattern(progress){
+  const phase = getCurrentPhase(progress);
+  const idx = phase.patterns.length > 1 ? ((progress.sessionInPhase || 0) % phase.patterns.length) : 0;
+  return phase.patterns[idx];
+}
+function getCurrentDurationMinutes(progress){
+  const idx = Math.max(0, Math.min(PHASE_DURATIONS.length - 1, Math.floor((progress.sessionInPhase || 0) / 3)));
+  return PHASE_DURATIONS[idx];
+}
+function getSubcategoryBag(progress, bucket){
+  if(!progress.subcategoryBags || typeof progress.subcategoryBags !== 'object') progress.subcategoryBags = { Rhythmic:[], Ballistic:[], Grinding:[] };
+  if(!Array.isArray(progress.subcategoryBags[bucket])) progress.subcategoryBags[bucket] = [];
+  return progress.subcategoryBags[bucket];
+}
+function refillSubcategoryBag(progress, bucket, exclude = []){
+  let bag = shuffle((SUBCATEGORY_ORDER[bucket] || []).filter(x => !exclude.includes(x)));
+  const last = progress.subcategoryLast?.[bucket] || null;
+  if(last && bag.length > 1 && bag[0] === last){
+    const swapIdx = bag.findIndex(x => x !== last);
+    if(swapIdx > 0) [bag[0], bag[swapIdx]] = [bag[swapIdx], bag[0]];
+  }
+  progress.subcategoryBags[bucket] = bag;
+  return bag;
+}
+function drawSubcategories(progress, bucket, count){
+  const order = SUBCATEGORY_ORDER[bucket] || [];
+  if(count >= order.length){
+    progress.subcategoryBags[bucket] = [];
+    progress.subcategoryLast[bucket] = order[order.length - 1] || null;
+    return order.slice();
+  }
+  let bag = getSubcategoryBag(progress, bucket).slice();
+  const picked = [];
+  while(picked.length < count){
+    if(!bag.length) bag = refillSubcategoryBag(progress, bucket, picked);
+    const next = bag.shift();
+    if(!next || picked.includes(next)) continue;
+    picked.push(next);
+  }
+  progress.subcategoryBags[bucket] = bag;
+  progress.subcategoryLast[bucket] = picked[picked.length - 1] || progress.subcategoryLast[bucket] || null;
+  return picked;
+}
+function pickExerciseForSubcategory(bucket, subcategory, clubType){
+  let pool = CLUB_EXERCISES.filter(x => x.bucket === bucket && x.subcategory === subcategory && clubCompatible(x, clubType));
+  if(!pool.length) pool = CLUB_EXERCISES.filter(x => x.bucket === bucket && x.subcategory === subcategory);
+  return pool.length ? rand(pool) : null;
+}
+function getBucketLabel(bucket){ return bucket === 'Grinding' ? 'Grind' : bucket; }
+function advanceProgressDecision(kind){
+  const progress = loadProgressCached();
+  if(kind === 'next' && progress.phaseIndex < PHASES.length - 1) progress.phaseIndex += 1;
+  progress.sessionInPhase = 0;
+  progress.awaitingDecision = false;
+  return saveProgressCached(progress);
+}
+function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
   function afHashStrToSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h>>>0; }
   function afChoice(rng, arr){ return arr[Math.floor(rng()*arr.length)]; }
   function getAFSettings(){
-    const base = { lengthMode:"random", startBase:"random", includeTF:false, includeHB:false };
+    const base = { enableStandalone:true, lengthMode:"random", startBase:"random", includeTF:false, includeHB:false };
     try{
       const stored = JSON.parse(localStorage.getItem(AF_SETTINGS_KEY) || "{}");
       return { ...base, ...stored };
@@ -711,6 +848,7 @@ function clubPool(bucket, clubType){
   const DAY_KEYS = [LS_DAY, LS_DAY_LEGACY, LS_DAY_LEGACY_2];
   const LAST_KEYS = [LS_LAST, LS_LAST_LEGACY, LS_LAST_LEGACY_2];
   const COMPLETED_KEYS = [LS_COMPLETED, LS_COMPLETED_LEGACY];
+  const PROGRESS_KEYS = [LS_PROGRESS];
 
   let timer = null;
   let audioCtx = null;
@@ -718,6 +856,8 @@ function clubPool(bucket, clubType){
   let cachedDay = null;
   let cachedLast = null;
   let cachedCompleted = null;
+  let cachedProgress = null;
+  let lastTickSyncSecond = null;
 
   function dateKeyForOffset(days){
     const d = new Date();
@@ -740,9 +880,21 @@ function clubPool(bucket, clubType){
   }
 
   function computeBand(total){
-    if(total >= 13) return { band:'20', label:'13-15', cls:'good', minutes:20, intuOnly:false };
-    if(total >= 9)  return { band:'15', label:'9-12', cls:'mid', minutes:15, intuOnly:false };
-    return { band:'intu-only', label:'0-8', cls:'rec', minutes:0, intuOnly:true };
+    if(total >= 12) return { band:'normal', label:'12-15', cls:'good', minutes:null, intuOnly:false, useProgression:true };
+    if(total >= 9)  return { band:'15', label:'9-11', cls:'mid', minutes:15, intuOnly:false, useProgression:false };
+    return { band:'intu-only', label:'0-8', cls:'rec', minutes:0, intuOnly:true, useProgression:false };
+  }
+  function getEffectiveMainDuration(total, progress){
+    const band = computeBand(total);
+    if(band.intuOnly) return 0;
+    if(band.useProgression) return getCurrentDurationMinutes(progress);
+    return band.minutes || 15;
+  }
+  function getBandDescription(total, progress){
+    const band = computeBand(total);
+    if(band.intuOnly) return 'Intu only';
+    if(band.useProgression) return `Normal session (${getCurrentDurationMinutes(progress)} min from progression)`;
+    return `15 min fallback`;
   }
   function formatModeLabel(mode){
     if(mode === "INTU ONLY") return "Intu only";
@@ -828,10 +980,45 @@ function getDefaultLastState(){
     cachedCompleted = v;
     saveJSON(LS_COMPLETED, v);
   }
+  function loadProgressCached(){
+    if(cachedProgress !== null) return cachedProgress;
+    cachedProgress = getProgress();
+    return cachedProgress;
+  }
+  function saveProgressCached(v){
+    cachedProgress = saveProgress(v);
+    return cachedProgress;
+  }
+  function getStageSecondsLeft(session, now = Date.now()){
+    if(!session) return 0;
+    if(session.isRunning && session.currentStageEndsAt){
+      return Math.max(0, Math.ceil((session.currentStageEndsAt - now) / 1000));
+    }
+    return Math.max(0, Number(session.currentStageLeft) || 0);
+  }
+  function hydrateStageTime(session, now = Date.now()){
+    if(!session) return session;
+    session.currentStageLeft = getStageSecondsLeft(session, now);
+    return session;
+  }
+  function clearStageClock(session){
+    if(!session) return session;
+    session.currentStageStartedAt = null;
+    session.currentStageEndsAt = null;
+    return session;
+  }
+  function armStageClock(session, now = Date.now()){
+    if(!session) return session;
+    session.currentStageStartedAt = now;
+    session.currentStageEndsAt = now + (getStageSecondsLeft(session, now) * 1000);
+    return session;
+  }
 
   function computeTrainingDayType(){
+    const afSettings = getAFSettings();
     const completed = loadCompleted();
     if(!completed || completed.day !== yesterdayKey()) return 'clubbell';
+    if(!afSettings.enableStandalone) return 'clubbell';
     return completed.dayType === 'clubbell' ? 'standalone' : 'clubbell';
   }
 
@@ -914,17 +1101,25 @@ function getDefaultLastState(){
 
 
 
-  function generateClubExercises(clubType){
-    const sequence = ["Rhythmic", "Ballistic", "Grinding"]
-      .map(bucket => {
-        let pool = clubPool(bucket, clubType);
-        if(!pool.length) pool = CLUB_EXERCISES.filter(x => x.bucket === bucket);
-        const pick = pool.length ? rand(pool) : null;
-        return pick ? { bucket, exercise:pick.name } : null;
-      })
-      .filter(Boolean);
+  function generateClubExercises(clubType, progress){
+    const phase = getCurrentPhase(progress);
+    const pattern = getCurrentPattern(progress);
+    const sequence = [];
+
+    BUCKETS.forEach(bucket => {
+      const needed = pattern[bucket] || 0;
+      const subcategories = drawSubcategories(progress, bucket, needed);
+      subcategories.forEach(subcategory => {
+        const exercise = pickExerciseForSubcategory(bucket, subcategory, clubType);
+        if(exercise){
+          sequence.push({ bucket, bucketLabel:getBucketLabel(bucket), subcategory, exercise:exercise.name, modes:exercise.modes });
+        }
+      });
+    });
 
     return {
+      phaseName:phase.name,
+      pattern,
       sequence,
       flow: sequence.map(x => x.exercise).join(" -> ")
     };
@@ -947,6 +1142,7 @@ function getDefaultLastState(){
     const last = loadLast();
     const band = computeBand(total);
     const dayType = computeTrainingDayType();
+    let progress = loadProgressCached();
 
     const session = {
       day: todayKey(),
@@ -964,23 +1160,35 @@ function getDefaultLastState(){
       stages: [],
       currentStageIndex: 0,
       currentStageLeft: 0,
+      currentStageStartedAt: null,
+      currentStageEndsAt: null,
       isRunning: false,
       lastCountdownBeep: null,
       completed: false,
       completedAt: null,
-      settingsUsed:{ cst:getCSTSettings(), af:getAFSettings() }
+      settingsUsed:{ cst:getCSTSettings(), af:getAFSettings() },
+      progressSnapshot:{
+        phaseIndex:progress.phaseIndex,
+        phaseName:getCurrentPhase(progress).name,
+        sessionInPhase:progress.sessionInPhase,
+        durationMinutes:getEffectiveMainDuration(total, progress),
+        awaitingDecision:progress.awaitingDecision,
+        pattern:getCurrentPattern(progress)
+      }
     };
-
 
     if(band.intuOnly){
       saveLast(last);
     } else if(dayType === 'clubbell'){
       const clubType = nextFullClubType(last);
-      const clubPlan = generateClubExercises(clubType);
+      const clubPlan = generateClubExercises(clubType, progress);
       const decompShapes = buildFamilyPractice("decompress", last);
       session.club = {
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
         clubType,
+        phaseName:clubPlan.phaseName,
+        pattern:clubPlan.pattern,
+        sessionNumber:(progress.sessionInPhase || 0) + 1,
         sequence: clubPlan.sequence,
         flow: clubPlan.flow
       };
@@ -992,10 +1200,11 @@ function getDefaultLastState(){
         sequence: decompShapes.map(x => x.shape),
         bagType: 'Decompress'
       };
-      session.blockTimes.club = band.minutes * 60;
+      session.blockTimes.club = getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
       last.lastClubType = clubType;
       saveLast(last);
+      saveProgressCached(progress);
     } else {
       const afSettings = getAFSettings();
       const afSequence = buildAnimalFlowSequence(`${todayKey()}|animal-flow`, {
@@ -1020,7 +1229,7 @@ function getDefaultLastState(){
         sequence: decompShapes.map(x => x.shape),
         bagType: 'Decompress'
       };
-      session.blockTimes.active = band.minutes * 60;
+      session.blockTimes.active = getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
       saveLast(last);
     }
@@ -1033,22 +1242,26 @@ function getDefaultLastState(){
   }
 
   function bindAccordions(){
+    const getDirectAccordionHeader = (accordion) => Array.from(accordion.children).find(el => el.classList?.contains('accordion-header')) || null;
+    const getDirectAccordionContent = (accordion) => Array.from(accordion.children).find(el => el.classList?.contains('accordion-content')) || null;
+    const getSiblingAccordions = (accordion) => Array.from(accordion?.parentElement?.children || []).filter(el => el.classList?.contains('accordion'));
     const headers = leftCard.querySelectorAll('.accordion-header');
     headers.forEach((btn, index) => {
       const parent = btn.closest('.accordion');
-      const content = parent?.querySelector('.accordion-content');
+      const content = parent ? getDirectAccordionContent(parent) : null;
       const contentId = `accordion-content-${index}`;
       if(content){
         content.id = contentId;
         btn.setAttribute("aria-controls", contentId);
       }
       btn.setAttribute("aria-expanded", String(parent?.classList.contains('active') || false));
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
         const parent = btn.closest('.accordion');
         const isOpen = parent.classList.contains('active');
-        leftCard.querySelectorAll('.accordion').forEach(acc => {
+        getSiblingAccordions(parent).forEach(acc => {
           acc.classList.remove('active');
-          const header = acc.querySelector('.accordion-header');
+          const header = getDirectAccordionHeader(acc);
           if(header) header.setAttribute("aria-expanded", "false");
         });
         if(!isOpen){
@@ -1070,11 +1283,12 @@ function getDefaultLastState(){
   }
 
   function renderSession(s){
+    const progress = loadProgressCached();
     const summaryText = s.intuOnly
       ? "Today is recovery-focused: Intu only. Because no Clubbell or stand-alone session is completed today, tomorrow defaults back to Clubbell."
       : s.dayType === "clubbell"
-      ? "Today: Intu, then Clubbell, then finish with a 6-word Decompress practice. Finish this session to unlock an Animal Flow day tomorrow. Short block = 15 + 5, long block = 20 + 5."
-      : "Today: Intu, then Animal Flow, then finish with a 6-word Decompress practice. Finish this session and tomorrow returns to Clubbell. Short block = 15 + 5, long block = 20 + 5.";
+      ? "Today: Intu, then Clubbell, then finish with a 6-word Decompress practice. Finish this session to unlock an Animal Flow day tomorrow. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration."
+      : "Today: Intu, then Animal Flow, then finish with a 6-word Decompress practice. Finish this session and tomorrow returns to Clubbell. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration.";
 
     let html = `<h2>Today</h2>`;
     if(s.intuOnly){
@@ -1113,25 +1327,35 @@ function getDefaultLastState(){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Clubbell | basic selection</span>
+          <span>Clubbell training</span>
           <span class="pill">${s.club.clubType.toUpperCase()} | ${fmtMin(s.blockTimes?.club || 0)}</span>
         </button>
         <div class="accordion-content">
-          ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
-          ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), "Main block", "mb-10")}
-          ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
-<div class="stack-10">
-  ${s.club.sequence.map((x, idx) => `
-    <div class="exercise">
-      <div class="ex-left">
-        <div class="ex-title">${idx + 1}. ${cleanText(x.exercise)}</div>
-        <div class="ex-meta">${cleanText(x.bucket)}</div>
-      </div>
-      <div class="pill">Club</div>
-    </div>`).join("")}
-</div>
- ${renderExerciseCard("Order", s.club.flow || "-", "Basic", "mt-10")}
-<p class="small mt-10">Basic selection: 1 random rhythmic, 1 random ballistic and 1 random grind, filtered by the club type of the day.</p>
+          <div class="stack-10 mt-12">
+            ${s.club.sequence.map((x, idx) => `
+              <div class="exercise">
+                <div class="ex-left">
+                  <div class="ex-title">${idx + 1}. ${cleanText(x.exercise)}</div>
+                  <div class="ex-meta">${cleanText(x.bucketLabel || x.bucket)} | ${cleanText(x.subcategory)}</div>
+                </div>
+                <div class="pill">Club</div>
+              </div>`).join("")}
+          </div>
+          ${renderExerciseCard("Order", s.club.flow || "-", "Basic", "mt-10")}
+          <div class="accordion mt-12">
+            <button type="button" class="accordion-header">
+              <span>Session details</span>
+              <span class="pill">Info</span>
+            </button>
+            <div class="accordion-content">
+              ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
+              ${renderExerciseCard("Phase", `${s.club.phaseName} | session ${s.club.sessionNumber}/12`, "Progression", "mb-10")}
+              ${renderExerciseCard("Pattern", `${s.club.pattern.Rhythmic}+${s.club.pattern.Ballistic}+${s.club.pattern.Grinding}`, "Today", "mb-10")}
+              ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress), "mb-10")}
+              ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
+              <p class="small mt-10">Phase selection: choose subcategories by current phase, rotate the overtal across the main categories, and filter exercise picks by the club type of the day.</p>
+            </div>
+          </div>
         </div>
       </div>`;
     }
@@ -1142,21 +1366,11 @@ if(s.activeFlow){
       <div class="accordion">
         <button type="button" class="accordion-header">
           <span>Animal Flow</span>
-          <span class="pill">${fmtMin(s.blockTimes?.active || 0)} | Main block</span>
+          <span class="pill">${fmtMin(s.blockTimes?.active || 0)} | ${getBandDescription(s.total, progress)}</span>
         </button>
         <div class="accordion-content">
-          ${renderExerciseCard("Practice", s.activeFlow.name, `${s.activeFlow.bagType}`, "mt-12 mb-10")}
-          ${renderExerciseCard("Focus", s.activeFlow.focus, "Movement practice", "mb-10")}
-          ${renderExerciseCard("Use", s.activeFlow.use, "Animal Flow day", "mb-10")}
-          ${renderExerciseCard("Rule", "Closed-loop logic only. Start from a base, only use allowed next moves, and finish back at the same base.", "Flow", "mb-10")}
-          <div class="exercise mb-10">
-            <div class="ex-left">
-              <div class="ex-title">Settings used today</div>
-              <div class="ex-meta">Base: ${cleanText(AF_BASE_LABEL[s.activeFlow.startBase])} | Length: ${cleanText(String(s.activeFlow.length))} | L1 TF: ${s.activeFlow.includeTF ? 'ON' : 'OFF'} | Advanced: ${s.activeFlow.advancedEnabled ? 'ON' : 'OFF'} | Locomotion: ${s.activeFlow.locomotionEnabled ? 'ON' : 'OFF'} | HB: ${s.activeFlow.includeHB ? 'ON' : 'OFF'}</div>
-            </div>
-            <div class="pill">Locked today</div>
-          </div>
-          <div class="stack-10">
+          ${s.activeFlow.includeHB ? `<details class="mt-12" open><summary>Hand Balancing track</summary><div class="detailsBody" id="afHbTrackWrap"></div></details>` : ''}
+          <div class="stack-10 mt-12">
             ${s.activeFlow.steps.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
@@ -1166,7 +1380,25 @@ if(s.activeFlow){
                 <div class="pill">${cleanText(x.kind)}</div>
               </div>`).join("")}
           </div>
-          ${s.activeFlow.includeHB ? `<details class="mt-12"><summary>Hand Balancing track</summary><div class="detailsBody" id="afHbTrackWrap"></div></details>` : ''}
+          <div class="accordion mt-12">
+            <button type="button" class="accordion-header">
+              <span>Session details</span>
+              <span class="pill">Info</span>
+            </button>
+            <div class="accordion-content">
+              ${renderExerciseCard("Practice", s.activeFlow.name, `${s.activeFlow.bagType}`, "mt-12 mb-10")}
+              ${renderExerciseCard("Focus", s.activeFlow.focus, "Movement practice", "mb-10")}
+              ${renderExerciseCard("Use", s.activeFlow.use, "Animal Flow day", "mb-10")}
+              ${renderExerciseCard("Rule", "Closed-loop logic only. Start from a base, only use allowed next moves, and finish back at the same base.", "Flow", "mb-10")}
+              <div class="exercise mb-10">
+                <div class="ex-left">
+                  <div class="ex-title">Settings used today</div>
+                  <div class="ex-meta">Base: ${cleanText(AF_BASE_LABEL[s.activeFlow.startBase])} | Length: ${cleanText(String(s.activeFlow.length))} | L1 TF: ${s.activeFlow.includeTF ? 'ON' : 'OFF'} | Advanced: ${s.activeFlow.advancedEnabled ? 'ON' : 'OFF'} | Locomotion: ${s.activeFlow.locomotionEnabled ? 'ON' : 'OFF'} | HB: ${s.activeFlow.includeHB ? 'ON' : 'OFF'}</div>
+                </div>
+                <div class="pill">Locked today</div>
+              </div>
+            </div>
+          </div>
           <details class="mt-12">
             <summary>Debug path</summary>
             <div class="detailsBody small">${cleanText(s.activeFlow.steps.map(x => `${AF_BASE_LABEL[x.start]} -> ${x.name} -> ${AF_BASE_LABEL[x.end]} [${x.phase}]`).join(' | '))}</div>
@@ -1211,7 +1443,8 @@ if(s.activeFlow){
         <span class="small">${s.completed ? 'Saved as completed for today.' : 'Use Finish when the training is actually done.'}</span>
       </div>`;
     }
-    html += `<p class="small mt-10">${summaryText}</p>`;
+    html += `${!s.intuOnly && progress.awaitingDecision ? `<div class="finish-row"><button id="btnPhaseNext" class="btn good">Next phase</button><button id="btnPhaseRepeat" class="btn">Repeat phase</button><span class="small">12 Clubbell sessions completed. Choose what to do next before the next Clubbell block.</span></div>` : ""}
+    <p class="small mt-10">${summaryText}</p>`;
 
     leftCard.innerHTML = html;
     bindAccordions();
@@ -1234,6 +1467,10 @@ if(s.activeFlow){
     if(finishBtn){
       finishBtn.onclick = finishSession;
     }
+    const btnPhaseNext = document.getElementById("btnPhaseNext");
+    if(btnPhaseNext) btnPhaseNext.onclick = () => { advanceProgressDecision('next'); cachedDay = null; boot(); };
+    const btnPhaseRepeat = document.getElementById("btnPhaseRepeat");
+    if(btnPhaseRepeat) btnPhaseRepeat.onclick = () => { advanceProgressDecision('repeat'); cachedDay = null; boot(); };
     if(s.activeFlow){
       renderAFHBTrack(s.activeFlow);
     }
@@ -1277,10 +1514,44 @@ if(s.activeFlow){
   function renderSettings(){
     const cst = getCSTSettings();
     const af = getAFSettings();
+    const progress = loadProgressCached();
+    const currentSessionInPhase = Math.max(0, Math.min(11, progress.sessionInPhase || 0));
     settingsCstCard.innerHTML = `
       <h2>CST settings</h2>
       <div class="setting-list">
         <div class="settings-note">These settings affect newly generated sessions. Today's locked session does not change until you reset the day.</div>
+        <div id="progressionCard" class="exercise">
+          <div class="ex-left">
+            <div class="ex-title">Current phase</div>
+            <div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/12 | Progression step ${getCurrentDurationMinutes(progress)} min`}</div>
+          </div>
+          <div class="pill">Progression</div>
+        </div>
+        <div id="progressionAdvanced" class="hidden-advanced">
+          <div class="exercise">
+            <div class="ex-left">
+              <div class="ex-title">Advanced progression override</div>
+              <div class="ex-meta">Hidden mode unlocked. Choose a phase and Clubbell session slot, then apply.</div>
+            </div>
+            <div class="pill">Advanced</div>
+          </div>
+          <div class="kv">
+            <label class="label">Phase</label>
+            <select id="progressionPhaseSelect">
+              ${PHASES.map((phase, index) => `<option value="${index}" ${index === (progress.phaseIndex || 0) ? 'selected' : ''}>${phase.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="kv">
+            <label class="label">Session</label>
+            <select id="progressionSessionSelect">
+              ${Array.from({ length:12 }, (_, index) => `<option value="${index}" ${index === currentSessionInPhase ? 'selected' : ''}>${index + 1}</option>`).join('')}
+            </select>
+          </div>
+          <div class="row">
+            <button id="btnApplyProgressionOverride" class="btn good">Apply override</button>
+            <button id="btnHideProgressionAdvanced" class="btn">Hide</button>
+          </div>
+        </div>
         <div class="exercise">
           <div class="ex-left">
             <div class="ex-title">Allowed club types</div>
@@ -1299,12 +1570,21 @@ if(s.activeFlow){
               <input type="checkbox" data-cst-club="${item.key}" ${cst.clubTypes?.[item.key] ? 'checked' : ''}>
             </label>`).join('')}
         </div>
+        <div class="row">
+          <button id="btnResetPhase1" class="btn danger">Reset to phase 1</button>
+        </div>
       </div>`;
 
     settingsAfCard.innerHTML = `
       <h2>Animal Flow settings</h2>
       <div class="setting-list">
         <div class="settings-note">These settings apply to the next Animal Flow day you generate. The generated sequence still uses closed-loop base logic and may enable Advanced or Locomotion automatically.</div>
+        <div class="toggle-list">
+          <label class="toggle-item">
+            <span>Enable Animal Flow Stand Alone</span>
+            <input type="checkbox" id="afSettingsEnableStandalone" ${af.enableStandalone ? 'checked' : ''}>
+          </label>
+        </div>
         <div class="kv">
           <label class="label">Length</label>
           <select id="afSettingsLength">
@@ -1330,19 +1610,71 @@ if(s.activeFlow){
         </div>
       </div>`;
 
+    const afEnableStandalone = document.getElementById('afSettingsEnableStandalone');
     const afLength = document.getElementById('afSettingsLength');
     const afStartBase = document.getElementById('afSettingsStartBase');
     const afIncludeTF = document.getElementById('afSettingsIncludeTF');
     const afIncludeHB = document.getElementById('afSettingsIncludeHB');
+    const syncAFSettingsUI = () => {
+      const enabled = !!afEnableStandalone?.checked;
+      [afLength, afStartBase, afIncludeTF, afIncludeHB].forEach(el => {
+        if(el) el.disabled = !enabled;
+      });
+    };
     if(afLength) afLength.value = af.lengthMode;
     if(afStartBase) afStartBase.value = af.startBase;
+    syncAFSettingsUI();
     const persistAF = () => setAFSettings({
+      enableStandalone:afEnableStandalone.checked,
       lengthMode:afLength.value,
       startBase:afStartBase.value,
       includeTF:afIncludeTF.checked,
       includeHB:afIncludeHB.checked
     });
-    [afLength, afStartBase, afIncludeTF, afIncludeHB].forEach(el => el && el.addEventListener('change', persistAF));
+    [afEnableStandalone, afLength, afStartBase, afIncludeTF, afIncludeHB].forEach(el => el && el.addEventListener('change', () => {
+      syncAFSettingsUI();
+      persistAF();
+    }));
+
+    const progressionCard = document.getElementById('progressionCard');
+    const progressionAdvanced = document.getElementById('progressionAdvanced');
+    const progressionPhaseSelect = document.getElementById('progressionPhaseSelect');
+    const progressionSessionSelect = document.getElementById('progressionSessionSelect');
+    const btnApplyProgressionOverride = document.getElementById('btnApplyProgressionOverride');
+    const btnHideProgressionAdvanced = document.getElementById('btnHideProgressionAdvanced');
+    let progressionHoldTimer = null;
+    const clearProgressionHold = () => {
+      if(progressionHoldTimer) clearTimeout(progressionHoldTimer);
+      progressionHoldTimer = null;
+    };
+    const showProgressionAdvanced = () => progressionAdvanced?.classList.add('active');
+    if(progressionCard){
+      const startHold = () => {
+        clearProgressionHold();
+        progressionHoldTimer = setTimeout(showProgressionAdvanced, 5000);
+      };
+      ['pointerdown', 'mousedown', 'touchstart'].forEach(evt => progressionCard.addEventListener(evt, startHold));
+      ['pointerup', 'pointerleave', 'pointercancel', 'mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt => progressionCard.addEventListener(evt, clearProgressionHold));
+    }
+    if(btnApplyProgressionOverride){
+      btnApplyProgressionOverride.onclick = () => {
+        const nextPhaseIndex = Math.max(0, Math.min(PHASES.length - 1, Number(progressionPhaseSelect.value)));
+        const nextSessionInPhase = Math.max(0, Math.min(11, Number(progressionSessionSelect.value)));
+        const nextProgress = {
+          ...loadProgressCached(),
+          phaseIndex:nextPhaseIndex,
+          sessionInPhase:nextSessionInPhase,
+          awaitingDecision:false
+        };
+        saveProgressCached(nextProgress);
+        cachedDay = null;
+        renderSettings();
+        boot();
+      };
+    }
+    if(btnHideProgressionAdvanced){
+      btnHideProgressionAdvanced.onclick = () => progressionAdvanced?.classList.remove('active');
+    }
 
     settingsCstCard.querySelectorAll('[data-cst-club]').forEach(input => {
       input.addEventListener('change', () => {
@@ -1355,6 +1687,13 @@ if(s.activeFlow){
         renderSettings();
       });
     });
+    const btnResetPhase1 = document.getElementById('btnResetPhase1');
+    if(btnResetPhase1) btnResetPhase1.onclick = () => {
+      saveProgressCached(resetProgressToPhase1());
+      cachedDay = null;
+      renderSettings();
+      boot();
+    };
   }
 
   function initTabs(){
@@ -1396,6 +1735,7 @@ if(s.activeFlow){
       return;
     }
 
+    hydrateStageTime(s);
     currentLabel.textContent = current ? current.label : "-";
     timeDisplay.textContent = fmt(s.currentStageLeft || 0);
     playPauseBtn.textContent = s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompressie" : "Start");
@@ -1420,6 +1760,7 @@ if(s.activeFlow){
       return;
     }
 
+    hydrateStageTime(s);
     const current = getCurrentStage(s);
     const next = s.stages[s.currentStageIndex + 1] || null;
 
@@ -1539,42 +1880,46 @@ if(s.activeFlow){
 
   function startTick(){
     if(timer) clearInterval(timer);
+    lastTickSyncSecond = null;
     timer = setInterval(async () => {
       const d = loadDay();
       if(!d || !d.isRunning) return;
       const cur = getCurrentStage(d);
       if(!cur) return;
+      const secondsLeft = getStageSecondsLeft(d);
+      d.currentStageLeft = secondsLeft;
 
-      if(d.currentStageLeft > 0){
-        d.currentStageLeft -= 1;
-
-        if([3,2,1].includes(d.currentStageLeft) && d.lastCountdownBeep !== d.currentStageLeft){
-          d.lastCountdownBeep = d.currentStageLeft;
-          saveDay(d);
-          syncRightPanel(d);
-          await patternCountdown(d.currentStageLeft);
-          return;
-        }
+      if([3,2,1].includes(secondsLeft) && d.lastCountdownBeep !== secondsLeft){
+        d.lastCountdownBeep = secondsLeft;
+        saveDay(d);
+        syncRightPanel(d);
+        await patternCountdown(secondsLeft);
+        return;
       }
 
-      if(d.currentStageLeft <= 0){
+      if(secondsLeft <= 0){
         d.isRunning = false;
+        clearStageClock(d);
         saveDay(d);
         syncRightPanel(d);
         await advanceStage(false);
         return;
       }
 
-      saveDay(d);
-      syncRightPanel(d);
+      if(lastTickSyncSecond !== secondsLeft){
+        lastTickSyncSecond = secondsLeft;
+        syncRightPanel(d);
+      }
     }, 1000);
   }
 
   async function startSequence(){
     const d = loadDay();
     if(!d) return;
+    hydrateStageTime(d);
     d.isRunning = true;
     d.lastCountdownBeep = null;
+    armStageClock(d);
     saveDay(d);
     await ensureAudio();
     await acquireWakeLock();
@@ -1585,7 +1930,9 @@ if(s.activeFlow){
   async function pauseSequence(){
     const d = loadDay();
     if(!d) return;
+    hydrateStageTime(d);
     d.isRunning = false;
+    clearStageClock(d);
     saveDay(d);
     if(timer) clearInterval(timer);
     timer = null;
@@ -1611,10 +1958,12 @@ if(s.activeFlow){
 
     d.currentStageIndex += 1;
     d.currentStageLeft = d.stages[d.currentStageIndex].seconds;
+    clearStageClock(d);
     d.lastCountdownBeep = null;
     const nextStage = d.stages[d.currentStageIndex];
     const shouldAutoRun = !nextStage?.manualStart && !manual;
     d.isRunning = shouldAutoRun;
+    if(shouldAutoRun) armStageClock(d);
     saveDay(d);
     renderRightPanel();
     await patternStageChange();
@@ -1634,6 +1983,7 @@ if(s.activeFlow){
     d.currentStageIndex = 0;
     d.currentStageLeft = d.stages.length ? d.stages[0].seconds : 0;
     d.isRunning = false;
+    clearStageClock(d);
     d.lastCountdownBeep = null;
     saveDay(d);
     if(timer) clearInterval(timer);
@@ -1703,12 +2053,41 @@ if(s.activeFlow){
       dayType: d.dayType,
       completedAt: d.completedAt
     });
+    if(d.dayType === 'clubbell'){
+      const progress = loadProgressCached();
+      progress.sessionInPhase = (progress.sessionInPhase || 0) + 1;
+      if(progress.sessionInPhase >= 12){
+        progress.sessionInPhase = 12;
+        progress.awaitingDecision = true;
+      }
+      saveProgressCached(progress);
+      d.progressSnapshot = { ...(d.progressSnapshot || {}), sessionInPhase:progress.sessionInPhase, awaitingDecision:progress.awaitingDecision, phaseName:getCurrentPhase(progress).name, pattern:getCurrentPattern(progress), durationMinutes:getCurrentDurationMinutes(progress) };
+      saveDay(d);
+    }
     if(timer) clearInterval(timer);
     timer = null;
     await releaseWakeLock();
     await patternDone();
     celebrateConfetti();
-    renderSession(d);
+    renderSession(loadDay());
+  }
+
+  function renderPhaseDecision(){
+    const progress = loadProgressCached();
+    const phase = getCurrentPhase(progress);
+    leftCard.innerHTML = `
+      <h2>Phase checkpoint</h2>
+      ${renderExerciseCard("Current phase", `${phase.name} completed`, "Checkpoint", "mb-12")}
+      <p class="small">You completed 12 Clubbell sessions in this phase. Choose whether to advance or repeat before generating the next Clubbell day.</p>
+      <div class="finish-row">
+        <button id="btnGateNextPhase" class="btn good">Next phase</button>
+        <button id="btnGateRepeatPhase" class="btn">Repeat phase</button>
+      </div>`;
+    renderRightNone();
+    setModePill("-");
+    setDayPill("checkpoint");
+    document.getElementById("btnGateNextPhase").onclick = () => { advanceProgressDecision('next'); boot(); };
+    document.getElementById("btnGateRepeatPhase").onclick = () => { advanceProgressDecision('repeat'); boot(); };
   }
 
   function renderGate(existing){
@@ -1736,7 +2115,7 @@ if(s.activeFlow){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Intu only | 9-12 = 15 min | 13-15 = 20 min | Clubbell is the default, Animal Flow only follows a completed Clubbell day</span>
+          <span class="small">0-8 = Intu only | 9-11 = 15 min fallback | 12-15 = normal session duration (15/20/25/30) | Clubbell is the default, Animal Flow only follows a completed Clubbell day</span>
         </div>
       </div>
     `;
@@ -1821,7 +2200,8 @@ if(s.activeFlow){
       renderSession(day);
     } else {
       btnMain.textContent = "Start";
-      renderGate(null);
+      if(loadProgressCached().awaitingDecision) renderPhaseDecision();
+      else renderGate(null);
     }
   }
 
@@ -1833,9 +2213,7 @@ if(s.activeFlow){
   };
   btnReset.onclick = async () => {
     cachedDay = null;
-    cachedLast = null;
-    cachedCompleted = null;
-    removeStorageKeys([...DAY_KEYS, ...LAST_KEYS, ...COMPLETED_KEYS]);
+    removeStorageKeys(DAY_KEYS);
     if(timer) clearInterval(timer);
     timer = null;
     await releaseWakeLock();
