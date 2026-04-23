@@ -505,6 +505,8 @@ const PHASES = [
   ]},
   { id:7, name:"3+3+3", patterns:[{ Rhythmic:3, Ballistic:3, Grinding:3 }] }
 ];
+const CLUB_TYPE_SEQUENCE = ["single","2h","single","double","single","2h"];
+const PHASE_SESSION_COUNT = 24;
 const PHASE_DURATIONS = [15,20,25,30];
 function clubCompatible(exercise, clubType){
   const modes = exercise.modes || ["single","double"];
@@ -569,19 +571,31 @@ function resetProgressToPhase1(){
   return saveProgress({ ...PROGRESS_DEFAULT, subcategoryBags:{ Rhythmic:[], Ballistic:[], Grinding:[] }, subcategoryLast:{ Rhythmic:null, Ballistic:null, Grinding:null } });
 }
 function getCurrentPhase(progress){ return PHASES[Math.max(0, Math.min(PHASES.length - 1, progress.phaseIndex || 0))]; }
+function getSessionSlot(progress){
+  return Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, progress.sessionInPhase || 0));
+}
 function getCurrentPattern(progress){
   const phase = getCurrentPhase(progress);
-  const idx = phase.patterns.length > 1 ? ((progress.sessionInPhase || 0) % phase.patterns.length) : 0;
+  const idx = phase.patterns.length > 1 ? (getSessionSlot(progress) % phase.patterns.length) : 0;
   return phase.patterns[idx];
 }
 function getCurrentDurationMinutes(progress){
-  const idx = Math.max(0, Math.min(PHASE_DURATIONS.length - 1, Math.floor((progress.sessionInPhase || 0) / 3)));
+  const idx = Math.max(0, Math.min(PHASE_DURATIONS.length - 1, Math.floor(getSessionSlot(progress) / CLUB_TYPE_SEQUENCE.length)));
   return PHASE_DURATIONS[idx];
 }
 function getSubcategoryBag(progress, bucket){
   if(!progress.subcategoryBags || typeof progress.subcategoryBags !== 'object') progress.subcategoryBags = { Rhythmic:[], Ballistic:[], Grinding:[] };
   if(!Array.isArray(progress.subcategoryBags[bucket])) progress.subcategoryBags[bucket] = [];
   return progress.subcategoryBags[bucket];
+}
+function getLastExerciseMap(lastState, clubType){
+  if(!lastState.lastClubExercisesByType || typeof lastState.lastClubExercisesByType !== "object"){
+    lastState.lastClubExercisesByType = { single:{}, double:{}, "2h":{} };
+  }
+  if(!lastState.lastClubExercisesByType[clubType] || typeof lastState.lastClubExercisesByType[clubType] !== "object"){
+    lastState.lastClubExercisesByType[clubType] = {};
+  }
+  return lastState.lastClubExercisesByType[clubType];
 }
 function refillSubcategoryBag(progress, bucket, exclude = []){
   let bag = shuffle((SUBCATEGORY_ORDER[bucket] || []).filter(x => !exclude.includes(x)));
@@ -612,9 +626,13 @@ function drawSubcategories(progress, bucket, count){
   progress.subcategoryLast[bucket] = picked[picked.length - 1] || progress.subcategoryLast[bucket] || null;
   return picked;
 }
-function pickExerciseForSubcategory(bucket, subcategory, clubType){
+function pickExerciseForSubcategory(bucket, subcategory, clubType, lastExerciseName = null){
   let pool = CLUB_EXERCISES.filter(x => x.bucket === bucket && x.subcategory === subcategory && clubCompatible(x, clubType));
   if(!pool.length) pool = CLUB_EXERCISES.filter(x => x.bucket === bucket && x.subcategory === subcategory);
+  if(lastExerciseName && pool.length > 1){
+    const filtered = pool.filter(x => x.name !== lastExerciseName);
+    if(filtered.length) pool = filtered;
+  }
   return pool.length ? rand(pool) : null;
 }
 function getBucketLabel(bucket){ return bucket === 'Grinding' ? 'Grind' : bucket; }
@@ -830,12 +848,6 @@ function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.i
     return null;
   }
 
-  const CLUB_TYPE_WEIGHTS = [
-    { type:"single", weight:55 },
-    { type:"2h", weight:30 },
-    { type:"double", weight:15 }
-  ];
-
   const leftCard = document.getElementById("leftCard");
   const rightInner = document.getElementById("rightInner");
   const settingsCstCard = document.getElementById("settingsCstCard");
@@ -932,6 +944,8 @@ function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.i
 function getDefaultLastState(){
     return {
       lastClubType:null,
+      lastClubTypeIndex:-1,
+      lastClubExercisesByType:{ single:{}, double:{}, "2h":{} },
       familyBags:{},
       familyLastPick:{}
     };
@@ -1024,23 +1038,21 @@ function getDefaultLastState(){
 
   function nextFullClubType(lastState = loadLast()){
     const cstSettings = getCSTSettings();
-    let pool = CLUB_TYPE_WEIGHTS.filter(x => cstSettings.clubTypes?.[x.type]);
-    if(!pool.length) pool = CLUB_TYPE_WEIGHTS.filter(x => x.type === "single");
-    const previousType = lastState.lastClubType || null;
-    if(pool.length > 1){
-      const withoutPrevious = pool.filter(x => x.type !== previousType);
-      if(withoutPrevious.length) pool = withoutPrevious;
+    const enabledTypes = CLUB_TYPE_SEQUENCE.filter(type => cstSettings.clubTypes?.[type]);
+    if(!enabledTypes.length) return { type:"single", index:0 };
+
+    let previousIndex = Number.isInteger(lastState.lastClubTypeIndex) ? lastState.lastClubTypeIndex : -1;
+    if(previousIndex < 0 || previousIndex >= CLUB_TYPE_SEQUENCE.length){
+      previousIndex = CLUB_TYPE_SEQUENCE.lastIndexOf(lastState.lastClubType || "");
     }
 
-    const totalWeight = pool.reduce((sum, item) => sum + item.weight, 0);
-    let roll = Math.random() * totalWeight;
-
-    for(const item of pool){
-      if(roll < item.weight) return item.type;
-      roll -= item.weight;
+    for(let offset = 1; offset <= CLUB_TYPE_SEQUENCE.length; offset += 1){
+      const idx = (Math.max(-1, previousIndex) + offset) % CLUB_TYPE_SEQUENCE.length;
+      const type = CLUB_TYPE_SEQUENCE[idx];
+      if(cstSettings.clubTypes?.[type]) return { type, index:idx };
     }
 
-    return pool.length ? pool[pool.length - 1].type : "single";
+    return { type:enabledTypes[0], index:CLUB_TYPE_SEQUENCE.indexOf(enabledTypes[0]) };
   }
 
   
@@ -1101,16 +1113,18 @@ function getDefaultLastState(){
 
 
 
-  function generateClubExercises(clubType, progress){
+  function generateClubExercises(clubType, progress, lastState = loadLast()){
     const phase = getCurrentPhase(progress);
     const pattern = getCurrentPattern(progress);
     const sequence = [];
+    const lastExerciseMap = getLastExerciseMap(lastState, clubType);
 
     BUCKETS.forEach(bucket => {
       const needed = pattern[bucket] || 0;
       const subcategories = drawSubcategories(progress, bucket, needed);
       subcategories.forEach(subcategory => {
-        const exercise = pickExerciseForSubcategory(bucket, subcategory, clubType);
+        const exerciseKey = `${bucket}|${subcategory}`;
+        const exercise = pickExerciseForSubcategory(bucket, subcategory, clubType, lastExerciseMap[exerciseKey] || null);
         if(exercise){
           sequence.push({ bucket, bucketLabel:getBucketLabel(bucket), subcategory, exercise:exercise.name, modes:exercise.modes });
         }
@@ -1181,8 +1195,9 @@ function getDefaultLastState(){
     if(band.intuOnly){
       saveLast(last);
     } else if(dayType === 'clubbell'){
-      const clubType = nextFullClubType(last);
-      const clubPlan = generateClubExercises(clubType, progress);
+      const clubTypePick = nextFullClubType(last);
+      const clubType = clubTypePick.type;
+      const clubPlan = generateClubExercises(clubType, progress, last);
       const decompShapes = buildFamilyPractice("decompress", last);
       session.club = {
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
@@ -1205,6 +1220,11 @@ function getDefaultLastState(){
       session.blockTimes.decomp = 5 * 60;
       session.countsTowardProgression = !!band.useProgression;
       last.lastClubType = clubType;
+      last.lastClubTypeIndex = clubTypePick.index;
+      const lastExerciseMap = getLastExerciseMap(last, clubType);
+      clubPlan.sequence.forEach(item => {
+        lastExerciseMap[`${item.bucket}|${item.subcategory}`] = item.exercise;
+      });
       saveLast(last);
       saveProgressCached(progress);
     } else {
@@ -1351,7 +1371,7 @@ function getDefaultLastState(){
             </button>
             <div class="accordion-content">
               ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
-              ${renderExerciseCard("Phase", `${s.club.phaseName} | session ${s.club.sessionNumber}/12`, "Progression", "mb-10")}
+              ${renderExerciseCard("Phase", `${s.club.phaseName} | session ${s.club.sessionNumber}/${PHASE_SESSION_COUNT}`, "Progression", "mb-10")}
               ${renderExerciseCard("Pattern", `${s.club.pattern.Rhythmic}+${s.club.pattern.Ballistic}+${s.club.pattern.Grinding}`, "Today", "mb-10")}
               ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress), "mb-10")}
               ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
@@ -1445,7 +1465,7 @@ if(s.activeFlow){
         <span class="small">${s.completed ? 'Saved as completed for today.' : 'Use Finish when the training is actually done.'}</span>
       </div>`;
     }
-    html += `${!s.intuOnly && progress.awaitingDecision ? `<div class="finish-row"><button id="btnPhaseNext" class="btn good">Next phase</button><button id="btnPhaseRepeat" class="btn">Repeat phase</button><span class="small">12 Clubbell sessions completed. Choose what to do next before the next Clubbell block.</span></div>` : ""}
+    html += `${!s.intuOnly && progress.awaitingDecision ? `<div class="finish-row"><button id="btnPhaseNext" class="btn good">Next phase</button><button id="btnPhaseRepeat" class="btn">Repeat phase</button><span class="small">${PHASE_SESSION_COUNT} Clubbell sessions completed. Choose what to do next before the next Clubbell block.</span></div>` : ""}
     <p class="small mt-10">${summaryText}</p>`;
 
     leftCard.innerHTML = html;
@@ -1517,7 +1537,7 @@ if(s.activeFlow){
     const cst = getCSTSettings();
     const af = getAFSettings();
     const progress = loadProgressCached();
-    const currentSessionInPhase = Math.max(0, Math.min(11, progress.sessionInPhase || 0));
+    const currentSessionInPhase = Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, progress.sessionInPhase || 0));
     settingsCstCard.innerHTML = `
       <h2>CST settings</h2>
       <div class="setting-list">
@@ -1525,7 +1545,7 @@ if(s.activeFlow){
         <div id="progressionCard" class="exercise">
           <div class="ex-left">
             <div class="ex-title">Current phase</div>
-            <div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/12 | Progression step ${getCurrentDurationMinutes(progress)} min`}</div>
+            <div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentDurationMinutes(progress)} min`}</div>
           </div>
           <div class="pill">Progression</div>
         </div>
@@ -1546,7 +1566,7 @@ if(s.activeFlow){
           <div class="kv">
             <label class="label">Session</label>
             <select id="progressionSessionSelect">
-              ${Array.from({ length:12 }, (_, index) => `<option value="${index}" ${index === currentSessionInPhase ? 'selected' : ''}>${index + 1}</option>`).join('')}
+              ${Array.from({ length:PHASE_SESSION_COUNT }, (_, index) => `<option value="${index}" ${index === currentSessionInPhase ? 'selected' : ''}>${index + 1}</option>`).join('')}
             </select>
           </div>
           <div class="row">
@@ -1661,7 +1681,7 @@ if(s.activeFlow){
     if(btnApplyProgressionOverride){
       btnApplyProgressionOverride.onclick = () => {
         const nextPhaseIndex = Math.max(0, Math.min(PHASES.length - 1, Number(progressionPhaseSelect.value)));
-        const nextSessionInPhase = Math.max(0, Math.min(11, Number(progressionSessionSelect.value)));
+        const nextSessionInPhase = Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, Number(progressionSessionSelect.value)));
         const nextProgress = {
           ...loadProgressCached(),
           phaseIndex:nextPhaseIndex,
@@ -2058,8 +2078,8 @@ if(s.activeFlow){
     if(d.dayType === 'clubbell' && d.countsTowardProgression){
       const progress = loadProgressCached();
       progress.sessionInPhase = (progress.sessionInPhase || 0) + 1;
-      if(progress.sessionInPhase >= 12){
-        progress.sessionInPhase = 12;
+      if(progress.sessionInPhase >= PHASE_SESSION_COUNT){
+        progress.sessionInPhase = PHASE_SESSION_COUNT;
         progress.awaitingDecision = true;
       }
       saveProgressCached(progress);
@@ -2080,7 +2100,7 @@ if(s.activeFlow){
     leftCard.innerHTML = `
       <h2>Phase checkpoint</h2>
       ${renderExerciseCard("Current phase", `${phase.name} completed`, "Checkpoint", "mb-12")}
-      <p class="small">You completed 12 Clubbell sessions in this phase. Choose whether to advance or repeat before generating the next Clubbell day.</p>
+      <p class="small">You completed ${PHASE_SESSION_COUNT} Clubbell sessions in this phase. Choose whether to advance or repeat before generating the next Clubbell day.</p>
       <div class="finish-row">
         <button id="btnGateNextPhase" class="btn good">Next phase</button>
         <button id="btnGateRepeatPhase" class="btn">Repeat phase</button>
