@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator V4</title>
+<title>CST Generator V5 - Body Flow</title>
 <style>
   :root{
     --bg:#0e1116;
@@ -246,7 +246,7 @@
 
 <div class="wrap">
   <div class="card">
-    <h1>CST Generator V4</h1>
+    <h1>CST Generator V5 - Body Flow</h1>
     <div class="row mt-10">
       <button id="btnMain" class="btn primary">Start</button>
       <button id="btnReset" class="btn danger">Reset day</button>
@@ -271,22 +271,22 @@
   <section id="panel-settings" class="panel">
     <div class="settings-grid">
       <div id="settingsCstCard" class="card"></div>
-      <div id="settingsAfCard" class="card"></div>
+      <div id="settingsBfCard" class="card"></div>
     </div>
   </section>
 </div>
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v40";
-  const LS_LAST = "cst_last_v40";
+  const LS_DAY = "cst_day_v50";
+  const LS_LAST = "cst_last_v50";
   const LS_DAY_LEGACY = "cst_day_v38";
   const LS_LAST_LEGACY = "cst_last_v38";
   const LS_DAY_LEGACY_2 = "cst_day_v37";
   const LS_LAST_LEGACY_2 = "cst_last_v37";
-  const LS_COMPLETED = "cst_completed_v40";
+  const LS_COMPLETED = "cst_completed_v50";
   const LS_COMPLETED_LEGACY = "cst_completed_v38";
-  const LS_PROGRESS = "cst_progress_v40";
+  const LS_PROGRESS = "cst_progress_v50";
 
   const gateDef = [
     { key:'soreness', label:'Soreness / Recovery', choices:['Pain','Restricted','Stiff','Slightly stiff','Loose','Fresh'] },
@@ -519,23 +519,9 @@ function clubCompatible(exercise, clubType){
 function clubPool(bucket, clubType){
   return CLUB_EXERCISES.filter(x => x.bucket === bucket && clubCompatible(x, clubType));
 }
-
-  
-  const YOGA_FAMILIES = [
-    { key:"ground", name:"Ground / Reset", shapes:["Child's Pose","Quadruped","Cat","Cow","Sphinx Pose","Cobra Pose","Crocodile Rest"] },
-    { key:"fold", name:"Fold / Hinge", shapes:["Forward Fold","Half Lift","Wide Forward Fold","Seated Forward Fold","Single-Leg Fold","Pyramid Pose"] },
-    { key:"hip", name:"Hip / Squat / Lunge", shapes:["Deep Squat","Heels-Elevated Squat","Cossack","Low Lunge","High Lunge","Lateral Lunge","Pigeon Pose","Shinbox"] },
-    { key:"support", name:"Support / Plank", shapes:["Plank","Side Plank","Downward Dog","Upward Dog","Bear / Beast","Tabletop","Reverse Tabletop"] },
-    { key:"twist", name:"Twist / Spine", shapes:["Thread the Needle","Seated Twist","Lunge Twist","Open Book","Supine Twist"] },
-    { key:"stand", name:"Standing / Balance", shapes:["Mountain Pose","Tree Pose","Chair Pose","Airplane","Standing Pigeon","Warrior II","Triangle Pose"] }
-  ];
-
-  const FAMILY_BY_KEY = Object.fromEntries(YOGA_FAMILIES.map(f => [f.key, f]));
-
-  const CST_SETTINGS_KEY = "cst_settings_v1";
-  const AF_SETTINGS_KEY = "cst_af_settings_v1";
-  const AF_HB_KEY = "cst_af_hb_state_v1";
-  const AF_BASE_LABEL = { CRAB:"Crab", BEAST:"Beast", LOADED_BEAST:"Loaded Beast", APE:"Deep Ape" };
+  const CST_SETTINGS_KEY = "cst_settings_v5";
+  const BF_SETTINGS_KEY = "cst_bodyflow_settings_v5";
+  const BF_DEBUG_KEY = "cst_bodyflow_debug_v5";
 
   const PROGRESS_DEFAULT = {
   phaseIndex:0,
@@ -643,17 +629,40 @@ function advanceProgressDecision(kind){
   progress.awaitingDecision = false;
   return saveProgressCached(progress);
 }
-function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  function afHashStrToSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h>>>0; }
-  function afChoice(rng, arr){ return arr[Math.floor(rng()*arr.length)]; }
-  function getAFSettings(){
-    const base = { enableStandalone:true, lengthMode:"random", startBase:"random", includeTF:false, includeHB:false };
+function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  function hashStrToSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return h>>>0; }
+  function bfShuffle(rng, arr){
+    const next = arr.slice();
+    for(let i = next.length - 1; i > 0; i -= 1){
+      const j = Math.floor(rng() * (i + 1));
+      [next[i], next[j]] = [next[j], next[i]];
+    }
+    return next;
+  }
+  function isBFDebugEnabled(){
+    return localStorage.getItem(BF_DEBUG_KEY) === "1";
+  }
+  function getBFSettings(){
+    const base = {
+      enableStandalone:true,
+      practiceLevel:3,
+      practiceLength:"random",
+      startBase:"random",
+      decompComplexity:"normal",
+      includeAdvanced:false
+    };
     try{
-      const stored = JSON.parse(localStorage.getItem(AF_SETTINGS_KEY) || "{}");
-      return { ...base, ...stored };
+      const stored = JSON.parse(localStorage.getItem(BF_SETTINGS_KEY) || "{}");
+      const next = { ...base, ...stored };
+      next.practiceLevel = Math.max(1, Math.min(4, Number(next.practiceLevel) || 3));
+      if(!["random", "8", "10", "12"].includes(String(next.practiceLength))) next.practiceLength = base.practiceLength;
+      if(next.startBase !== "random" && !BODYFLOW_BASE_LABEL[next.startBase]) next.startBase = base.startBase;
+      if(!["simple", "normal"].includes(String(next.decompComplexity))) next.decompComplexity = base.decompComplexity;
+      if(!next.includeAdvanced && next.practiceLevel > 3) next.practiceLevel = 3;
+      return next;
     } catch { return base; }
   }
-  function setAFSettings(next){ localStorage.setItem(AF_SETTINGS_KEY, JSON.stringify(next)); }
+  function setBFSettings(next){ localStorage.setItem(BF_SETTINGS_KEY, JSON.stringify(next)); }
 
   function getCSTSettings(){
     const base = { clubTypes:{ single:true, double:true, "2h":true } };
@@ -671,187 +680,152 @@ function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.i
     localStorage.setItem(CST_SETTINGS_KEY, JSON.stringify(merged));
   }
 
-  const AF_MOVES = {
-    SET_BEAST_FROM_APE: { id:"SET_BEAST_FROM_APE", name:"Set Beast", kind:"SET", start:"APE", end:"BEAST", family:"SET", phase:"L1" },
-    SET_CRAB_FROM_APE: { id:"SET_CRAB_FROM_APE", name:"Set Crab", kind:"SET", start:"APE", end:"CRAB", family:"SET", phase:"L1" },
-    SET_LB_FROM_APE: { id:"SET_LB_FROM_APE", name:"Set Loaded Beast", kind:"SET", start:"APE", end:"LOADED_BEAST", family:"SET", phase:"L1" },
-    APE_REACH: { id:"APE_REACH", name:"Ape Reach", kind:"FSS", start:"APE", end:"APE", family:"FSS", phase:"L1" },
-    TF_APE_FWD: { id:"TF_APE_FWD", name:"Forward Traveling Ape", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
-    TF_APE_LAT1: { id:"TF_APE_LAT1", name:"Lateral Traveling Ape (Low Hip)", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
-    TF_APE_LAT2: { id:"TF_APE_LAT2", name:"Lateral Traveling Ape (High Hip)", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
-    TF_APE_LAT3: { id:"TF_APE_LAT3", name:"Lateral Traveling Ape (Reaching)", kind:"TF", start:"APE", end:"APE", family:"TF", phase:"L1_TF" },
 
-    SET_LB_FROM_BEAST: { id:"SET_LB_FROM_BEAST", name:"Set Loaded Beast", kind:"SET", start:"BEAST", end:"LOADED_BEAST", family:"SET", phase:"L1" },
-    SET_APE_FROM_BEAST: { id:"SET_APE_FROM_BEAST", name:"Set Deep Ape", kind:"SET", start:"BEAST", end:"APE", family:"SET", phase:"L1" },
-    US_B2C: { id:"US_B2C", name:"Underswitch", kind:"ST", start:"BEAST", end:"CRAB", family:"US", phase:"L1" },
-    UST_BEAST: { id:"UST_BEAST", name:"Underswitch Tap", kind:"ST", start:"BEAST", end:"BEAST", family:"UST", phase:"L1" },
-    SKT_BEAST: { id:"SKT_BEAST", name:"Side Kickthrough", kind:"ST", start:"BEAST", end:"BEAST", family:"SKT", phase:"L1" },
-    SS_B2C: { id:"SS_B2C", name:"Scorpion Switch", kind:"ST", start:"BEAST", end:"CRAB", family:"SCORPION", phase:"L1" },
-    SR_BEAST: { id:"SR_BEAST", name:"Scorpion Reach", kind:"FSS", start:"BEAST", end:"BEAST", family:"FSS", phase:"L1" },
-    TF_BEAST_FWD: { id:"TF_BEAST_FWD", name:"Forward Traveling Beast", kind:"TF", start:"BEAST", end:"BEAST", family:"TF", phase:"L1_TF" },
-    TF_BEAST_REV: { id:"TF_BEAST_REV", name:"Reverse Traveling Beast", kind:"TF", start:"BEAST", end:"BEAST", family:"TF", phase:"L1_TF" },
-    TF_BEAST_LAT: { id:"TF_BEAST_LAT", name:"Lateral Traveling Beast", kind:"TF", start:"BEAST", end:"BEAST", family:"TF", phase:"L1_TF" },
 
-    SET_APE_FROM_CRAB: { id:"SET_APE_FROM_CRAB", name:"Set Deep Ape", kind:"SET", start:"CRAB", end:"APE", family:"SET", phase:"L1" },
-    US_C2B: { id:"US_C2B", name:"Underswitch", kind:"ST", start:"CRAB", end:"BEAST", family:"US", phase:"L1" },
-    UST_CRAB: { id:"UST_CRAB", name:"Underswitch Tap", kind:"ST", start:"CRAB", end:"CRAB", family:"UST", phase:"L1" },
-    JUS_CRAB: { id:"JUS_CRAB", name:"Jumping Underswitch", kind:"ST", start:"CRAB", end:"CRAB", family:"US", phase:"L1" },
-    FS_CRAB: { id:"FS_CRAB", name:"Full Scorpion", kind:"ST", start:"CRAB", end:"CRAB", family:"SCORPION", phase:"L1" },
-    CRAB_REACH: { id:"CRAB_REACH", name:"Crab Reach", kind:"FSS", start:"CRAB", end:"CRAB", family:"FSS", phase:"L1" },
-    US_C2LB: { id:"US_C2LB", name:"Underswitch to Loaded Beast", kind:"ST", start:"CRAB", end:"LOADED_BEAST", family:"US", phase:"L1" },
-    TF_CRAB_FWD: { id:"TF_CRAB_FWD", name:"Forward Traveling Crab", kind:"TF", start:"CRAB", end:"CRAB", family:"TF", phase:"L1_TF" },
-    TF_CRAB_REV: { id:"TF_CRAB_REV", name:"Reverse Traveling Crab", kind:"TF", start:"CRAB", end:"CRAB", family:"TF", phase:"L1_TF" },
-
-    SET_BEAST_FROM_LB: { id:"SET_BEAST_FROM_LB", name:"Set Beast", kind:"SET", start:"LOADED_BEAST", end:"BEAST", family:"SET", phase:"L1" },
-    SET_APE_FROM_LB: { id:"SET_APE_FROM_LB", name:"Set Deep Ape", kind:"SET", start:"LOADED_BEAST", end:"APE", family:"SET", phase:"L1" },
-    FSTEP_LB: { id:"FSTEP_LB", name:"Front Step", kind:"ST", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FRONT", phase:"L1" },
-    FST_LB: { id:"FST_LB", name:"Front Step Through", kind:"ST", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FRONT", phase:"L1" },
-    FKT_LB: { id:"FKT_LB", name:"Front Kickthrough", kind:"ST", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FRONT", phase:"L1" },
-    US_LB2C: { id:"US_LB2C", name:"Underswitch", kind:"ST", start:"LOADED_BEAST", end:"CRAB", family:"US", phase:"L1" },
-    LBU_LB: { id:"LBU_LB", name:"Loaded Beast Unload", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
-    WU_LB: { id:"WU_LB", name:"Wave Unload", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
-    SR_LB: { id:"SR_LB", name:"Scorpion Reach", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
-    BR_LB: { id:"BR_LB", name:"Beast Reach", kind:"FSS", start:"LOADED_BEAST", end:"LOADED_BEAST", family:"FSS", phase:"L1" },
-
-    RUS_APE: { id:"RUS_APE", name:"Reaching Underswitch", kind:"ST", start:"APE", end:"CRAB", family:"L2_CORE", phase:"L2_CORE" },
-    USA_CRAB: { id:"USA_CRAB", name:"Underswitch to Deep Ape", kind:"ST", start:"CRAB", end:"APE", family:"L2_CORE", phase:"L2_CORE" },
-    SSWEEP_APE: { id:"SSWEEP_APE", name:"Scorpion Sweep", kind:"ST", start:"APE", end:"APE", family:"L2_CORE", phase:"L2_CORE" },
-    RT_CRAB: { id:"RT_CRAB", name:"Roll Through", kind:"ST", start:"CRAB", end:"CRAB", family:"L2_CORE", phase:"L2_CORE" },
-
-    CROCR_CRAB: { id:"CROCR_CRAB", name:"Crocodile Roll", kind:"ST", start:"CRAB", end:"CRAB", family:"ADV", phase:"L2_ADV" },
-    PO_CRAB: { id:"PO_CRAB", name:"Pop Out", kind:"ST", start:"CRAB", end:"APE", family:"ADV", phase:"L2_ADV" },
-
-    BEAR_BEAST: { id:"BEAR_BEAST", name:"Bear", kind:"TF", start:"BEAST", end:"BEAST", family:"LOCO", phase:"LOCO" },
-    LEOPARD_BEAST: { id:"LEOPARD_BEAST", name:"Leopard", kind:"TF", start:"BEAST", end:"BEAST", family:"LOCO", phase:"LOCO" },
-    CROC_CRAWL_CRAB: { id:"CROC_CRAWL_CRAB", name:"Crocodile Crawl", kind:"TF", start:"CRAB", end:"CRAB", family:"LOCO", phase:"LOCO" }
-  };
-
-  const AF_ALLOWED = {
-    APE: ["APE_REACH","SET_BEAST_FROM_APE","SET_CRAB_FROM_APE","SET_LB_FROM_APE","TF_APE_FWD","TF_APE_LAT1","TF_APE_LAT2","TF_APE_LAT3","RUS_APE","SSWEEP_APE"],
-    BEAST: ["SET_LB_FROM_BEAST","SET_APE_FROM_BEAST","US_B2C","UST_BEAST","SKT_BEAST","SS_B2C","SR_BEAST","TF_BEAST_FWD","TF_BEAST_REV","TF_BEAST_LAT","BEAR_BEAST","LEOPARD_BEAST"],
-    CRAB: ["SET_APE_FROM_CRAB","US_C2B","UST_CRAB","JUS_CRAB","FS_CRAB","CRAB_REACH","US_C2LB","TF_CRAB_FWD","TF_CRAB_REV","USA_CRAB","RT_CRAB","CROCR_CRAB","PO_CRAB","CROC_CRAWL_CRAB"],
-    LOADED_BEAST: ["SET_BEAST_FROM_LB","SET_APE_FROM_LB","FSTEP_LB","FST_LB","FKT_LB","US_LB2C","LBU_LB","WU_LB","SR_LB","BR_LB"]
-  };
-
-  const AF_HB_SESSIONS = [
-    { id:'HB1', title:'Session 1 - Assessment', focus:'Check prerequisites', pass:'Circumference brace, 90 degrees wrist extension, 180 degrees shoulder flexion, and close-the-gap all present without obvious compensation.', items:['Circumference brace check','Wrist extension 90 degrees check','Shoulder flexion 180 degrees check','Close the gap check'] },
-    { id:'HB2', title:'Session 2 - Preparation', focus:'Restore range and scapular basics', pass:'Re-test from Session 1 looks cleaner or fully passes.', items:['Wrist flexor stretch 2 min','Shoulder flexion lat stretch 2 min','FRC floor swimmer 3-5 reps','Floor pike 2-3 x 30s','Scapular depression 2-3 x 30s','Prone protraction 2-3 x 30s','Prone 45 retraction 2-3 x 30s'] },
-    { id:'HB3', title:'Session 3 - Floor Pike threshold', focus:'Own elevation and closed gap', pass:'3 x 30s Floor Pike with clean shoulder elevation and stable position.', items:['Prep warm-up','Floor Pike 3 x 30s','Rest as needed, keep positions clean'] },
-    { id:'HB4', title:'Session 4 - Pike 90 baseline', focus:'Build the first big threshold', pass:'1 x 60s Pike 90 with solid shape.', items:['Prep warm-up','Pike 90 threshold holds','Stop before losing position'] },
-    { id:'HB5', title:'Session 5 - Back to Wall Supported Tuck', focus:'Supported tuck conditioning', pass:'3 holds of 20-30s with controlled exit and knees pulling down.', items:['Prep warm-up','Back to wall supported tuck 3 holds','Exit with control every rep'] },
-    { id:'HB6', title:'Session 6 - Stomach to Wall Supported Tuck', focus:'More specific wall line', pass:'3 holds of 15-20s with hands placed well and knees at or below hip line.', items:['Prep warm-up','Stomach to wall supported tuck 3 holds','Leave enough energy to come down safely'] },
-    { id:'HB7', title:'Session 7 - Spinning Out', focus:'Safe exit strategy', pass:'5 controlled spin-outs with no panic or sloppy landings.', items:['Warm-up','Practice spin-out from supported position','Keep it smooth and reflexive'] },
-    { id:'HB8', title:'Session 8 - HHMB Kick Ups', focus:'Entry mechanics', pass:'5 controlled kick-up reps with a clear tuck intention and light landing.', items:['Warm-up','HHMB kick ups 5 quality attempts','Do not chase tired reps'] },
-    { id:'HB9', title:'Session 9 - Levitating SKT with Wall', focus:'AF entry option 1', pass:'3-5 good reps per side with clean exit via HHMB.', items:['Warm-up','Levitating SKT with wall','3-5 quality reps per side'] },
-    { id:'HB10', title:'Session 10 - LTA2 with Wall', focus:'AF entry option 2', pass:'3-5 good reps per side with controlled return to Deep Ape.', items:['Warm-up','LTA2 with wall','3-5 quality reps per side'] },
-    { id:'HB11', title:'Session 11 - Stomach to Wall Freestanding', focus:'First freestanding releases', pass:'3 successful best-effort reps of 1-3 seconds with open shoulder line.', items:['Warm-up','Stomach to wall freestanding attempts','Short, fresh efforts only'] },
-    { id:'HB12', title:'Session 12 - Freestanding Tuck Attempts', focus:'Own the skill', pass:'3 reps of 1-5 seconds with one of the accepted leg positions and a clearly open shoulder line.', items:['Warm-up','Freestanding attempts from LTA2 or Levitating SKT','Stop when quality drops'] }
+  const BODYFLOW_BASES = [
+    { id:"BOF_SQUAT", name:"Ball of Foot Squat", level:1, family:"squat" },
+    { id:"FLAT_SQUAT", name:"Flat Foot Squat", level:1, family:"squat" },
+    { id:"COSSACK", name:"Cossack Squat", level:1, family:"squat" },
+    { id:"SHIN_SQUAT", name:"Shin Squat", level:1, family:"kneeling" },
+    { id:"SHINBOX", name:"Shinbox", level:1, family:"seated" },
+    { id:"TRIANGLE", name:"Triangle Squat", level:1, family:"squat" },
+    { id:"SHOOTER", name:"Shooter Squat", level:1, family:"squat" },
+    { id:"HURDLER", name:"Hurdler Squat", level:1, family:"seated" },
+    { id:"CLIMBER", name:"Climber Squat", level:1, family:"squat" },
+    { id:"QUAD", name:"Quad Squat", level:1, family:"quadruped" },
+    { id:"ASSURANCE", name:"Position of Assurance", level:1, family:"reset" },
+    { id:"SPINAL_ARCH", name:"Spinal Arch", level:1, family:"spine" },
+    { id:"SPINAL_SQUAT", name:"Spinal Squat", level:1, family:"spine" },
+    { id:"SUPINE", name:"Supine Ground", level:1, family:"rolling", helper:true },
+    { id:"SIDE", name:"Side Lying", level:1, family:"rolling", helper:true },
+    { id:"PRONE", name:"Prone Ground", level:1, family:"rolling", helper:true },
+    { id:"PIKE", name:"Extended Pike", level:1, family:"spinal-rock", helper:true },
+    { id:"STRADDLE", name:"Straddle Split", level:1, family:"spinal-rock", helper:true },
+    { id:"BUTTERFLY", name:"Butterfly", level:1, family:"spinal-rock", helper:true },
+    { id:"STANDING", name:"Standing", level:1, family:"standing", helper:true }
   ];
+  const BODYFLOW_BASE_LABEL = Object.fromEntries(BODYFLOW_BASES.map(x => [x.id, x.name]));
+  const BODYFLOW_START_BASES = BODYFLOW_BASES.filter(x => !x.helper).map(x => x.id);
+  const BODYFLOW_MOVES = [
+    { id:"ARM_SCREW", name:"Arm Screw", level:2, kind:"Transition", family:"shoulder", start:["STANDING","ASSURANCE","QUAD"], end:["STANDING","ASSURANCE","QUAD"] },
+    { id:"SHINBOX_SWITCH", name:"Shinbox Switch", level:2, kind:"Transition", family:"shinbox", start:["SHINBOX"], end:["SHINBOX"] },
+    { id:"SQUAT_CREEP", name:"Squat Creep", level:2, kind:"Transition", family:"squat", start:["BOF_SQUAT","FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], end:["FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"] },
+    { id:"KNEE_SWITCH", name:"Knee Switch", level:2, kind:"Transition", family:"shin-knee", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT"] },
+    { id:"SHIN_ROLL", name:"Shin Roll", level:2, kind:"Roll", family:"shin-roll", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SUPINE"] },
+    { id:"STANDING_SHIN_ROLL", name:"Standing Shin Roll", level:2, kind:"Roll", family:"shin-roll", start:["STANDING","FLAT_SQUAT","BOF_SQUAT"], end:["SHINBOX","SHIN_SQUAT"] },
+    { id:"LONG_LEG_CREEP", name:"Long Leg Creep", level:3, kind:"Kinetic Chain", family:"creep", start:["FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], end:["COSSACK","HURDLER","CLIMBER","SHOOTER"] },
+    { id:"SHIN_SWING", name:"Shin Swing", level:3, kind:"Kinetic Chain", family:"shin", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT"] },
+    { id:"DOUBLE_SHIN_ROLL", name:"Double Shin Roll", level:3, kind:"Roll", family:"shin-roll", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SUPINE"] },
+    { id:"LEG_SWOOP", name:"Leg Swoop", level:3, kind:"Kinetic Chain", family:"leg-swoop", start:["SHINBOX","QUAD","HURDLER"], end:["QUAD","SHINBOX"] },
+    { id:"ELEVATED_SCORPION", name:"Elevated Scorpion", level:4, kind:"Advanced", family:"scorpion", start:["QUAD","SPINAL_ARCH"], end:["QUAD","SPINAL_ARCH"] },
+    { id:"LONG_LEG_ROLL", name:"Long Leg Roll", level:3, kind:"Roll", family:"long-leg", start:["HURDLER","SHOOTER","SUPINE"], end:["HURDLER","SUPINE","SIDE"] },
+    { id:"LEG_THREAD", name:"Leg Thread", level:3, kind:"Kinetic Chain", family:"thread", start:["QUAD","SHINBOX","HURDLER"], end:["SHINBOX","HURDLER","QUAD"] },
+    { id:"DOUBLE_LEG_SWOOP", name:"Double Leg Swoop", level:4, kind:"Advanced", family:"leg-swoop", start:["QUAD","SHINBOX"], end:["SHINBOX","QUAD"] },
+    { id:"ARCHING_LEG_THREAD", name:"Arching Leg Thread", level:4, kind:"Advanced", family:"thread", start:["QUAD","SPINAL_ARCH"], end:["HURDLER","SPINAL_ARCH","QUAD"] },
+    { id:"SPINAL_ROCK", name:"Spinal Rock", level:2, kind:"Rock", family:"spinal-rock", start:["SUPINE","SHINBOX","SPINAL_SQUAT"], end:["SUPINE","SHINBOX"] },
+    { id:"SPINAL_ROCK_EXTENDED_PIKE", name:"Spinal Rock: Extended Pike", level:3, kind:"Rock", family:"spinal-rock", start:["SUPINE","PIKE"], end:["PIKE","SUPINE"] },
+    { id:"SPINAL_ROCK_STRADDLE", name:"Spinal Rock: Straddle Split", level:3, kind:"Rock", family:"spinal-rock", start:["SUPINE","STRADDLE"], end:["STRADDLE","SUPINE"] },
+    { id:"SPINAL_ROCK_HURDLER", name:"Spinal Rock: Hurdler Split", level:3, kind:"Rock", family:"spinal-rock", start:["SUPINE","HURDLER"], end:["HURDLER","SUPINE"] },
+    { id:"SPINAL_ROCK_SHINBOX", name:"Spinal Rock: Shinbox", level:3, kind:"Rock", family:"spinal-rock", start:["SUPINE","SHINBOX"], end:["SHINBOX","SUPINE"] },
+    { id:"SPINAL_ROCK_BUTTERFLY", name:"Spinal Rock: Butterfly", level:3, kind:"Rock", family:"spinal-rock", start:["SUPINE","BUTTERFLY"], end:["BUTTERFLY","SUPINE"] },
+    { id:"SWING_SPLIT", name:"Swing Split", level:4, kind:"Advanced", family:"split", start:["COSSACK","HURDLER","STRADDLE"], end:["HURDLER","STRADDLE","COSSACK"] },
+    { id:"QUAD_SWITCH", name:"Quad Switch", level:2, kind:"Transition", family:"quad", start:["QUAD"], end:["QUAD"] },
+    { id:"LONG_ARM_ROLL", name:"Long Arm Roll", level:3, kind:"Roll", family:"arm-roll", start:["SIDE","SUPINE","PRONE","QUAD"], end:["SIDE","SUPINE","PRONE"] },
+    { id:"LONG_ARM_ROLL_REVERSE", name:"Long Arm Roll Reverse", level:3, kind:"Roll", family:"arm-roll", start:["SIDE","SUPINE","PRONE"], end:["SIDE","SUPINE","PRONE","QUAD"] },
+    { id:"ARM_THREAD_SHOULDER_ROLL", name:"Arm Thread Shoulder Roll", level:3, kind:"Roll", family:"shoulder-roll", start:["QUAD","SIDE"], end:["SIDE","SUPINE","QUAD"] },
+    { id:"LATERAL_SHOULDER_ROLL", name:"Lateral Shoulder Roll", level:4, kind:"Advanced", family:"shoulder-roll", start:["QUAD","SIDE","PRONE"], end:["SIDE","PRONE","QUAD"] },
+    { id:"NECK_ROLL", name:"Neck Roll", level:4, kind:"Advanced", family:"neck", start:["SUPINE","PRONE","SIDE"], end:["SUPINE","PRONE","SIDE"] },
+    { id:"TWISTING_SPINAL_ARCH", name:"Twisting Spinal Arch", level:4, kind:"Advanced", family:"spine", start:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"], end:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"] },
+    { id:"ARCHING_HIGH_LEG", name:"Arching High Leg", level:4, kind:"Advanced", family:"spine", start:["SPINAL_ARCH","QUAD"], end:["SPINAL_ARCH","QUAD"] }
+  ];
+  const BODYFLOW_MOVES_BY_ID = Object.fromEntries(BODYFLOW_MOVES.map(x => [x.id, x]));
 
-  function getAFHBState(){
-    try { return JSON.parse(localStorage.getItem(AF_HB_KEY) || '{"index":0,"attempts":0}'); }
-    catch(e){ return { index:0, attempts:0 }; }
+  function bfChoice(rng, arr){ return arr[Math.floor(rng() * arr.length)]; }
+  function bfMoveEnabled(move, level, includeAdvanced){
+    if(move.level >= 4 && !includeAdvanced) return false;
+    return move.level <= level;
   }
-  function setAFHBState(state){ localStorage.setItem(AF_HB_KEY, JSON.stringify(state)); }
-
-  function afIsMoveEnabled(move, flags, includeL1TF){
-    if (move.phase === "L1_TF") return includeL1TF;
-    if (move.phase === "L2_ADV") return flags.advancedEnabled;
-    if (move.phase === "LOCO") return flags.locomotionEnabled;
-    return true;
+  function bfAllowedFromBase(base, level, includeAdvanced){
+    return BODYFLOW_MOVES.filter(move => bfMoveEnabled(move, level, includeAdvanced) && move.start.includes(base));
   }
-  function afGetAllowedFromBase(base, flags, includeL1TF){
-    return (AF_ALLOWED[base] || []).map(id => AF_MOVES[id]).filter(move => afIsMoveEnabled(move, flags, includeL1TF));
-  }
-  function afScoreMove(move, prevMove, stepIndex, history, flags){
+  function bfPickEnd(rng, move){ return bfChoice(rng, move.end || move.start || ["SHINBOX"]); }
+  function bfScoreMove(move, prevMove, history){
     let score = 1;
-    if (!prevMove){
-      if (move.kind === "SET") score -= 0.8;
-      if (move.kind === "FSS") score += 0.3;
-      return score;
+    if(prevMove){
+      if(move.id === prevMove.id) score -= 3;
+      if(move.family === prevMove.family) score -= 1.2;
+      if(move.kind === prevMove.kind) score -= 0.35;
     }
-    if (move.id === prevMove.id) score -= 4;
-    if (move.family === prevMove.family) score -= 1.5;
-    if (move.kind === prevMove.kind && move.kind !== "SET") score -= 0.5;
-    if (stepIndex < 2 && move.kind === "SET") score -= 1.2;
-    if (prevMove.id === "CRAB_REACH" && ["US_C2B", "UST_CRAB", "JUS_CRAB", "FS_CRAB", "US_C2LB", "USA_CRAB", "RT_CRAB"].includes(move.id)) score += 1.2;
-    if (prevMove.id === "BR_LB" && move.id === "FSTEP_LB") score += 1.2;
-    if (prevMove.id === "FSTEP_LB" && move.id === "FST_LB") score += 1.4;
-    if (prevMove.id === "FST_LB" && move.id === "FKT_LB") score += 1.2;
-    if (prevMove.id === "RUS_APE" && ["CRAB_REACH","US_C2B","RT_CRAB","CROCR_CRAB","USA_CRAB"].includes(move.id)) score += 1.3;
-    if (prevMove.id === "USA_CRAB" && ["APE_REACH","RUS_APE","SSWEEP_APE","TF_APE_LAT1","TF_APE_LAT2","TF_APE_LAT3"].includes(move.id)) score += 1.4;
-    if (prevMove.id === "SSWEEP_APE" && ["RUS_APE","APE_REACH","SET_BEAST_FROM_APE","SET_LB_FROM_APE"].includes(move.id)) score += 1.2;
-    if (prevMove.id === "RT_CRAB" && ["CROCR_CRAB","CRAB_REACH","USA_CRAB","US_C2B"].includes(move.id)) score += 1.3;
-    if (prevMove.id === "CROCR_CRAB" && move.id === "PO_CRAB") score += 2.0;
-    if (prevMove.id === "PO_CRAB" && ["RUS_APE","APE_REACH","SSWEEP_APE"].includes(move.id)) score += 1.5;
-    if (flags.locomotionEnabled && move.phase === "LOCO") score += 0.6;
-    if (prevMove.phase === "LOCO" && move.phase === "LOCO") score -= 1.0;
-    const recent = history.slice(-2);
-    const recentFSS = recent.filter(x => x.kind === "FSS").length;
-    if (move.kind === "FSS" && recentFSS >= 2) score -= 1.8;
-    const recentSets = recent.filter(x => x.kind === "SET").length;
-    if (move.kind === "SET" && recentSets >= 1) score -= 1.4;
-    const recentAdvanced = recent.filter(x => x.phase === "L2_ADV").length;
-    if (move.phase === "L2_ADV" && recentAdvanced >= 1) score -= 1.8;
-    const recentLoco = recent.filter(x => x.phase === "LOCO").length;
-    if (move.phase === "LOCO" && recentLoco >= 1) score -= 1.2;
-    return score;
+    const recent = history.slice(-3);
+    if(recent.some(x => x.moveId === move.id)) score -= 1.5;
+    if(move.level === 1) score += 0.15;
+    if(move.level === 2) score += 0.3;
+    if(move.level === 4) score -= 0.2;
+    return Math.max(0.1, score);
   }
-  function afWeightedPick(rng, moves, prevMove, stepIndex, history, flags){
-    const weighted = moves.map(move => ({ move, weight: Math.max(0.1, afScoreMove(move, prevMove, stepIndex, history, flags)) }));
+  function bfWeightedPick(rng, moves, prevMove, history){
+    const weighted = moves.map(move => ({ move, weight:bfScoreMove(move, prevMove, history) }));
     const total = weighted.reduce((sum, x) => sum + x.weight, 0);
     let r = rng() * total;
-    for (const item of weighted){ r -= item.weight; if (r <= 0) return item.move; }
+    for(const item of weighted){ r -= item.weight; if(r <= 0) return item.move; }
     return weighted[weighted.length - 1].move;
   }
-  function afGetReturnCandidates(fromBase, targetBase, flags, includeL1TF){
-    return afGetAllowedFromBase(fromBase, flags, includeL1TF).filter(move => move.end === targetBase);
+  function bfNormalizeStartBase(startBase){
+    if(startBase && startBase !== "random" && BODYFLOW_BASE_LABEL[startBase]) return startBase;
+    return "random";
   }
-  function buildAnimalFlowSequence(seedKey, opts = {}){
-    const rng = afMulberry32(afHashStrToSeed(seedKey));
-    const includeL1TF = !!opts.includeTF;
-    const length = opts.length === "random" ? (8 + Math.floor(rng() * 3)) : Number(opts.length);
-    const startBase = opts.startBase === "random" ? afChoice(rng, ["CRAB","BEAST","LOADED_BEAST","APE"]) : opts.startBase;
-    const flags = { advancedEnabled: rng() < 0.15, locomotionEnabled: rng() < 0.25 };
+  function buildBodyFlowSequence(seedKey, opts = {}){
+    const rng = mulberry32(hashStrToSeed(seedKey));
+    const level = Math.max(1, Math.min(4, Number(opts.level) || 2));
+    const includeAdvanced = !!opts.includeAdvanced && level >= 4;
+    const length = opts.length === "random" ? (8 + Math.floor(rng() * 5)) : Math.max(3, Number(opts.length) || 8);
+    const startPool = BODYFLOW_START_BASES.filter(id => id !== "ASSURANCE" || opts.kind === "decompress");
+    const startBase = bfNormalizeStartBase(opts.startBase) === "random" ? bfChoice(rng, startPool) : opts.startBase;
+    const steps = [{ index:1, moveId:`SET_${startBase}`, name:`Start: ${BODYFLOW_BASE_LABEL[startBase]}`, kind:"Structure", start:startBase, end:startBase, level:1, family:"base" }];
+    if(level === 1){
+      let pool = bfShuffle(rng, BODYFLOW_START_BASES.filter(id => id !== startBase));
+      const count = Math.max(3, Math.min(length, opts.kind === "decompress" ? 5 : 8));
+      for(let i=1; i<count; i++){
+        if(!pool.length) pool = bfShuffle(rng, BODYFLOW_START_BASES.filter(id => id !== steps[steps.length-1].end));
+        const base = pool.shift();
+        steps.push({ index:steps.length + 1, moveId:`STRUCTURE_${base}`, name:BODYFLOW_BASE_LABEL[base], kind:"Structure", start:steps[steps.length-1].end, end:base, level:1, family:"base" });
+      }
+      return { seedKey, level, includeAdvanced:false, requestedLength:opts.length ?? length, length:steps.length, startBase, endBase:steps[steps.length-1].end, steps };
+    }
     let currentBase = startBase;
     let prevMove = null;
-    const steps = [];
-    steps.push({ index:1, start:startBase, moveId:`SET_${startBase}`, name:`Set ${AF_BASE_LABEL[startBase]}`, kind:"SET", end:startBase, family:"SET", phase:"BASE" });
-    const middleCount = Math.max(0, length - 2);
-    for (let i = 0; i < middleCount; i++){
-      const allowed = afGetAllowedFromBase(currentBase, flags, includeL1TF);
-      const candidates = allowed.filter(move => {
-        if (move.id === prevMove?.id && allowed.length > 1) return false;
-        const returnOptions = afGetReturnCandidates(move.end, startBase, flags, includeL1TF);
-        return returnOptions.length > 0;
-      });
-      const pool = candidates.length ? candidates : allowed;
-      const chosen = afWeightedPick(rng, pool, prevMove, i + 1, steps, flags);
-      steps.push({ index:steps.length + 1, start:currentBase, moveId:chosen.id, name:chosen.name, kind:chosen.kind, end:chosen.end, family:chosen.family, phase:chosen.phase });
-      currentBase = chosen.end;
-      prevMove = chosen;
+    const targetCount = Math.max(3, length);
+    for(let i=1; i<targetCount; i++){
+      let allowed = bfAllowedFromBase(currentBase, level, includeAdvanced);
+      if(!allowed.length){
+        const bridge = bfChoice(rng, ["SHINBOX","QUAD","FLAT_SQUAT","SUPINE","SPINAL_ARCH"]);
+        steps.push({ index:steps.length + 1, moveId:`RESET_${bridge}`, name:`Return to ${BODYFLOW_BASE_LABEL[bridge]}`, kind:"Structure", start:currentBase, end:bridge, level:1, family:"base" });
+        currentBase = bridge;
+        allowed = bfAllowedFromBase(currentBase, level, includeAdvanced);
+      }
+      if(!allowed.length) break;
+      const move = bfWeightedPick(rng, allowed, prevMove, steps);
+      const endBase = bfPickEnd(rng, move);
+      steps.push({ index:steps.length + 1, moveId:move.id, name:move.name, kind:move.kind, start:currentBase, end:endBase, level:move.level, family:move.family });
+      currentBase = endBase;
+      prevMove = move;
     }
-    let returnCandidates = afGetReturnCandidates(currentBase, startBase, flags, includeL1TF);
-    if (!returnCandidates.length){
-      const safeFlags = { ...flags, advancedEnabled:false, locomotionEnabled:false };
-      returnCandidates = afGetReturnCandidates(currentBase, startBase, safeFlags, false);
+    const settleOptions = opts.kind === "decompress" ? ["ASSURANCE","SHINBOX","SUPINE","SPINAL_ARCH"] : ["SHINBOX","QUAD","FLAT_SQUAT","SPINAL_ARCH","ASSURANCE"];
+    const settle = bfChoice(rng, settleOptions);
+    if(currentBase !== settle){
+      steps.push({ index:steps.length + 1, moveId:`SETTLE_${settle}`, name:`Settle: ${BODYFLOW_BASE_LABEL[settle]}`, kind:"Settle", start:currentBase, end:settle, level:1, family:"settle", isReturn:true });
     }
-    const finalMove = afWeightedPick(rng, returnCandidates, prevMove, steps.length, steps, flags);
-    steps.push({ index:steps.length + 1, start:currentBase, moveId:finalMove.id, name:finalMove.name, kind:finalMove.kind, end:finalMove.end, family:finalMove.family, phase:finalMove.phase, isReturn:true });
-    return { seedKey, length, startBase, includeTF:includeL1TF, includeHB:!!opts.includeHB, advancedEnabled:flags.advancedEnabled, locomotionEnabled:flags.locomotionEnabled, endBase:finalMove.end, steps };
+    return { seedKey, level, includeAdvanced, requestedLength:opts.length ?? length, length:steps.length, startBase, endBase:steps[steps.length-1].end, steps };
   }
-  function afPhaseTag(step){
-    if (step.phase === "L2_CORE") return "L2 CORE";
-    if (step.phase === "L2_ADV") return "ADV";
-    if (step.phase === "LOCO") return "LOCO";
-    if (step.phase === "L1_TF") return "L1 TF";
-    return null;
+  function bfLevelLabel(level){
+    const map = {1:"Level 1 - Structures", 2:"Level 2 - Simple transitions", 3:"Level 3 - Kinetic chains", 4:"Level 4 - Full Body-Flow"};
+    return map[level] || `Level ${level}`;
   }
 
   const leftCard = document.getElementById("leftCard");
   const rightInner = document.getElementById("rightInner");
   const settingsCstCard = document.getElementById("settingsCstCard");
-  const settingsAfCard = document.getElementById("settingsAfCard");
+  const settingsBfCard = document.getElementById("settingsBfCard");
   const btnMain = document.getElementById("btnMain");
   const btnReset = document.getElementById("btnReset");
   const modePill = document.getElementById("modePill");
@@ -911,7 +885,7 @@ function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.i
   function formatModeLabel(mode){
     if(mode === "INTU ONLY") return "Intu only";
     if(mode === "CLUBBELL DAY") return "Clubbell day";
-    if(mode === "STAND-ALONE FLOW DAY") return "Stand-alone flow day";
+    if(mode === "BODY FLOW DAY") return "Body Flow day";
     return mode || "-";
   }
   function setPillValue(pill, value){
@@ -929,6 +903,7 @@ function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.i
   function cleanText(value){
     return String(value ?? "")
       .replaceAll("â€”", "-")
+      .replaceAll("â€¢", "•")
       .replace(/\bOke\b/g, "OK")
       .replace(/\bfull-body\b/gi, "full body")
       .replace(/\bper kant\b/gi, "per side")
@@ -937,7 +912,18 @@ function afMulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.i
       .replace(/\bper hand\b/gi, "per hand")
       .replace(/\bop en neer\b/gi, "up and down")
       .replace(/\bper richting\b/gi, "per direction")
-      .replace(/\bper voet\b/gi, "per foot");
+      .replace(/\bper voet\b/gi, "per foot")
+      .replace(/\bovertal\b/gi, "load");
+  }
+
+  function getBodyFlowMoveCount(flow){
+    if(!flow?.steps?.length) return 0;
+    return flow.steps.filter(step => !String(step.moveId || "").startsWith("SET_") && !step.isReturn).length;
+  }
+
+  function getBodyFlowLengthLabel(flow){
+    const requested = flow?.requestedLength;
+    return requested === "random" ? "Random" : String(requested ?? flow?.length ?? "-");
   }
 
   
@@ -945,9 +931,7 @@ function getDefaultLastState(){
     return {
       lastClubType:null,
       lastClubTypeIndex:-1,
-      lastClubExercisesByType:{ single:{}, double:{}, "2h":{} },
-      familyBags:{},
-      familyLastPick:{}
+      lastClubExercisesByType:{ single:{}, double:{}, "2h":{} }
     };
   }
 
@@ -963,15 +947,48 @@ function getDefaultLastState(){
     return null;
   }
 
+  function normalizeSession(day){
+    if(!day || typeof day !== "object") return day;
+    if(day.dayType === "standalone") day.dayType = "bodyflow";
+    if(day.mode === "STAND-ALONE FLOW DAY") day.mode = "BODY FLOW DAY";
+    if(day.activeFlow && !day.bodyFlow) day.bodyFlow = day.activeFlow;
+    delete day.activeFlow;
+    if(day.blockTimes?.active && !day.blockTimes?.bodyFlow){
+      day.blockTimes.bodyFlow = day.blockTimes.active;
+    }
+    if(day.blockTimes && "active" in day.blockTimes){
+      delete day.blockTimes.active;
+    }
+    if(Array.isArray(day.stages)){
+      day.stages = day.stages.map(stage => {
+        if(stage?.key === "active"){
+          return {
+            ...stage,
+            key:"bodyflow",
+            label:String(stage.label || "").replace(/^Stand-alone flow/i, "Body Flow")
+          };
+        }
+        return stage;
+      });
+    }
+    return day;
+  }
+
+  function normalizeCompletedState(state){
+    if(!state || typeof state !== "object") return state;
+    if(state.dayType === "standalone") state.dayType = "bodyflow";
+    return state;
+  }
+
   function loadDay(){
     if(cachedDay?.day === todayKey()) return cachedDay;
-    const day = readFirstJSON(DAY_KEYS);
+    const day = normalizeSession(readFirstJSON(DAY_KEYS));
     cachedDay = day && day.day === todayKey() ? day : null;
     return cachedDay;
   }
   function saveDay(day){
-    cachedDay = day;
-    saveJSON(LS_DAY, day);
+    cachedDay = normalizeSession(day);
+    saveJSON(LS_DAY, cachedDay);
   }
   function loadLast(){
     if(cachedLast) return { ...cachedLast };
@@ -987,12 +1004,12 @@ function getDefaultLastState(){
   }
   function loadCompleted(){
     if(cachedCompleted !== null) return cachedCompleted;
-    cachedCompleted = readFirstJSON(COMPLETED_KEYS);
+    cachedCompleted = normalizeCompletedState(readFirstJSON(COMPLETED_KEYS));
     return cachedCompleted;
   }
   function saveCompleted(v){
-    cachedCompleted = v;
-    saveJSON(LS_COMPLETED, v);
+    cachedCompleted = normalizeCompletedState(v);
+    saveJSON(LS_COMPLETED, cachedCompleted);
   }
   function loadProgressCached(){
     if(cachedProgress !== null) return cachedProgress;
@@ -1029,11 +1046,11 @@ function getDefaultLastState(){
   }
 
   function computeTrainingDayType(){
-    const afSettings = getAFSettings();
+    const bfSettings = getBFSettings();
     const completed = loadCompleted();
     if(!completed || completed.day !== yesterdayKey()) return 'clubbell';
-    if(!afSettings.enableStandalone) return 'clubbell';
-    return completed.dayType === 'clubbell' ? 'standalone' : 'clubbell';
+    if(!bfSettings.enableStandalone) return 'clubbell';
+    return completed.dayType === 'clubbell' ? 'bodyflow' : 'clubbell';
   }
 
   function nextFullClubType(lastState = loadLast()){
@@ -1054,65 +1071,6 @@ function getDefaultLastState(){
 
     return { type:enabledTypes[0], index:CLUB_TYPE_SEQUENCE.indexOf(enabledTypes[0]) };
   }
-
-  
-  function getFamilyBag(last, familyKey){
-    if(!last.familyBags || typeof last.familyBags !== "object") last.familyBags = {};
-    if(!Array.isArray(last.familyBags[familyKey])) last.familyBags[familyKey] = [];
-    return last.familyBags[familyKey];
-  }
-
-  function drawShapeFromFamily(last, familyKey, excludeShape = null){
-    const family = FAMILY_BY_KEY[familyKey];
-    if(!family) return null;
-    let bag = getFamilyBag(last, familyKey).slice();
-    const lastPick = last.familyLastPick?.[familyKey] || null;
-
-    const refill = () => {
-      let pool = family.shapes.slice();
-      if(excludeShape) pool = pool.filter(x => x !== excludeShape);
-      bag = shuffle(pool);
-      if(lastPick && bag.length > 1 && bag[0] === lastPick){
-        const swapIdx = bag.findIndex(x => x !== lastPick);
-        if(swapIdx > 0) [bag[0], bag[swapIdx]] = [bag[swapIdx], bag[0]];
-      }
-    };
-
-    if(!bag.length) refill();
-    if(excludeShape && bag.every(x => x === excludeShape)) refill();
-    if(!bag.length) return null;
-
-    const shape = bag.shift();
-    last.familyBags[familyKey] = bag;
-    if(!last.familyLastPick || typeof last.familyLastPick !== "object") last.familyLastPick = {};
-    last.familyLastPick[familyKey] = shape;
-    return shape;
-  }
-
-  function buildFamilyPractice(kind, lastState = loadLast()){
-    const familyKeys = YOGA_FAMILIES.map(f => f.key);
-    const picks = familyKeys.map(key => ({
-      familyKey:key,
-      familyName:FAMILY_BY_KEY[key].name,
-      shape:drawShapeFromFamily(lastState, key)
-    }));
-
-    if(kind === "standalone"){
-      const extraFamilyKey = rand(familyKeys);
-      const existing = picks.find(x => x.familyKey === extraFamilyKey);
-      picks.push({
-        familyKey:extraFamilyKey,
-        familyName:FAMILY_BY_KEY[extraFamilyKey].name,
-        shape:drawShapeFromFamily(lastState, extraFamilyKey, existing?.shape || null),
-        isExtra:true
-      });
-    }
-
-    return picks;
-  }
-
-
-
   function generateClubExercises(clubType, progress, lastState = loadLast()){
     const phase = getCurrentPhase(progress);
     const pattern = getCurrentPattern(progress);
@@ -1145,8 +1103,8 @@ function getDefaultLastState(){
     if(session.dayType === 'clubbell'){
       stages.push({ key:'club', label:`Clubbell | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
       stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
-    } else if(session.dayType === 'standalone'){
-      stages.push({ key:'active', label:`Stand-alone flow | ${fmtMin(session.blockTimes.active)}`, seconds:session.blockTimes.active });
+    } else if(session.dayType === 'bodyflow'){
+      stages.push({ key:'bodyflow', label:`Body Flow | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow });
       stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
     }
     return stages;
@@ -1162,16 +1120,16 @@ function getDefaultLastState(){
       day: todayKey(),
       total,
       modeRequested: mode,
-      mode: band.intuOnly ? 'INTU ONLY' : (dayType === 'clubbell' ? 'CLUBBELL DAY' : 'STAND-ALONE FLOW DAY'),
+      mode: band.intuOnly ? 'INTU ONLY' : (dayType === 'clubbell' ? 'CLUBBELL DAY' : 'BODY FLOW DAY'),
       dayType,
       intuOnly: band.intuOnly,
       countsTowardProgression: false,
       delayedPlannedDay: band.intuOnly,
       intu: intu.slice(),
       club: null,
-      activeFlow: null,
+      bodyFlow: null,
       decompFlow: null,
-      blockTimes: { intu: 8 * 60, club: 0, active: 0, decomp: 0 },
+      blockTimes: { intu: 8 * 60, club: 0, bodyFlow: 0, decomp: 0 },
       stages: [],
       currentStageIndex: 0,
       currentStageLeft: 0,
@@ -1181,7 +1139,7 @@ function getDefaultLastState(){
       lastCountdownBeep: null,
       completed: false,
       completedAt: null,
-      settingsUsed:{ cst:getCSTSettings(), af:getAFSettings() },
+      settingsUsed:{ cst:getCSTSettings(), bodyFlow:getBFSettings() },
       progressSnapshot:{
         phaseIndex:progress.phaseIndex,
         phaseName:getCurrentPhase(progress).name,
@@ -1198,7 +1156,15 @@ function getDefaultLastState(){
       const clubTypePick = nextFullClubType(last);
       const clubType = clubTypePick.type;
       const clubPlan = generateClubExercises(clubType, progress, last);
-      const decompShapes = buildFamilyPractice("decompress", last);
+      const bfSettings = getBFSettings();
+      const decompLevel = bfSettings.decompComplexity === "simple" ? 1 : 2;
+      const decompSequence = buildBodyFlowSequence(`${todayKey()}|body-flow-decompress`, {
+        kind:"decompress",
+        level:decompLevel,
+        length: bfSettings.decompComplexity === "simple" ? 4 : 5,
+        startBase:"random",
+        includeAdvanced:false
+      });
       session.club = {
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
         clubType,
@@ -1209,12 +1175,11 @@ function getDefaultLastState(){
         flow: clubPlan.flow
       };
       session.decompFlow = {
-        name: "Decompress practice",
-        focus: "6 families | 1 shape per family",
-        use: "After Clubbell: use these 6 words. Keep moving, breathe steadily, and make the transitions yourself.",
-        picks: decompShapes,
-        sequence: decompShapes.map(x => x.shape),
-        bagType: 'Decompress'
+        name: "Body-Flow Decompression",
+        focus: `${bfLevelLabel(decompSequence.level)} | short unbinding chain`,
+        use: "After Clubbell: move calmly through this Body-Flow chain. Breathe, soften excess tension, and do not turn it into conditioning.",
+        bagType: 'Body-Flow',
+        ...decompSequence
       };
       session.blockTimes.club = getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
@@ -1228,30 +1193,37 @@ function getDefaultLastState(){
       saveLast(last);
       saveProgressCached(progress);
     } else {
-      const afSettings = getAFSettings();
-      const afSequence = buildAnimalFlowSequence(`${todayKey()}|animal-flow`, {
-        length: afSettings.lengthMode,
-        startBase: afSettings.startBase,
-        includeTF: afSettings.includeTF,
-        includeHB: afSettings.includeHB
+      const bfSettings = getBFSettings();
+      const capLevel = total < 12 ? Math.min(2, bfSettings.practiceLevel) : bfSettings.practiceLevel;
+      const bodyFlowSequence = buildBodyFlowSequence(`${todayKey()}|body-flow-practice`, {
+        kind:"practice",
+        level:capLevel,
+        length: bfSettings.practiceLength,
+        startBase: bfSettings.startBase,
+        includeAdvanced: bfSettings.includeAdvanced
       });
-      const decompShapes = buildFamilyPractice("decompress", last);
-      session.activeFlow = {
-        name: "Animal Flow practice",
-        focus: "Closed-loop generator | exact AF engine",
-        use: "Animal Flow day: follow the sequence as written. The flow starts from a base, only uses allowed next moves, and closes the loop back to the start base.",
-        bagType: 'Animal Flow',
-        ...afSequence
+      const decompSequence = buildBodyFlowSequence(`${todayKey()}|body-flow-finish`, {
+        kind:"decompress",
+        level: bfSettings.decompComplexity === "simple" ? 1 : 2,
+        length: bfSettings.decompComplexity === "simple" ? 4 : 5,
+        startBase:"random",
+        includeAdvanced:false
+      });
+      session.bodyFlow = {
+        name: "Body-Flow Practice",
+        focus: `${bfLevelLabel(bodyFlowSequence.level)} | structure -> transition -> chain`,
+        use: "Body-Flow day: follow the sequence as written. Start from the structure, use only the listed transitions, and let breath decide the pace.",
+        bagType: 'Body-Flow',
+        ...bodyFlowSequence
       };
       session.decompFlow = {
-        name: "Decompress practice",
-        focus: "6 families | 1 shape per family",
-        use: "Finish with these 6 words. Move gently, make the links yourself, and let the breath slow things down.",
-        picks: decompShapes,
-        sequence: decompShapes.map(x => x.shape),
-        bagType: 'Decompress'
+        name: "Body-Flow Decompression",
+        focus: `${bfLevelLabel(decompSequence.level)} | short settling chain`,
+        use: "Finish with this short Body-Flow chain. Make it slower and softer than the main practice.",
+        bagType: 'Body-Flow',
+        ...decompSequence
       };
-      session.blockTimes.active = getEffectiveMainDuration(total, progress) * 60;
+      session.blockTimes.bodyFlow = getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
       saveLast(last);
     }
@@ -1307,10 +1279,10 @@ function getDefaultLastState(){
   function renderSession(s){
     const progress = loadProgressCached();
     const summaryText = s.intuOnly
-      ? "Today is recovery-focused: Intu only. Because no Clubbell or stand-alone session is completed today, tomorrow defaults back to Clubbell."
+      ? "Today is recovery-focused: Intu only. Because no Clubbell or Body Flow session is completed today, tomorrow defaults back to Clubbell."
       : s.dayType === "clubbell"
-      ? "Today: Intu, then Clubbell, then finish with a 6-word Decompress practice. Finish this session to unlock an Animal Flow day tomorrow. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration."
-      : "Today: Intu, then Animal Flow, then finish with a 6-word Decompress practice. Finish this session and tomorrow returns to Clubbell. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration.";
+      ? "Today: Intu, then Clubbell, then finish with Body-Flow Decompression. Finish this session to unlock a Body-Flow day tomorrow. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration."
+      : "Today: Intu, then Body-Flow Practice, then finish with Body-Flow Decompression. Finish this session and tomorrow returns to Clubbell. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration.";
 
     let html = `<h2>Today</h2>`;
     if(s.intuOnly){
@@ -1375,7 +1347,7 @@ function getDefaultLastState(){
               ${renderExerciseCard("Pattern", `${s.club.pattern.Rhythmic}+${s.club.pattern.Ballistic}+${s.club.pattern.Grinding}`, "Today", "mb-10")}
               ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress), "mb-10")}
               ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
-              <p class="small mt-10">Phase selection: choose subcategories by current phase, rotate the overtal across the main categories, and filter exercise picks by the club type of the day.</p>
+              <p class="small mt-10">Phase selection: choose subcategories by current phase, rotate the load across the main categories, and filter exercise picks by the club type of the day.</p>
             </div>
           </div>
         </div>
@@ -1383,21 +1355,20 @@ function getDefaultLastState(){
     }
     
 
-if(s.activeFlow){
+if(s.bodyFlow){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Animal Flow</span>
-          <span class="pill">${fmtMin(s.blockTimes?.active || 0)} | ${getBandDescription(s.total, progress)}</span>
+          <span>Body-Flow Practice</span>
+          <span class="pill">${fmtMin(s.blockTimes?.bodyFlow || 0)} | ${getBandDescription(s.total, progress)}</span>
         </button>
         <div class="accordion-content">
-          ${s.activeFlow.includeHB ? `<details class="mt-12" open><summary>Hand Balancing track</summary><div class="detailsBody" id="afHbTrackWrap"></div></details>` : ''}
           <div class="stack-10 mt-12">
-            ${s.activeFlow.steps.map((x, idx) => `
+            ${s.bodyFlow.steps.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
                   <div class="ex-title">${idx + 1}. ${cleanText(x.name)}</div>
-                  <div class="ex-meta">${cleanText(AF_BASE_LABEL[x.start])} -> ${cleanText(AF_BASE_LABEL[x.end])}${afPhaseTag(x) ? ` | ${cleanText(afPhaseTag(x))}` : ''}${x.isReturn ? ' | return' : ''}</div>
+                  <div class="ex-meta">${cleanText(BODYFLOW_BASE_LABEL[x.start] || x.start)} -> ${cleanText(BODYFLOW_BASE_LABEL[x.end] || x.end)} | ${cleanText(bfLevelLabel(x.level || 1))}${x.isReturn ? ' | settle' : ''}</div>
                 </div>
                 <div class="pill">${cleanText(x.kind)}</div>
               </div>`).join("")}
@@ -1408,23 +1379,23 @@ if(s.activeFlow){
               <span class="pill">Info</span>
             </button>
             <div class="accordion-content">
-              ${renderExerciseCard("Practice", s.activeFlow.name, `${s.activeFlow.bagType}`, "mt-12 mb-10")}
-              ${renderExerciseCard("Focus", s.activeFlow.focus, "Movement practice", "mb-10")}
-              ${renderExerciseCard("Use", s.activeFlow.use, "Animal Flow day", "mb-10")}
-              ${renderExerciseCard("Rule", "Closed-loop logic only. Start from a base, only use allowed next moves, and finish back at the same base.", "Flow", "mb-10")}
+              ${renderExerciseCard("Practice", s.bodyFlow.name, `${s.bodyFlow.bagType}`, "mt-12 mb-10")}
+              ${renderExerciseCard("Focus", s.bodyFlow.focus, "Movement practice", "mb-10")}
+              ${renderExerciseCard("Use", s.bodyFlow.use, "Body-Flow day", "mb-10")}
+              ${renderExerciseCard("Rule", "Body-Flow vocabulary engine. Start with a structure, follow allowed transitions, and keep breathing, movement and structure integrated.", "Flow", "mb-10")}
               <div class="exercise mb-10">
                 <div class="ex-left">
                   <div class="ex-title">Settings used today</div>
-                  <div class="ex-meta">Base: ${cleanText(AF_BASE_LABEL[s.activeFlow.startBase])} | Length: ${cleanText(String(s.activeFlow.length))} | L1 TF: ${s.activeFlow.includeTF ? 'ON' : 'OFF'} | Advanced: ${s.activeFlow.advancedEnabled ? 'ON' : 'OFF'} | Locomotion: ${s.activeFlow.locomotionEnabled ? 'ON' : 'OFF'} | HB: ${s.activeFlow.includeHB ? 'ON' : 'OFF'}</div>
+                  <div class="ex-meta">Start: ${cleanText(BODYFLOW_BASE_LABEL[s.bodyFlow.startBase] || s.bodyFlow.startBase)} | Target length: ${cleanText(getBodyFlowLengthLabel(s.bodyFlow))} | Generated moves: ${cleanText(String(getBodyFlowMoveCount(s.bodyFlow)))} | Level: ${cleanText(String(s.bodyFlow.level))} | Advanced: ${s.bodyFlow.includeAdvanced ? 'ON' : 'OFF'}</div>
                 </div>
                 <div class="pill">Locked today</div>
               </div>
             </div>
           </div>
-          <details class="mt-12">
+          ${isBFDebugEnabled() ? `<details class="mt-12">
             <summary>Debug path</summary>
-            <div class="detailsBody small">${cleanText(s.activeFlow.steps.map(x => `${AF_BASE_LABEL[x.start]} -> ${x.name} -> ${AF_BASE_LABEL[x.end]} [${x.phase}]`).join(' | '))}</div>
-          </details>
+            <div class="detailsBody small">${cleanText(s.bodyFlow.steps.map(x => `${BODYFLOW_BASE_LABEL[x.start] || x.start} -> ${x.name} -> ${BODYFLOW_BASE_LABEL[x.end] || x.end} [L${x.level || 1}]`).join(' | '))}</div>
+          </details>` : ``}
         </div>
       </div>`;
     }
@@ -1433,29 +1404,28 @@ if(s.activeFlow){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Decompress practice</span>
+          <span>Body-Flow Decompression</span>
           <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} | ${s.dayType === "clubbell" ? "After Clubbell" : "Finish"}</span>
         </button>
         <div class="accordion-content">
           ${renderExerciseCard("Practice", s.decompFlow.name, `${s.decompFlow.bagType} vocab`, "mt-12 mb-10")}
           ${renderExerciseCard("Focus", s.decompFlow.focus, "Decompress", "mb-10")}
-          ${renderExerciseCard("Use", s.decompFlow.use, s.dayType === "clubbell" ? "After Clubbell" : "After stand-alone", "mb-10")}
-          ${renderExerciseCard("Rule", "Use 1 shape from each family. Keep it gentle, spacious and continuous. No fixed sentence.", "Flow", "mb-10")}
+          ${renderExerciseCard("Use", s.decompFlow.use, s.dayType === "clubbell" ? "After Clubbell" : "After Body Flow", "mb-10")}
+          ${renderExerciseCard("Rule", "Short chain only. Move gently, keep it spacious and continuous, and do not chase fatigue.", "Flow", "mb-10")}
           <div class="stack-10">
-            ${s.decompFlow.picks.map((x, idx) => `
+            ${s.decompFlow.steps.map((x, idx) => `
               <div class="exercise">
                 <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${cleanText(x.shape)}</div>
-                  <div class="ex-meta">${cleanText(x.familyName)}</div>
+                  <div class="ex-title">${idx + 1}. ${cleanText(x.name)}</div>
+                  <div class="ex-meta">${cleanText(BODYFLOW_BASE_LABEL[x.start] || x.start)} -> ${cleanText(BODYFLOW_BASE_LABEL[x.end] || x.end)} | ${cleanText(x.kind)}</div>
                 </div>
-                <div class="pill">Word</div>
+                <div class="pill">L${x.level || 1}</div>
               </div>`).join("")}
           </div>
-          ${renderExerciseCard("Prompt", "Move calmly and let the breath decide the pace. Use all 6 families, but make the links yourself.", "Practice", "mt-10")}
+          ${renderExerciseCard("Prompt", "Let the breath slow the movement. If a transition feels rough, return to Shinbox, Quad Squat, Spinal Arch or Position of Assurance.", "Practice", "mt-10")}
         </div>
       </div>`;
     }
-
     html += `<div class="hr"></div>`;
     if(!s.intuOnly){
       html += `
@@ -1471,7 +1441,7 @@ if(s.activeFlow){
     leftCard.innerHTML = html;
     bindAccordions();
     const accordions = leftCard.querySelectorAll(".accordion");
-    const defaultOpenIndex = s.club || s.activeFlow ? 1 : 0;
+    const defaultOpenIndex = s.club || s.bodyFlow ? 1 : 0;
     const defaultAccordion = accordions[defaultOpenIndex] || accordions[0];
     if(defaultAccordion){
       defaultAccordion.classList.add("active");
@@ -1493,9 +1463,6 @@ if(s.activeFlow){
     if(btnPhaseNext) btnPhaseNext.onclick = () => { advanceProgressDecision('next'); cachedDay = null; boot(); };
     const btnPhaseRepeat = document.getElementById("btnPhaseRepeat");
     if(btnPhaseRepeat) btnPhaseRepeat.onclick = () => { advanceProgressDecision('repeat'); cachedDay = null; boot(); };
-    if(s.activeFlow){
-      renderAFHBTrack(s.activeFlow);
-    }
     const modeLabel = s.mode;
     setModePill(modeLabel);
     setDayPill("locked");
@@ -1503,39 +1470,9 @@ if(s.activeFlow){
   }
 
 
-  function renderAFHBTrack(activeFlow){
-    const wrap = document.getElementById('afHbTrackWrap');
-    if(!wrap) return;
-    const state = getAFHBState();
-    const idx = Math.max(0, Math.min(AF_HB_SESSIONS.length - 1, state.index || 0));
-    const session = AF_HB_SESSIONS[idx];
-    wrap.innerHTML = `
-      <div class="pillline">
-        <span>Progress: <b>${idx + 1}/${AF_HB_SESSIONS.length}</b></span>
-        <span>•</span>
-        <span>Repeats: <b>${state.attempts || 0}</b></span>
-      </div>
-      <div class="mt-12">
-        ${renderExerciseCard(session.title, session.focus, 'HB', 'mb-10')}
-        <div class="sectionTitle">Work</div>
-        <ul class="checklist">${session.items.map(item => `<li><span class="dot"></span>${cleanText(item)}</li>`).join('')}</ul>
-        <div class="sectionTitle mt-12">Pass when</div>
-        <div class="small">${cleanText(session.pass)}</div>
-        <div class="row mt-12">
-          <button type="button" class="btn good" id="afHbPass">Passed</button>
-          <button type="button" class="btn" id="afHbRepeat">Repeat</button>
-          <button type="button" class="btn danger" id="afHbReset">Reset HB</button>
-        </div>
-      </div>`;
-    document.getElementById('afHbPass').onclick = () => { setAFHBState({ index:Math.min(AF_HB_SESSIONS.length - 1, idx + 1), attempts:0 }); renderAFHBTrack(activeFlow); };
-    document.getElementById('afHbRepeat').onclick = () => { setAFHBState({ index:idx, attempts:(state.attempts || 0) + 1 }); renderAFHBTrack(activeFlow); };
-    document.getElementById('afHbReset').onclick = () => { setAFHBState({ index:0, attempts:0 }); renderAFHBTrack(activeFlow); };
-  }
-
-
   function renderSettings(){
     const cst = getCSTSettings();
-    const af = getAFSettings();
+    const bf = getBFSettings();
     const progress = loadProgressCached();
     const currentSessionInPhase = Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, progress.sessionInPhase || 0));
     settingsCstCard.innerHTML = `
@@ -1597,65 +1534,85 @@ if(s.activeFlow){
         </div>
       </div>`;
 
-    settingsAfCard.innerHTML = `
-      <h2>Animal Flow settings</h2>
+    settingsBfCard.innerHTML = `
+      <h2>Body-Flow settings</h2>
       <div class="setting-list">
-        <div class="settings-note">These settings apply to the next Animal Flow day you generate. The generated sequence still uses closed-loop base logic and may enable Advanced or Locomotion automatically.</div>
+        <div class="settings-note">These settings apply to the next Body-Flow day. This version is back on the Body-Flow base: structures, transitions, kinetic chains, rolling drills and optional advanced movements.</div>
         <div class="toggle-list">
           <label class="toggle-item">
-            <span>Enable Animal Flow Stand Alone</span>
-            <input type="checkbox" id="afSettingsEnableStandalone" ${af.enableStandalone ? 'checked' : ''}>
+            <span>Alternate with Body-Flow days</span>
+            <input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}>
+          </label>
+          <label class="toggle-item">
+            <span>Include Level 4 advanced movements</span>
+            <input type="checkbox" id="bfSettingsIncludeAdvanced" ${bf.includeAdvanced ? 'checked' : ''}>
           </label>
         </div>
         <div class="kv">
-          <label class="label">Length</label>
-          <select id="afSettingsLength">
-            <option value="random">Random 8-10</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="10">10</option>
+          <label class="label">Practice level</label>
+          <select id="bfSettingsPracticeLevel">
+            <option value="1">Level 1 - Structures</option>
+            <option value="2">Level 2 - Simple transitions</option>
+            <option value="3">Level 3 - Kinetic chains</option>
+            <option value="4">Level 4 - Full Body-Flow</option>
           </select>
         </div>
         <div class="kv">
-          <label class="label">Start base</label>
-          <select id="afSettingsStartBase">
-            <option value="random">Random</option>
-            <option value="CRAB">Crab</option>
-            <option value="BEAST">Beast</option>
-            <option value="LOADED_BEAST">Loaded Beast</option>
-            <option value="APE">Deep Ape</option>
+          <label class="label">Practice length</label>
+          <select id="bfSettingsLength">
+            <option value="random">Random 8-12</option>
+            <option value="8">8 moves</option>
+            <option value="10">10 moves</option>
+            <option value="12">12 moves</option>
           </select>
         </div>
-        <div class="toggle-list">
-          <label class="toggle-item"><span>Include Level 1 Traveling Forms</span><input type="checkbox" id="afSettingsIncludeTF" ${af.includeTF ? 'checked' : ''}></label>
-          <label class="toggle-item"><span>Include Hand Balancing track</span><input type="checkbox" id="afSettingsIncludeHB" ${af.includeHB ? 'checked' : ''}></label>
+        <div class="kv">
+          <label class="label">Start structure</label>
+          <select id="bfSettingsStartBase">
+            <option value="random">Random</option>
+            ${BODYFLOW_BASES.filter(x => !x.helper).map(x => `<option value="${x.id}">${x.name}</option>`).join('')}
+          </select>
+        </div>
+        <div class="kv">
+          <label class="label">Decompression</label>
+          <select id="bfSettingsDecomp">
+            <option value="simple">Simple - Level 1</option>
+            <option value="normal">Normal - Level 2</option>
+          </select>
         </div>
       </div>`;
 
-    const afEnableStandalone = document.getElementById('afSettingsEnableStandalone');
-    const afLength = document.getElementById('afSettingsLength');
-    const afStartBase = document.getElementById('afSettingsStartBase');
-    const afIncludeTF = document.getElementById('afSettingsIncludeTF');
-    const afIncludeHB = document.getElementById('afSettingsIncludeHB');
-    const syncAFSettingsUI = () => {
-      const enabled = !!afEnableStandalone?.checked;
-      [afLength, afStartBase, afIncludeTF, afIncludeHB].forEach(el => {
+    const bfEnableStandalone = document.getElementById('bfSettingsEnableStandalone');
+    const bfIncludeAdvanced = document.getElementById('bfSettingsIncludeAdvanced');
+    const bfPracticeLevel = document.getElementById('bfSettingsPracticeLevel');
+    const bfLength = document.getElementById('bfSettingsLength');
+    const bfStartBase = document.getElementById('bfSettingsStartBase');
+    const bfDecomp = document.getElementById('bfSettingsDecomp');
+    const syncBFSettingsUI = () => {
+      const enabled = !!bfEnableStandalone?.checked;
+      [bfIncludeAdvanced, bfPracticeLevel, bfLength, bfStartBase, bfDecomp].forEach(el => {
         if(el) el.disabled = !enabled;
       });
+      if(bfPracticeLevel && Number(bfPracticeLevel.value) === 4 && bfIncludeAdvanced && !bfIncludeAdvanced.checked){
+        bfPracticeLevel.value = '3';
+      }
     };
-    if(afLength) afLength.value = af.lengthMode;
-    if(afStartBase) afStartBase.value = af.startBase;
-    syncAFSettingsUI();
-    const persistAF = () => setAFSettings({
-      enableStandalone:afEnableStandalone.checked,
-      lengthMode:afLength.value,
-      startBase:afStartBase.value,
-      includeTF:afIncludeTF.checked,
-      includeHB:afIncludeHB.checked
+    if(bfPracticeLevel) bfPracticeLevel.value = String(bf.practiceLevel);
+    if(bfLength) bfLength.value = bf.practiceLength;
+    if(bfStartBase) bfStartBase.value = bf.startBase;
+    if(bfDecomp) bfDecomp.value = bf.decompComplexity;
+    syncBFSettingsUI();
+    const persistBF = () => setBFSettings({
+      enableStandalone:bfEnableStandalone.checked,
+      practiceLevel:Number(bfPracticeLevel.value),
+      practiceLength:bfLength.value,
+      startBase:bfStartBase.value,
+      decompComplexity:bfDecomp.value,
+      includeAdvanced:bfIncludeAdvanced.checked
     });
-    [afEnableStandalone, afLength, afStartBase, afIncludeTF, afIncludeHB].forEach(el => el && el.addEventListener('change', () => {
-      syncAFSettingsUI();
-      persistAF();
+    [bfEnableStandalone, bfIncludeAdvanced, bfPracticeLevel, bfLength, bfStartBase, bfDecomp].forEach(el => el && el.addEventListener('change', () => {
+      syncBFSettingsUI();
+      persistBF();
     }));
 
     const progressionCard = document.getElementById('progressionCard');
@@ -1760,7 +1717,7 @@ if(s.activeFlow){
     hydrateStageTime(s);
     currentLabel.textContent = current ? current.label : "-";
     timeDisplay.textContent = fmt(s.currentStageLeft || 0);
-    playPauseBtn.textContent = s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompressie" : "Start");
+    playPauseBtn.textContent = s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start");
     nextStageMeta.textContent = next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block.";
 
     rightInner.querySelectorAll(".stage-pill").forEach((pill, idx) => {
@@ -1793,7 +1750,7 @@ if(s.activeFlow){
       <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
 
       <div class="row mt-12">
-        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompressie" : "Start")}</button>
+        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start")}</button>
         <button id="btnNextStage" class="btn">Next block</button>
         <button id="btnResetTimer" class="btn danger">Reset blocks</button>
         ${!s.intuOnly ? `<button id="btnFinishRight" class="btn finish" ${s.completed ? "disabled" : ""}>${s.completed ? "Completed" : "Finish"}</button>` : ""}
@@ -1819,7 +1776,7 @@ if(s.activeFlow){
         }).join("")}
       </div>
 
-      <div class="small mt-12">Clear beeps at 3-2-1, on block change, and at the end. Decompressie never auto-starts: press Start yourself when you are ready. Wake Lock tries to keep your screen active while the timer is running.</div>
+      <div class="small mt-12">Clear beeps at 3-2-1, on block change, and at the end. Decompression never auto-starts: press Start yourself when you are ready. Wake Lock tries to keep your screen active while the timer is running.</div>
     `;
 
     document.getElementById("btnPlayPause").onclick = () => {
@@ -2137,7 +2094,7 @@ if(s.activeFlow){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Intu only | 9-11 = 15 min fallback | 12-15 = normal session duration (15/20/25/30) | Clubbell is the default, Animal Flow only follows a completed Clubbell day</span>
+          <span class="small">0-8 = Intu only | 9-11 = 15 min fallback | 12-15 = normal session duration (15/20/25/30) | Clubbell is the default, Body-Flow only follows a completed Clubbell day</span>
         </div>
       </div>
     `;
