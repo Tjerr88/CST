@@ -738,8 +738,6 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
     { id:"TWISTING_SPINAL_ARCH", name:"Twisting Spinal Arch", level:4, kind:"Advanced", family:"spine", start:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"], end:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"] },
     { id:"ARCHING_HIGH_LEG", name:"Arching High Leg", level:4, kind:"Advanced", family:"spine", start:["SPINAL_ARCH","QUAD"], end:["SPINAL_ARCH","QUAD"] }
   ];
-  const BODYFLOW_MOVES_BY_ID = Object.fromEntries(BODYFLOW_MOVES.map(x => [x.id, x]));
-
   function bfChoice(rng, arr){ return arr[Math.floor(rng() * arr.length)]; }
   function bfMoveEnabled(move, level, includeAdvanced){
     if(move.level >= 4 && !includeAdvanced) return false;
@@ -834,8 +832,6 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   const DAY_KEYS = [LS_DAY, LS_DAY_LEGACY, LS_DAY_LEGACY_2];
   const LAST_KEYS = [LS_LAST, LS_LAST_LEGACY, LS_LAST_LEGACY_2];
   const COMPLETED_KEYS = [LS_COMPLETED, LS_COMPLETED_LEGACY];
-  const PROGRESS_KEYS = [LS_PROGRESS];
-
   let timer = null;
   let audioCtx = null;
   let wakeLock = null;
@@ -918,12 +914,27 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
 
   function getBodyFlowMoveCount(flow){
     if(!flow?.steps?.length) return 0;
-    return flow.steps.filter(step => !String(step.moveId || "").startsWith("SET_") && !step.isReturn).length;
+    return flow.steps.filter(step => {
+      const moveId = String(step.moveId || "");
+      if(step.isReturn) return false;
+      if(moveId.startsWith("SET_")) return false;
+      if(moveId.startsWith("RESET_")) return false;
+      if(moveId.startsWith("STRUCTURE_")) return false;
+      return true;
+    }).length;
   }
 
   function getBodyFlowLengthLabel(flow){
     const requested = flow?.requestedLength;
     return requested === "random" ? "Random" : String(requested ?? flow?.length ?? "-");
+  }
+
+  function getBodyFlowStructureCount(flow){
+    if(!flow?.steps?.length) return 0;
+    return flow.steps.filter(step => {
+      const moveId = String(step.moveId || "");
+      return moveId.startsWith("SET_") || moveId.startsWith("RESET_") || moveId.startsWith("STRUCTURE_") || step.isReturn;
+    }).length;
   }
 
   
@@ -980,9 +991,23 @@ function getDefaultLastState(){
     return state;
   }
 
+  function isSessionLegacyShape(day){
+    if(!day || typeof day !== "object") return false;
+    return day.dayType === "standalone"
+      || day.mode === "STAND-ALONE FLOW DAY"
+      || !!day.activeFlow
+      || !!day.blockTimes?.active
+      || (Array.isArray(day.stages) && day.stages.some(stage => stage?.key === "active"));
+  }
+
   function loadDay(){
     if(cachedDay?.day === todayKey()) return cachedDay;
-    const day = normalizeSession(readFirstJSON(DAY_KEYS));
+    const rawDay = readFirstJSON(DAY_KEYS);
+    const shouldPersistMigration = isSessionLegacyShape(rawDay);
+    const day = normalizeSession(rawDay);
+    if(rawDay && day && shouldPersistMigration && day.day === todayKey()){
+      saveJSON(LS_DAY, day);
+    }
     cachedDay = day && day.day === todayKey() ? day : null;
     return cachedDay;
   }
@@ -1004,7 +1029,11 @@ function getDefaultLastState(){
   }
   function loadCompleted(){
     if(cachedCompleted !== null) return cachedCompleted;
-    cachedCompleted = normalizeCompletedState(readFirstJSON(COMPLETED_KEYS));
+    const rawCompleted = readFirstJSON(COMPLETED_KEYS);
+    cachedCompleted = normalizeCompletedState(rawCompleted);
+    if(rawCompleted?.dayType === "standalone" && cachedCompleted){
+      saveJSON(LS_COMPLETED, cachedCompleted);
+    }
     return cachedCompleted;
   }
   function saveCompleted(v){
@@ -1386,7 +1415,7 @@ if(s.bodyFlow){
               <div class="exercise mb-10">
                 <div class="ex-left">
                   <div class="ex-title">Settings used today</div>
-                  <div class="ex-meta">Start: ${cleanText(BODYFLOW_BASE_LABEL[s.bodyFlow.startBase] || s.bodyFlow.startBase)} | Target length: ${cleanText(getBodyFlowLengthLabel(s.bodyFlow))} | Generated moves: ${cleanText(String(getBodyFlowMoveCount(s.bodyFlow)))} | Level: ${cleanText(String(s.bodyFlow.level))} | Advanced: ${s.bodyFlow.includeAdvanced ? 'ON' : 'OFF'}</div>
+                  <div class="ex-meta">Start: ${cleanText(BODYFLOW_BASE_LABEL[s.bodyFlow.startBase] || s.bodyFlow.startBase)} | Target length: ${cleanText(getBodyFlowLengthLabel(s.bodyFlow))} | Flow moves: ${cleanText(String(getBodyFlowMoveCount(s.bodyFlow)))} | Structure steps: ${cleanText(String(getBodyFlowStructureCount(s.bodyFlow)))} | Level: ${cleanText(String(s.bodyFlow.level))} | Advanced: ${s.bodyFlow.includeAdvanced ? 'ON' : 'OFF'}</div>
                 </div>
                 <div class="pill">Locked today</div>
               </div>
@@ -1537,7 +1566,7 @@ if(s.bodyFlow){
     settingsBfCard.innerHTML = `
       <h2>Body-Flow settings</h2>
       <div class="setting-list">
-        <div class="settings-note">These settings apply to the next Body-Flow day. This version is back on the Body-Flow base: structures, transitions, kinetic chains, rolling drills and optional advanced movements.</div>
+        <div class="settings-note">These settings apply to the next Body-Flow day. This version is back on the Body-Flow base: structures, transitions, kinetic chains, rolling drills and optional advanced movements. Level 4 advanced only becomes active when practice level is set to 4.</div>
         <div class="toggle-list">
           <label class="toggle-item">
             <span>Alternate with Body-Flow days</span>
@@ -1558,7 +1587,7 @@ if(s.bodyFlow){
           </select>
         </div>
         <div class="kv">
-          <label class="label">Practice length</label>
+          <label class="label">Target length</label>
           <select id="bfSettingsLength">
             <option value="random">Random 8-12</option>
             <option value="8">8 moves</option>
@@ -1590,12 +1619,12 @@ if(s.bodyFlow){
     const bfDecomp = document.getElementById('bfSettingsDecomp');
     const syncBFSettingsUI = () => {
       const enabled = !!bfEnableStandalone?.checked;
-      [bfIncludeAdvanced, bfPracticeLevel, bfLength, bfStartBase, bfDecomp].forEach(el => {
+      [bfPracticeLevel, bfLength, bfStartBase, bfDecomp].forEach(el => {
         if(el) el.disabled = !enabled;
       });
-      if(bfPracticeLevel && Number(bfPracticeLevel.value) === 4 && bfIncludeAdvanced && !bfIncludeAdvanced.checked){
-        bfPracticeLevel.value = '3';
-      }
+      const level4Active = enabled && Number(bfPracticeLevel?.value) === 4;
+      if(bfIncludeAdvanced) bfIncludeAdvanced.disabled = !level4Active;
+      if(!level4Active && bfIncludeAdvanced) bfIncludeAdvanced.checked = false;
     };
     if(bfPracticeLevel) bfPracticeLevel.value = String(bf.practiceLevel);
     if(bfLength) bfLength.value = bf.practiceLength;
