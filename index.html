@@ -3,49 +3,70 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator V5 - Body Flow</title>
+<title>CST Generator V6 - Body Flow</title>
 <style>
   :root{
-    --bg:#0e1116;
-    --surface:#131821;
-    --surface2:#10151d;
-    --text:#e7edf6;
-    --muted:#aab4c4;
-    --line:#253042;
-    --acc:#7aa7ff;
-    --good:#5fd08a;
-    --mid:#e0b45c;
-    --rec:#7aa7ff;
-    --warn:#ffcc66;
+    --bg:#0c1217;
+    --bg2:#121c23;
+    --surface:rgba(19, 27, 34, 0.9);
+    --surface2:rgba(15, 21, 28, 0.92);
+    --surface3:rgba(255,255,255,0.035);
+    --text:#edf3f7;
+    --muted:#9caab8;
+    --muted2:#748292;
+    --line:rgba(165, 188, 206, 0.13);
+    --line-strong:rgba(165, 188, 206, 0.2);
+    --acc:#8fb8d8;
+    --acc-soft:rgba(143,184,216,0.14);
+    --good:#7dcf9b;
+    --mid:#d4b16a;
+    --rec:#8fb8d8;
+    --warn:#e6c87d;
+    --danger:#d98b89;
+    --shadow:0 18px 48px rgba(0,0,0,.26);
   }
   *{box-sizing:border-box}
   body{
-    margin:0; padding:14px;
-    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background:var(--bg); color:var(--text);
+    margin:0;
+    padding:24px 16px 32px;
+    font-family: Inter, "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    background:
+      radial-gradient(circle at top, rgba(143,184,216,.1), transparent 38%),
+      linear-gradient(180deg, var(--bg2) 0%, var(--bg) 48%, #0a0f14 100%);
+    color:var(--text);
   }
-  .wrap{max-width:980px; margin:0 auto; display:grid; gap:12px}
+  .wrap{max-width:1120px; margin:0 auto; display:grid; gap:18px}
   .card{
     background:var(--surface);
     border:1px solid var(--line);
-    border-radius:16px;
-    padding:14px;
+    border-radius:24px;
+    padding:18px;
+    box-shadow:var(--shadow);
+    backdrop-filter: blur(14px);
   }
-  .grid{display:grid; grid-template-columns:1fr; gap:12px}
-  @media (min-width: 880px){ .grid{ grid-template-columns: 1.2fr .8fr; } }
-  h1{font-size:20px; margin:0 0 6px}
-  h2{font-size:15px; margin:0 0 8px}
-  p{margin:0; color:var(--muted); line-height:1.35; font-size:13px}
+  .grid{display:grid; grid-template-columns:1fr; gap:18px}
+  @media (min-width: 960px){ .grid{ grid-template-columns: minmax(0, 1.28fr) minmax(320px, .72fr); align-items:start; } }
+  h1{font-size:28px; line-height:1.05; letter-spacing:-.03em; margin:0}
+  h2{font-size:16px; letter-spacing:-.01em; margin:0 0 10px}
+  p{margin:0; color:var(--muted); line-height:1.5; font-size:14px}
   .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
   .btn{
-    appearance:none; border:1px solid rgba(255,255,255,.12);
-    background:rgba(255,255,255,.04); color:var(--text);
-    border-radius:12px; padding:12px 14px; font-weight:850; cursor:pointer;
+    appearance:none;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.045);
+    color:var(--text);
+    border-radius:14px;
+    padding:12px 16px;
+    font-weight:760;
+    letter-spacing:.01em;
+    cursor:pointer;
     min-height:46px;
+    transition:transform .18s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
   }
-  .btn.primary{border-color: rgba(122,167,255,0.45); background: rgba(122,167,255,0.10);}
-  .btn.danger{border-color: rgba(255,120,120,0.40); background: rgba(255,120,120,0.10);}
-  .btn.good{border-color: rgba(95,208,138,0.45); background: rgba(95,208,138,0.10);}
+  .btn:hover{transform:translateY(-1px); border-color:rgba(255,255,255,.14); background:rgba(255,255,255,.065)}
+  .btn.primary{border-color: rgba(143,184,216,0.34); background: rgba(143,184,216,0.15); box-shadow: inset 0 1px 0 rgba(255,255,255,.04);}
+  .btn.danger{border-color: rgba(217,139,137,0.3); background: rgba(217,139,137,0.1);}
+  .btn.good{border-color: rgba(125,207,155,0.34); background: rgba(125,207,155,0.13);}
   .btn:disabled{opacity:.45; cursor:not-allowed}
   .btn:focus-visible,
   .score-btn:focus-visible,
@@ -54,61 +75,69 @@
     outline-offset:2px;
   }
   .pill{
-    display:inline-flex; gap:6px; align-items:center; padding:6px 10px; border-radius:999px;
-    border:1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.03);
-    color:var(--muted); font-size:12px;
+    display:inline-flex;
+    gap:6px;
+    align-items:center;
+    padding:7px 11px;
+    border-radius:999px;
+    border:1px solid rgba(255,255,255,.08);
+    background: rgba(255,255,255,.03);
+    color:var(--muted);
+    font-size:12px;
   }
   .pill strong{color:var(--text)}
   .exercise{
     border:1px solid var(--line);
-    background:var(--surface2);
-    border-radius:12px;
-    padding:10px 12px;
+    background:linear-gradient(180deg, rgba(255,255,255,.025), rgba(255,255,255,.015));
+    border-radius:18px;
+    padding:14px 15px;
     display:flex; gap:10px; justify-content:space-between; align-items:flex-start;
   }
   .ex-left{display:grid; gap:3px}
-  .ex-title{font-weight:850}
-  .ex-meta{color:var(--muted); font-size:12px}
-  .label{color:var(--muted); font-size:12px}
-  .time{font-variant-numeric: tabular-nums; font-size:52px; font-weight:900; letter-spacing:.5px; line-height:1;}
-  .stage-title{font-size:18px; font-weight:900; margin-bottom:4px;}
-  .hr{height:1px; background:var(--line); margin:12px 0;}
-  .small{font-size:12px; color:var(--muted)}
-  .gate-grid{display:grid; gap:12px}
+  .ex-title{font-weight:780; letter-spacing:-.01em}
+  .ex-meta{color:var(--muted); font-size:12px; line-height:1.45}
+  .label{color:var(--muted2); font-size:12px; text-transform:uppercase; letter-spacing:.08em}
+  .time{font-variant-numeric: tabular-nums; font-size:64px; font-weight:800; letter-spacing:-.04em; line-height:.95;}
+  .stage-title{font-size:22px; font-weight:780; letter-spacing:-.02em; margin-bottom:6px;}
+  .hr{height:1px; background:linear-gradient(90deg, transparent, var(--line-strong), transparent); margin:18px 0;}
+  .small{font-size:12px; color:var(--muted); line-height:1.5}
+  .gate-grid{display:grid; gap:14px}
   .gate-row{display:grid; gap:8px}
   .score-row{display:flex; gap:8px; flex-wrap:wrap}
   .score-btn{
     appearance:none;
     width:48px; height:42px; display:inline-flex; justify-content:center; align-items:center;
-    border-radius:12px; border:1px solid rgba(255,255,255,.14);
-    background:rgba(255,255,255,.06); color:var(--text);
-    font-weight:900; cursor:pointer; user-select:none;
+    border-radius:14px; border:1px solid rgba(255,255,255,.09);
+    background:rgba(255,255,255,.05); color:var(--text);
+    font-weight:800; cursor:pointer; user-select:none;
+    transition:transform .18s ease, border-color .18s ease, background .18s ease;
   }
   .score-btn.active{
-    border-color: rgba(255, 157, 46, 0.55);
-    background: linear-gradient(180deg, rgba(255, 157, 46, 0.22), rgba(255, 157, 46, 0.10));
-    transform: scale(1.08);
+    border-color: rgba(143,184,216,0.42);
+    background: linear-gradient(180deg, rgba(143,184,216,0.22), rgba(143,184,216,0.1));
+    transform: translateY(-1px);
   }
   .score-label{margin-top:6px; min-height:18px; font-size:12px; color:var(--muted); font-weight:600}
   .total{
     display:flex; gap:10px; align-items:center; justify-content:space-between;
-    border:1px solid var(--line); background:var(--surface2); border-radius:12px; padding:10px 12px;
+    border:1px solid var(--line); background:var(--surface2); border-radius:18px; padding:14px 15px;
   }
-  .total .n{font-size:28px; font-weight:900; font-variant-numeric: tabular-nums}
+  .total .n{font-size:32px; font-weight:820; font-variant-numeric: tabular-nums; letter-spacing:-.03em}
   .badge{
-    padding:6px 10px; border-radius:999px; font-size:12px; font-weight:900;
-    border:1px solid rgba(255,255,255,.14); background:rgba(255,255,255,.04); color:var(--muted);
+    padding:7px 11px; border-radius:999px; font-size:12px; font-weight:800;
+    border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.04); color:var(--muted);
   }
-  .badge.good{ color: rgba(55,214,122,1); border-color: rgba(55,214,122,.4); background: rgba(55,214,122,.08); }
-  .badge.mid{ color: rgba(255,176,32,1); border-color: rgba(255,176,32,.4); background: rgba(255,176,32,.08); }
-  .badge.rec{ color: rgba(83,166,255,1); border-color: rgba(83,166,255,.45); background: rgba(83,166,255,.10); }
+  .badge.good{ color: rgba(125,207,155,1); border-color: rgba(125,207,155,.28); background: rgba(125,207,155,.09); }
+  .badge.mid{ color: rgba(212,177,106,1); border-color: rgba(212,177,106,.3); background: rgba(212,177,106,.09); }
+  .badge.rec{ color: rgba(143,184,216,1); border-color: rgba(143,184,216,.32); background: rgba(143,184,216,.11); }
 
   .accordion{
     border:1px solid var(--line);
     background:var(--surface2);
-    border-radius:12px;
+    border-radius:20px;
     overflow:hidden;
-    margin-top:10px;
+    margin-top:12px;
+    transition:border-color .2s ease, background .2s ease;
   }
   .accordion-header{
     width:100%;
@@ -116,8 +145,8 @@
     border:0;
     background:transparent;
     color:var(--text);
-    padding:12px 14px;
-    font-weight:850;
+    padding:15px 16px;
+    font-weight:760;
     text-align:left;
     cursor:pointer;
     display:flex;
@@ -126,7 +155,7 @@
     gap:10px;
   }
   .accordion-header:hover,
-  .accordion-header:focus-visible{ background:rgba(255,255,255,.03); }
+  .accordion-header:focus-visible{ background:rgba(255,255,255,.025); }
   .accordion-header::after{
     content:"\25B6";
     color:var(--muted);
@@ -138,7 +167,7 @@
   }
   .accordion-content{
     display:none;
-    padding:0 12px 12px;
+    padding:0 14px 14px;
     border-top:1px solid var(--line);
   }
   .accordion.active > .accordion-content{
@@ -147,54 +176,54 @@
 
   .timeline{
     display:grid;
-    gap:8px;
-    margin-top:12px;
+    gap:10px;
+    margin-top:16px;
   }
   .stage-pill{
     display:flex;
     align-items:center;
     justify-content:space-between;
     gap:10px;
-    padding:10px 12px;
-    border-radius:12px;
+    padding:12px 14px;
+    border-radius:16px;
     border:1px solid var(--line);
-    background:var(--surface2);
+    background:rgba(255,255,255,.025);
     color:var(--muted);
     font-size:13px;
   }
   .stage-pill.active{
-    border-color: rgba(122,167,255,0.45);
-    background: rgba(122,167,255,0.10);
+    border-color: rgba(143,184,216,0.32);
+    background: rgba(143,184,216,0.11);
     color:var(--text);
   }
   .stage-pill.done{
-    border-color: rgba(95,208,138,0.45);
-    background: rgba(95,208,138,0.08);
+    border-color: rgba(125,207,155,0.24);
+    background: rgba(125,207,155,0.08);
     color:var(--text);
   }
   .beep-pill{
     color:var(--warn);
-    border-color: rgba(255,204,102,.4);
-    background: rgba(255,204,102,.08);
+    border-color: rgba(230,200,125,.25);
+    background: rgba(230,200,125,.08);
   }
   .mt-10{margin-top:10px}
   .mt-12{margin-top:12px}
   .mb-10{margin-bottom:10px}
   .mb-12{margin-bottom:12px}
-  .stack-10{display:grid; gap:10px}
+  .stack-10{display:grid; gap:12px}
   .stack-10.mt-12{margin-top:12px}
 
 
   .intu-item{
     border:1px solid var(--line);
-    background:var(--surface2);
-    border-radius:12px;
+    background:rgba(255,255,255,.022);
+    border-radius:18px;
     overflow:hidden;
   }
   .intu-summary{
     list-style:none;
     cursor:pointer;
-    padding:10px 12px;
+    padding:14px 15px;
     display:flex;
     gap:10px;
     justify-content:space-between;
@@ -210,33 +239,91 @@
   }
   .intu-item[open] .intu-summary::after{transform:rotate(90deg)}
   .intu-summary:hover,
-  .intu-summary:focus-visible{background:rgba(255,255,255,.03); outline:none}
+  .intu-summary:focus-visible{background:rgba(255,255,255,.025); outline:none}
   .intu-body{
     border-top:1px solid var(--line);
-    padding:10px 12px 12px;
+    padding:12px 15px 15px;
     color:var(--muted);
     font-size:12px;
-    line-height:1.45;
+    line-height:1.6;
   }
-  .finish-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:12px}
-  .btn.finish{border-color: rgba(95,208,138,0.45); background: rgba(95,208,138,0.12);}
+  .finish-row{display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-top:16px}
+  .btn.finish{border-color: rgba(125,207,155,0.34); background: rgba(125,207,155,0.13);}
   .btn.finish[disabled]{opacity:.55}
-  .tabbar{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
-  .tab{appearance:none; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--muted); border-radius:999px; padding:8px 12px; font-weight:800; cursor:pointer}
-  .tab.active{color:var(--text); border-color: rgba(122,167,255,0.45); background: rgba(122,167,255,0.10);}
+  .tabbar{display:inline-flex; gap:8px; flex-wrap:wrap; margin-top:16px; padding:6px; border-radius:999px; border:1px solid var(--line); background:rgba(255,255,255,.02)}
+  .tab{appearance:none; border:1px solid transparent; background:transparent; color:var(--muted); border-radius:999px; padding:9px 14px; font-weight:760; cursor:pointer; transition:background .18s ease, color .18s ease, border-color .18s ease}
+  .tab.active{color:var(--text); border-color: rgba(143,184,216,0.22); background: rgba(143,184,216,0.12);}
   .panel{display:none}
   .panel.active{display:block}
-  .settings-grid{display:grid; grid-template-columns:1fr; gap:12px}
-  @media (min-width: 880px){ .settings-grid{ grid-template-columns: 1fr 1fr; } }
-  .setting-list{display:grid; gap:12px}
+  .settings-grid{display:grid; grid-template-columns:1fr; gap:18px}
+  @media (min-width: 960px){ .settings-grid{ grid-template-columns: 1fr 1fr; } }
+  .setting-list{display:grid; gap:14px}
   .kv{display:grid; grid-template-columns:1fr auto; gap:10px; align-items:center}
-  .kv select{width:220px; max-width:100%; padding:9px 10px; border-radius:12px; border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.04); color:var(--text)}
+  .kv select{width:220px; max-width:100%; padding:10px 12px; border-radius:14px; border:1px solid rgba(255,255,255,.1); background:rgba(255,255,255,.04); color:var(--text)}
   .toggle-list{display:grid; gap:10px}
-  .toggle-item{display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:12px; background:var(--surface2)}
+  .toggle-item{display:flex; justify-content:space-between; gap:12px; align-items:center; padding:12px 14px; border:1px solid var(--line); border-radius:16px; background:rgba(255,255,255,.02)}
   .toggle-item input{accent-color:#7aa7ff; width:18px; height:18px}
-  .settings-note{font-size:12px; color:var(--muted); line-height:1.4}
+  .settings-note{font-size:12px; color:var(--muted); line-height:1.55}
   .hidden-advanced{display:none}
   .hidden-advanced.active{display:grid; gap:10px}
+  .topbar-card{
+    padding:24px;
+    background:
+      radial-gradient(circle at top right, rgba(143,184,216,.12), transparent 30%),
+      linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015)),
+      var(--surface);
+  }
+  .topbar-head{display:grid; gap:8px}
+  .eyebrow{font-size:12px; text-transform:uppercase; letter-spacing:.14em; color:var(--muted2)}
+  .hero-copy{max-width:720px; color:var(--muted)}
+  .toolbar{
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:space-between;
+    gap:14px;
+    margin-top:18px;
+  }
+  .toolbar-actions,
+  .toolbar-status{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+    align-items:center;
+  }
+  #leftCard,
+  #rightCard,
+  #settingsCstCard,
+  #settingsBfCard{min-height:100%}
+  #rightCard{
+    position:sticky;
+    top:18px;
+    background:
+      linear-gradient(180deg, rgba(143,184,216,.08), rgba(255,255,255,.02) 24%),
+      var(--surface);
+  }
+  .timer-shell{
+    display:grid;
+    gap:16px;
+  }
+  .timer-hero{
+    border:1px solid var(--line);
+    border-radius:22px;
+    padding:18px;
+    background:linear-gradient(180deg, rgba(143,184,216,.12), rgba(255,255,255,.02));
+  }
+  .timer-actions{display:flex; flex-wrap:wrap; gap:10px}
+  .timer-note{padding:14px 15px; border-radius:16px; border:1px solid var(--line); background:rgba(255,255,255,.02)}
+  .card h2 + .small{margin-top:-2px}
+  @media (max-width: 959px){
+    body{padding:16px 12px 24px}
+    .card{padding:16px}
+    .topbar-card{padding:18px}
+    h1{font-size:24px}
+    .time{font-size:54px}
+    #rightCard{position:static}
+    .kv{grid-template-columns:1fr}
+    .kv select{width:100%}
+  }
   #confettiLayer{position:fixed; inset:0; pointer-events:none; z-index:9999}
 
 </style>
@@ -245,15 +332,23 @@
 <canvas id="confettiLayer"></canvas>
 
 <div class="wrap">
-  <div class="card">
-    <h1>CST Generator V5 - Body Flow</h1>
-    <div class="row mt-10">
-      <button id="btnMain" class="btn primary">Start</button>
-      <button id="btnReset" class="btn danger">Reset day</button>
-      <span id="modePill" class="pill">Mode: <strong>-</strong></span>
-      <span id="dayPill" class="pill">Today: <strong>new</strong></span>
-      <span id="wakePill" class="pill">Wake Lock: <strong>off</strong></span>
-      <span class="pill beep-pill">Beeps: <strong>3-2-1 + switch + done</strong></span>
+  <div class="card topbar-card">
+    <div class="topbar-head">
+      <div class="eyebrow">CST Session Flow</div>
+      <h1>CST Generator V6 - Body Flow</h1>
+      <p class="hero-copy">Rustiger overzicht voor je dagtraining: dezelfde inhoud, dezelfde opbouw, maar met meer focus op wat nu belangrijk is.</p>
+    </div>
+    <div class="toolbar">
+      <div class="toolbar-actions">
+        <button id="btnMain" class="btn primary">Start</button>
+        <button id="btnReset" class="btn danger">Reset day</button>
+      </div>
+      <div class="toolbar-status">
+        <span id="modePill" class="pill">Mode: <strong>-</strong></span>
+        <span id="dayPill" class="pill">Today: <strong>new</strong></span>
+        <span id="wakePill" class="pill">Wake Lock: <strong>off</strong></span>
+        <span class="pill beep-pill">Beeps: <strong>3-2-1 + switch + done</strong></span>
+      </div>
     </div>
     <div class="tabbar">
       <button type="button" class="tab active" data-tab="today">Today</button>
@@ -278,15 +373,15 @@
 
 <script>
 (() => {
-  const LS_DAY = "cst_day_v50";
-  const LS_LAST = "cst_last_v50";
+  const LS_DAY = "cst_day_v60";
+  const LS_LAST = "cst_last_v60";
   const LS_DAY_LEGACY = "cst_day_v38";
   const LS_LAST_LEGACY = "cst_last_v38";
   const LS_DAY_LEGACY_2 = "cst_day_v37";
   const LS_LAST_LEGACY_2 = "cst_last_v37";
-  const LS_COMPLETED = "cst_completed_v50";
+  const LS_COMPLETED = "cst_completed_v60";
   const LS_COMPLETED_LEGACY = "cst_completed_v38";
-  const LS_PROGRESS = "cst_progress_v50";
+  const LS_PROGRESS = "cst_progress_v60";
 
   const gateDef = [
     { key:'soreness', label:'Soreness / Recovery', choices:['Pain','Restricted','Stiff','Slightly stiff','Loose','Fresh'] },
@@ -474,6 +569,129 @@ const CLUB_EXERCISES = [
   { name:"Curtsy Lunge", bucket:"Grinding", subcategory:"lower", start:"order", end:"order", modes:["single","double","2h"] }
 ];
 
+const CLUB_EXERCISE_DESCRIPTIONS = {
+  "Front Swing": "The foundational swing. Start from Ready Position with a straight spine, hips folded, shoulders packed, and arms locked. Drive the movement with the hips and legs, not by pulling with the arms. The Clubbell swings forward in a smooth arc.",
+  "Two-Handed Front Swing": "The two-handed version of the Front Swing. Use the same hip-driven mechanics, but pay extra attention to floor clearance during the backswing. Keep the spine long and fold from the hips.",
+  "Side Swing": "The lateral swing foundation. Instead of a front-to-back hip snap, use hip sway and lateral hip snap to move the Clubbell side-to-side. Keep the spine aligned and absorb the backswing with the hips.",
+  "Side Semi Circle Swing": "A side-to-side half-circle swing. The Clubbell travels from one side to the other, passing low through the center. Absorb with hip sway and redirect into the opposite side.",
+  "Pirouette Swing": "A high-skill Front Swing variation where the Clubbell rises overhead and becomes briefly weightless while you pivot-step. Requires strong overhead control and safe footwork.",
+  "Front Pendulum": "Starts and finishes in Order Position. Cast the Clubbell out and down into a front swing, then use hip snap and leg drive to bring it back up and catch it in Order Position.",
+  "Two-Handed Front Pendulum": "The two-handed version of the Front Pendulum. The main challenge is controlling the Clubbell between the legs and coordinating both hands evenly.",
+  "Inside Pendulum": "A side pendulum that crosses the centerline. Cast the Clubbell across the body, let it swing down and through, then use hip sway and hip snap to return it to Order Position.",
+  "Double Side Pendulum": "A two-Clubbell side pendulum. Both Clubbells move in side pendulum patterns, requiring timing, symmetry, and clean shock absorption.",
+  "Two-Handed Guard Inside Pendulum": "A two-handed inside pendulum starting and finishing in Guard Position. The Clubbell crosses the centerline, and the hips/legs drive and absorb the movement.",
+  "Outside Pendulum": "Similar to the Inside Pendulum, but the Clubbell casts to the outside instead of across the centerline. The Clubbell travels farther from your root, making control harder.",
+  "Two-Handed Guard Outside Pendulum": "A two-handed outside pendulum from Guard Position. Cast to the same side rather than across the body, then catch back into Guard.",
+  "Lunge-Step Pendulum": "A Front Pendulum with a forward lunge step during the float phase. Catch in Order Position while absorbing into the lunge, then drive back to standing.",
+  "Two-Handed Guard Lunge-Step Pendulum": "A two-handed Guard Pendulum combined with a lunge step. Requires strong timing because the Clubbell, both hands, and split stance must coordinate.",
+  "Side-Step Pendulum": "A Side Pendulum with side-stepping footwork. Step as the Clubbell floats, then catch in Order Position while rooting into the side step.",
+  "Two-Handed Guard Side-Step Pendulum": "A two-handed Guard Side-Step Pendulum. Combines Guard Position, lateral stepping, hip root, and two-handed Clubbell control.",
+  "Front Circle": "The foundational circle. Start in Torch Position, move the Clubbell forward and down in a full circle, then return to Torch Position with control.",
+  "Front 3/4 Circle": "A preparatory drill for the Front Circle. The Clubbell descends from Torch Position but does not complete the full circle; it teaches control and absorption.",
+  "Back Circle": "A circle launched backward from Torch Position. Requires shoulder mobility and control while keeping the torso from over-rotating.",
+  "Back 3/4 Circle": "A preparatory back-circle drill. The Clubbell travels through most of the backward circle but stops short of a full loop, building control, shoulder pack, and safe absorption.",
+  "Inside Circle": "A side-plane circle that crosses the centerline. The goal is to keep the Clubbell in the side plane and avoid turning it into a Front Circle.",
+  "Outside Circle": "A side-plane circle launched to the outside. The Clubbell stays outside the centerline, requiring strong root and careful torso control.",
+  "Two-Handed Side Circle": "A two-handed side circle. Depending on grip and direction, it can behave like an inside or outside circle. Use hip sway and hip snap to maintain the arc.",
+  "Alternating Circles: Front Stroke and Backstroke": "One Clubbell stays overhead in Torch Position while the other circles. Front Stroke circles forward; Backstroke circles backward. Keep both shoulders packed.",
+  "Front Clean to Order Position": "The foundational clean. From Ready Position, drive through the hips and legs, pull the Clubbell upward, rotate the neck under the barrel head, and catch in Order Position.",
+  "Two-Handed Front Clean to Order Position": "A two-handed clean to Order Position. Pull the Clubbell up the centerline without letting one hand dominate.",
+  "Front Clean to Shoulder Park": "A front clean caught on the shoulder. The Clubbell must land softly on the trapezius, not crash into the body.",
+  "Two-Handed Front Clean to Shoulder Park": "The two-handed version. Use both hands to decelerate the Clubbell smoothly into Shoulder Park.",
+  "Front Clean to Flag Position": "A front clean that finishes with the Clubbell punched out into Flag Position. Requires full arm lock and strong shoulder pack.",
+  "Two-Handed Front Clean to Flag Position": "A two-handed clean to Flag Position. Both hands punch the Clubbell out and stabilize it at horizontal lockout.",
+  "Front Clean to Back Position": "A front clean that threads the Clubbell into Back Position. Requires control around the head, ear, and shoulder.",
+  "Two-Handed Front Clean to Back Position": "A two-handed clean into Back Position. The far arm threads over the head while the near arm guides the Clubbell into place.",
+  "Side Clean to Guard Position": "The lateral clean foundation. Use hip sway and lateral hip snap to bring the Clubbell up and catch it in Guard Position.",
+  "Side Clean to Shoulder Park": "A side clean caught in Shoulder Park on the same side. Requires a faster rotation and a soft landing on the shoulder.",
+  "Side Clean to Back Position": "A side clean that continues into Back Position. More complex because the Clubbell travels through a larger arc.",
+  "Side Clean to Side Flag": "Also known as a Muscle Out. A side clean that finishes in Side Flag Position with the arms locked horizontally.",
+  "Front Torch Jerk": "From Order Position, dip, drive with the legs, let the Clubbell float, then dip under and lock it in Torch Position.",
+  "Two-Handed Front Torch Jerk": "The two-handed version. The main challenge is locking both arms evenly, especially the short arm.",
+  "Front Jerk": "A front jerk finishing in an angled overhead Leverage Hold instead of vertical Torch Position. Grip and wrist control are heavily challenged.",
+  "Two-Handed Front Jerk": "A two-handed front jerk into an overhead Leverage Hold. One hand stabilizes while the other helps drive and balance the Clubbell.",
+  "Shoulder Park Front Jerk": "Starts from Shoulder Park and drives the Clubbell overhead to the front. First clear the head and ear, then lock out overhead.",
+  "Two-Handed Shoulder Park Front Jerk": "A two-handed jerk from Shoulder Park. Requires both legs to drive evenly rather than simply pressing with the near side.",
+  "Front Clean + Jerk": "A Front Clean followed immediately by a Jerk. Clean to Order Position, absorb, then use the elastic rebound to drive overhead.",
+  "Side Torch Jerk": "Starts from Guard Position and finishes in Torch Position. Rotate, dip, drive, then root and lock overhead.",
+  "Side Jerk": "A side-plane jerk finishing in an angled overhead Leverage Hold. Requires deep hip root and strong grip.",
+  "Shoulder Park Side Jerk": "Starts from Shoulder Park and projects the Clubbell across the body into an overhead hold. Clear the head first, then drive and lock.",
+  "Side Clean + Jerk": "A Side Clean to Guard Position followed immediately by a Side Jerk. Catch, rebound, drive, root, and lock.",
+  "Front Torch Snatch": "From Ready Position, drive the Clubbell upward in one continuous movement and catch overhead in Torch Position. Uses hip/leg drive and a dip under the floating Clubbell.",
+  "Two-Handed Front Torch Snatch": "A two-handed snatch to Torch Position. Requires strong coordination between long arm and short arm to reach clean lockout.",
+  "Front Snatch": "A front snatch finishing in an angled overhead Leverage Hold instead of vertical Torch. Grip strength and timing are critical.",
+  "Two-Handed Front Snatch": "A two-handed front snatch into an overhead Leverage Hold. Pull up the centerline, rotate during float, and lock out with control.",
+  "Side Torch Snatch": "The lateral snatch to Torch Position. Use hip sway, lateral hip snap, and a dip under the Clubbell to catch overhead.",
+  "Side Snatch": "A side snatch finishing in an angled overhead Leverage Hold. More demanding on grip, hip root, and side-plane control.",
+  "Torch Press": "The foundational press. From Order Position, press the Clubbell to vertical Torch Position with full arm lock and shoulder pack.",
+  "Two-Handed Torch Press": "A two-handed press to Torch Position. The short arm must reach proper lockout, so weight and choke depth must be manageable.",
+  "Front Press": "A press from Order Position into an angled overhead Leverage Hold. Requires strong grip and controlled shoulder packing.",
+  "Two-Handed Front Press": "A two-handed Front Press. One hand acts more like a fulcrum while the other helps drive the Clubbell into position.",
+  "Flag Press": "Presses from Order Position into horizontal Flag Position. Requires strong core, shoulder pack, and elbow-pit rotation upward.",
+  "Two-Handed Flag Press": "A two-handed press into Flag Position. Requires both arms to lock while stabilizing the Clubbell horizontally.",
+  "Side Torch Press": "Starts from Guard Position and presses across the centerline into Torch Position. Uses side hip root for support.",
+  "Side Press": "A side-plane press into an angled overhead Leverage Hold. The body roots to the side while the Clubbell is pressed overhead.",
+  "Side Flag Press": "Presses from Guard Position into Side Flag Position. Combines side root, rotation, horizontal lockout, and strong grip.",
+  "Clean and Press": "A Clean followed by a Press. The clean may finish in Order, Guard, or Shoulder Park, and the press may go to Torch, Front, or Flag.",
+  "Wrist Cast": "A local cast controlled mainly by the wrist and grip. The elbow stays relatively fixed while the Clubbell moves down toward the upper arm and back up.",
+  "Two Handed Wrist Cast - The Crowbar": "A two-handed wrist cast from Guard Position. Both hands create opposing pressure to control the Clubbell like a lever.",
+  "Two-Handed Wrist Cast - The Crowbar": "A two-handed wrist cast from Guard Position. Both hands create opposing pressure to control the Clubbell like a lever.",
+  "Arm Cast": "Moves from Back Position over the shoulder to Order Position. The Clubbell passes beside the ear, not over the head.",
+  "Alternating Arm Cast - Drumming Cast": "Two Clubbells alternate Arm Casts. One casts while the other waits or moves in opposition in the advanced version.",
+  "Two-Handed Arm Cast - The Gama Cast": "A two-handed Arm Cast. One forearm threads over the head while the Clubbell moves from Order to Back Position and back.",
+  "Two-Handed Arm Cast Circular Pivot": "A cyclical two-handed Arm Cast that pivots between sides, allowing the Clubbell to move continuously around the shoulders.",
+  "Two-Handed Arm Cast to Flag Position - The Barbarian": "Casts from Back Position directly into Flag Position. Requires powerful core lock and full horizontal arm lockout.",
+  "Shoulder Cast": "Starts in Back Position and casts the Clubbell out to the side. The elbow flares toward the cast direction while the lat helps pull and control.",
+  "Two-Handed Shoulder Cast": "A two-handed cast from Guard Position to Guard Position. The Clubbell passes close to the head and shoulder through a tight arc.",
+  "Shoulder Cast to Side Flag Position - The Muscle Out": "A Shoulder Cast finishing in Side Flag Position. Requires deep hip root, no spinal collapse, and strong horizontal lockout.",
+  "Double Shoulder Cast - The Crucifix": "Two Clubbells cast outward in opposite directions. Timing is key so the Clubbells do not collide.",
+  "Alternating Shoulder Cast - The Kodo Cast": "Two Clubbells alternate Shoulder Casts to Side Flag. One side casts, returns, then the other side casts.",
+  "Head Cast": "Moves from Back Position directly overhead to Torch Position or Leverage Hold. Requires strong core drive and careful head clearance.",
+  "Shoulder Cast Leverage Hold Variation": "A Head Cast variation that stops in an angled Leverage Hold instead of going all the way to Torch Position.",
+  "Alternating Head Cast - The See-Saw": "Two Clubbells alternate between Back Position and overhead. One goes up while the other comes down in the advanced version.",
+  "Two-Handed Head Cast": "A two-handed Head Cast from Back Position to Torch Position. Requires strong launch and careful control around the head.",
+  "Shield Cast": "An advanced cast blending Arm, Shoulder, and Head Cast elements. The Clubbell moves around the back and shoulders through a shield-like path.",
+  "Two-Handed Shield Cast": "A two-handed Shield Cast moving from one Guard Position through Back Position to the opposite Guard Position.",
+  "Parry Cast": "A complex cast moving through multiple planes. It can also function as a recovery path to return the Clubbell safely to Floor Park.",
+  "Reverse Parry Cast": "The reverse direction of the Parry Cast. It winds the Clubbell around the opposite shoulder path before returning to Floor Park.",
+  "Two-Handed Parry Cast": "A two-handed Parry Cast where each arm performs a different directional role. Requires mastery of the one-handed Parry and Reverse Parry first.",
+  "Shouldered Squat": "A squat with the Clubbell parked on the shoulder. Keep the torso organized, brace the trunk, and squat without letting the load collapse the spine.",
+  "Barbarian Squat": "A squat with the Clubbell held in Flag/Barbarian-style position. Requires strong core tension, shoulder pack, and controlled squat depth.",
+  "Forward Lunge": "A forward lunge while holding the Clubbell in the selected position. Step forward, absorb with control, keep the trunk tall, and drive back to standing.",
+  "Reverse Lunge": "A reverse lunge while holding the Clubbell. Step back, lower under control, keep the front leg rooted, and return to standing without twisting.",
+  "Side Lunge": "A lateral lunge with the Clubbell held stable. Shift the hips to one side, keep the opposite leg long, then drive back through the working leg.",
+  "Cossack Squat": "A side-to-side squat with one leg bent and the other extended. Keep the Clubbell stable while the hips move low and laterally.",
+  "Curtsy Lunge": "A diagonal/rear-crossing lunge. Step behind and across the body, keep the pelvis controlled, and return to standing without collapsing into the hip."
+};
+
+function getClubExerciseDescription(name){
+  const raw = String(name || "");
+  const normalized = raw
+    .replace(/[â€“â€”]/g, "-")
+    .replace(/\s+/g, " ")
+    .trim();
+  return CLUB_EXERCISE_DESCRIPTIONS[raw]
+    || CLUB_EXERCISE_DESCRIPTIONS[normalized]
+    || CLUB_EXERCISE_DESCRIPTIONS[normalized.replace(/^Two Handed\b/, "Two-Handed")]
+    || "No short description has been added for this exercise yet.";
+}
+
+function renderClubExerciseAccordionCard(x, idx){
+  const title = `${idx + 1}. ${cleanText(x.exercise)}`;
+  const meta = `${cleanText(x.bucketLabel || x.bucket)} | ${cleanText(x.subcategory)}`;
+  const description = getClubExerciseDescription(x.exercise);
+  return `<details class="intu-item club-exercise-item">
+    <summary class="intu-summary">
+      <div class="ex-left">
+        <div class="ex-title">${title}</div>
+        <div class="ex-meta">${meta}</div>
+      </div>
+      <div class="pill">Club</div>
+    </summary>
+    <div class="intu-body">${cleanText(description)}</div>
+  </details>`;
+}
+
 const BUCKETS = ["Rhythmic","Ballistic","Grinding"];
 const SUBCATEGORY_ORDER = {
   Rhythmic:["swing","pendulum","circle"],
@@ -519,9 +737,9 @@ function clubCompatible(exercise, clubType){
 function clubPool(bucket, clubType){
   return CLUB_EXERCISES.filter(x => x.bucket === bucket && clubCompatible(x, clubType));
 }
-  const CST_SETTINGS_KEY = "cst_settings_v5";
-  const BF_SETTINGS_KEY = "cst_bodyflow_settings_v5";
-  const BF_DEBUG_KEY = "cst_bodyflow_debug_v5";
+  const CST_SETTINGS_KEY = "cst_settings_v6";
+  const BF_SETTINGS_KEY = "cst_bodyflow_settings_v6";
+  const BF_DEBUG_KEY = "cst_bodyflow_debug_v6";
 
   const PROGRESS_DEFAULT = {
   phaseIndex:0,
@@ -746,7 +964,48 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   function bfAllowedFromBase(base, level, includeAdvanced){
     return BODYFLOW_MOVES.filter(move => bfMoveEnabled(move, level, includeAdvanced) && move.start.includes(base));
   }
-  function bfPickEnd(rng, move){ return bfChoice(rng, move.end || move.start || ["SHINBOX"]); }
+  function bfStepLabel(step){
+    if(!step) return "";
+    const from = BODYFLOW_BASE_LABEL[step.start] || step.start || "";
+    const to = BODYFLOW_BASE_LABEL[step.end] || step.end || "";
+    if(step.moveId === "SQUAT_CREEP") return `Squat Creep: ${from} -> ${to}`;
+    if(step.moveId === "SPINAL_ROCK" || String(step.moveId || "").startsWith("SPINAL_ROCK_")) return `${step.name}: ${from} -> ${to}`;
+    if(step.moveId === "SHINBOX_SWITCH") return `Shinbox Switch`;
+    if(step.moveId === "KNEE_SWITCH") return `Knee Switch: ${from} -> ${to}`;
+    if(step.moveId === "SHIN_ROLL") return `Shin Roll: ${from} -> ${to}`;
+    if(step.moveId === "STANDING_SHIN_ROLL") return `Standing Shin Roll: ${from} -> ${to}`;
+    return step.name || "";
+  }
+  function bfPickEnd(rng, move, currentBase = null, history = [], previousBase = null){
+    let ends = (move.end || move.start || ["SHINBOX"]).slice();
+
+   // Prefer a fresh destination: not the current base and not the base from one step ago.
+    if(ends.length > 1){
+      const noBacktrackAndChanged = ends.filter(end => end !== previousBase && end !== currentBase);
+      if(noBacktrackAndChanged.length) ends = noBacktrackAndChanged;
+    }
+
+   // If that is impossible, still avoid immediately returning to the base from one step ago.
+    if(previousBase && ends.length > 1){
+      const noBacktrack = ends.filter(end => end !== previousBase);
+      if(noBacktrack.length) ends = noBacktrack;
+    }
+
+   // Then avoid no-op transitions when possible.
+    if(currentBase && ends.length > 1){
+      const changed = ends.filter(end => end !== currentBase);
+      if(changed.length) ends = changed;
+    }
+
+    if(history.length && ends.length > 1){
+      const recentTransitions = history.slice(-3)
+        .filter(step => step.moveId === move.id)
+        .map(step => `->`);
+      const fresh = ends.filter(end => !recentTransitions.includes(`->`));
+      if(fresh.length) ends = fresh;
+    }
+    return bfChoice(rng, ends);
+  }
   function bfScoreMove(move, prevMove, history){
     let score = 1;
     if(prevMove){
@@ -762,7 +1021,17 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
     return Math.max(0.1, score);
   }
   function bfWeightedPick(rng, moves, prevMove, history){
-    const weighted = moves.map(move => ({ move, weight:bfScoreMove(move, prevMove, history) }));
+    let pool = moves.slice();
+    if(prevMove && pool.length > 1){
+      const noRepeat = pool.filter(move => move.id !== prevMove.id);
+      if(noRepeat.length) pool = noRepeat;
+    }
+    const recentIds = history.slice(-3).map(step => step.moveId);
+    if(pool.length > 1){
+      const fresher = pool.filter(move => !recentIds.includes(move.id));
+      if(fresher.length) pool = fresher;
+    }
+    const weighted = pool.map(move => ({ move, weight:bfScoreMove(move, prevMove, history) }));
     const total = weighted.reduce((sum, x) => sum + x.weight, 0);
     let r = rng() * total;
     for(const item of weighted){ r -= item.weight; if(r <= 0) return item.move; }
@@ -777,41 +1046,52 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
     const level = Math.max(1, Math.min(4, Number(opts.level) || 2));
     const includeAdvanced = !!opts.includeAdvanced && level >= 4;
     const length = opts.length === "random" ? (8 + Math.floor(rng() * 5)) : Math.max(3, Number(opts.length) || 8);
-    const startPool = BODYFLOW_START_BASES.filter(id => id !== "ASSURANCE" || opts.kind === "decompress");
+    const decompressionStartBases = ["ASSURANCE","SHINBOX","SHIN_SQUAT","QUAD","SPINAL_ARCH","SPINAL_SQUAT"];
+    const startPool = opts.kind === "decompress"
+      ? decompressionStartBases
+      : BODYFLOW_START_BASES.filter(id => id !== "ASSURANCE");
     const startBase = bfNormalizeStartBase(opts.startBase) === "random" ? bfChoice(rng, startPool) : opts.startBase;
-    const steps = [{ index:1, moveId:`SET_${startBase}`, name:`Start: ${BODYFLOW_BASE_LABEL[startBase]}`, kind:"Structure", start:startBase, end:startBase, level:1, family:"base" }];
+    const steps = [{ index:1, moveId:`SET_${startBase}`, name:`Start: ${BODYFLOW_BASE_LABEL[startBase]}`, displayName:`Start: ${BODYFLOW_BASE_LABEL[startBase]}`, kind:"Structure", start:startBase, end:startBase, level:1, family:"base" }];
     if(level === 1){
       let pool = bfShuffle(rng, BODYFLOW_START_BASES.filter(id => id !== startBase));
       const count = Math.max(3, Math.min(length, opts.kind === "decompress" ? 5 : 8));
       for(let i=1; i<count; i++){
         if(!pool.length) pool = bfShuffle(rng, BODYFLOW_START_BASES.filter(id => id !== steps[steps.length-1].end));
         const base = pool.shift();
-        steps.push({ index:steps.length + 1, moveId:`STRUCTURE_${base}`, name:BODYFLOW_BASE_LABEL[base], kind:"Structure", start:steps[steps.length-1].end, end:base, level:1, family:"base" });
+        steps.push({ index:steps.length + 1, moveId:`STRUCTURE_${base}`, name:BODYFLOW_BASE_LABEL[base], displayName:BODYFLOW_BASE_LABEL[base], kind:"Structure", start:steps[steps.length-1].end, end:base, level:1, family:"base" });
       }
       return { seedKey, level, includeAdvanced:false, requestedLength:opts.length ?? length, length:steps.length, startBase, endBase:steps[steps.length-1].end, steps };
     }
     let currentBase = startBase;
+    let previousBase = null;
     let prevMove = null;
     const targetCount = Math.max(3, length);
     for(let i=1; i<targetCount; i++){
       let allowed = bfAllowedFromBase(currentBase, level, includeAdvanced);
       if(!allowed.length){
-        const bridge = bfChoice(rng, ["SHINBOX","QUAD","FLAT_SQUAT","SUPINE","SPINAL_ARCH"]);
-        steps.push({ index:steps.length + 1, moveId:`RESET_${bridge}`, name:`Return to ${BODYFLOW_BASE_LABEL[bridge]}`, kind:"Structure", start:currentBase, end:bridge, level:1, family:"base" });
+        const bridgePool = opts.kind === "decompress"
+          ? ["SHINBOX","SHIN_SQUAT","QUAD","ASSURANCE"]
+          : ["SHINBOX","QUAD","FLAT_SQUAT","SUPINE","SPINAL_ARCH"];
+        const bridge = bfChoice(rng, bridgePool);
+        steps.push({ index:steps.length + 1, moveId:`RESET_`, name:`Return to `, displayName:`Return to `, kind:"Structure", start:currentBase, end:bridge, level:1, family:"base" });
+        previousBase = currentBase;
         currentBase = bridge;
         allowed = bfAllowedFromBase(currentBase, level, includeAdvanced);
       }
       if(!allowed.length) break;
       const move = bfWeightedPick(rng, allowed, prevMove, steps);
-      const endBase = bfPickEnd(rng, move);
-      steps.push({ index:steps.length + 1, moveId:move.id, name:move.name, kind:move.kind, start:currentBase, end:endBase, level:move.level, family:move.family });
+      const endBase = bfPickEnd(rng, move, currentBase, steps, previousBase);
+      const step = { index:steps.length + 1, moveId:move.id, name:move.name, kind:move.kind, start:currentBase, end:endBase, level:move.level, family:move.family };
+      step.displayName = bfStepLabel(step);
+      steps.push(step);
+      previousBase = currentBase;
       currentBase = endBase;
       prevMove = move;
     }
     const settleOptions = opts.kind === "decompress" ? ["ASSURANCE","SHINBOX","SUPINE","SPINAL_ARCH"] : ["SHINBOX","QUAD","FLAT_SQUAT","SPINAL_ARCH","ASSURANCE"];
     const settle = bfChoice(rng, settleOptions);
     if(currentBase !== settle){
-      steps.push({ index:steps.length + 1, moveId:`SETTLE_${settle}`, name:`Settle: ${BODYFLOW_BASE_LABEL[settle]}`, kind:"Settle", start:currentBase, end:settle, level:1, family:"settle", isReturn:true });
+      steps.push({ index:steps.length + 1, moveId:`SETTLE_${settle}`, name:`Settle: ${BODYFLOW_BASE_LABEL[settle]}`, displayName:`Settle: ${BODYFLOW_BASE_LABEL[settle]}`, kind:"Settle", start:currentBase, end:settle, level:1, family:"settle", isReturn:true });
     }
     return { seedKey, level, includeAdvanced, requestedLength:opts.length ?? length, length:steps.length, startBase, endBase:steps[steps.length-1].end, steps };
   }
@@ -840,6 +1120,7 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   let cachedCompleted = null;
   let cachedProgress = null;
   let lastTickSyncSecond = null;
+  let accordionsBound = false;
 
   function dateKeyForOffset(days){
     const d = new Date();
@@ -898,8 +1179,8 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   function fmtMin(sec){ return sec ? Math.round(sec/60) + " min" : "-"; }
   function cleanText(value){
     return String(value ?? "")
-      .replaceAll("â€”", "-")
-      .replaceAll("â€¢", "•")
+      .replaceAll("Ã¢â‚¬â€", "-")
+      .replaceAll("Ã¢â‚¬Â¢", "â€¢")
       .replace(/\bOke\b/g, "OK")
       .replace(/\bfull-body\b/gi, "full body")
       .replace(/\bper kant\b/gi, "per side")
@@ -1197,6 +1478,7 @@ function getDefaultLastState(){
       session.club = {
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
         clubType,
+        clubTypeIndex:clubTypePick.index,
         phaseName:clubPlan.phaseName,
         pattern:clubPlan.pattern,
         sessionNumber:(progress.sessionInPhase || 0) + 1,
@@ -1213,12 +1495,8 @@ function getDefaultLastState(){
       session.blockTimes.club = getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
       session.countsTowardProgression = !!band.useProgression;
-      last.lastClubType = clubType;
-      last.lastClubTypeIndex = clubTypePick.index;
-      const lastExerciseMap = getLastExerciseMap(last, clubType);
-      clubPlan.sequence.forEach(item => {
-        lastExerciseMap[`${item.bucket}|${item.subcategory}`] = item.exercise;
-      });
+      // Do not commit Clubbell type rotation or exercise history here.
+      // Reset day may regenerate today's plan; the rotation only advances on Finish.
       saveLast(last);
       saveProgressCached(progress);
     } else {
@@ -1268,30 +1546,37 @@ function getDefaultLastState(){
     const getDirectAccordionHeader = (accordion) => Array.from(accordion.children).find(el => el.classList?.contains('accordion-header')) || null;
     const getDirectAccordionContent = (accordion) => Array.from(accordion.children).find(el => el.classList?.contains('accordion-content')) || null;
     const getSiblingAccordions = (accordion) => Array.from(accordion?.parentElement?.children || []).filter(el => el.classList?.contains('accordion'));
-    const headers = leftCard.querySelectorAll('.accordion-header');
-    headers.forEach((btn, index) => {
-      const parent = btn.closest('.accordion');
-      const content = parent ? getDirectAccordionContent(parent) : null;
-      const contentId = `accordion-content-${index}`;
-      if(content){
+
+    leftCard.querySelectorAll('.accordion').forEach((accordion, index) => {
+      const header = getDirectAccordionHeader(accordion);
+      const content = getDirectAccordionContent(accordion);
+      if(header && content){
+        const contentId = `accordion-content-${index}`;
         content.id = contentId;
-        btn.setAttribute("aria-controls", contentId);
+        header.setAttribute("aria-controls", contentId);
+        header.setAttribute("aria-expanded", String(accordion.classList.contains('active')));
       }
-      btn.setAttribute("aria-expanded", String(parent?.classList.contains('active') || false));
-      btn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const parent = btn.closest('.accordion');
-        const isOpen = parent.classList.contains('active');
-        getSiblingAccordions(parent).forEach(acc => {
-          acc.classList.remove('active');
-          const header = getDirectAccordionHeader(acc);
-          if(header) header.setAttribute("aria-expanded", "false");
-        });
-        if(!isOpen){
-          parent.classList.add('active');
-          btn.setAttribute("aria-expanded", "true");
-        }
+    });
+
+    if(accordionsBound) return;
+    accordionsBound = true;
+
+    leftCard.addEventListener('click', (e) => {
+      const btn = e.target.closest('.accordion-header');
+      if(!btn || !leftCard.contains(btn)) return;
+      e.stopPropagation();
+      const parent = btn.closest('.accordion');
+      if(!parent) return;
+      const isOpen = parent.classList.contains('active');
+      getSiblingAccordions(parent).forEach(acc => {
+        acc.classList.remove('active');
+        const header = getDirectAccordionHeader(acc);
+        if(header) header.setAttribute("aria-expanded", "false");
       });
+      if(!isOpen){
+        parent.classList.add('active');
+        btn.setAttribute("aria-expanded", "true");
+      }
     });
   }
 
@@ -1304,406 +1589,6 @@ function getDefaultLastState(){
       ${pill ? `<div class="pill">${cleanText(pill)}</div>` : ""}
     </div>`;
   }
-
-  function renderSession(s){
-    const progress = loadProgressCached();
-    const summaryText = s.intuOnly
-      ? "Today is recovery-focused: Intu only. Because no Clubbell or Body Flow session is completed today, tomorrow defaults back to Clubbell."
-      : s.dayType === "clubbell"
-      ? "Today: Intu, then Clubbell, then finish with Body-Flow Decompression. Finish this session to unlock a Body-Flow day tomorrow. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration."
-      : "Today: Intu, then Body-Flow Practice, then finish with Body-Flow Decompression. Finish this session and tomorrow returns to Clubbell. Scores 9-11 use a 15-minute fallback; scores 12-15 use the normal progression duration.";
-
-    let html = `<h2>Today</h2>`;
-    if(s.intuOnly){
-      html += `
-        ${renderExerciseCard(
-          "Intu-only day",
-          `Score 0-8: Intu only today. The calendar cycle still continues as normal.`,
-          "Recovery",
-          "mb-12"
-        )}`;
-    }
-
-    html += `
-      <div class="accordion">
-        <button type="button" class="accordion-header">
-          <span>Intu</span>
-          <span class="pill">15 drills | ${fmtMin(s.blockTimes?.intu || 0)}</span>
-        </button>
-        <div class="accordion-content">
-          <div class="stack-10 mt-12">
-            ${s.intu.map(x => `
-              <details class="intu-item">
-                <summary class="intu-summary">
-                  <div class="ex-left">
-                    <div class="ex-title">${cleanText(x.title)} - ${cleanText(x.reps)}</div>
-                  </div>
-                  <div class="pill">Intu</div>
-                </summary>
-                <div class="intu-body">${cleanText(x.description)}</div>
-              </details>`).join("")}
-          </div>
-        </div>
-      </div>`;
-
-    if(s.club){
-      html += `
-      <div class="accordion">
-        <button type="button" class="accordion-header">
-          <span>Clubbell training</span>
-          <span class="pill">${s.club.clubType.toUpperCase()} | ${fmtMin(s.blockTimes?.club || 0)}</span>
-        </button>
-        <div class="accordion-content">
-          <div class="stack-10 mt-12">
-            ${s.club.sequence.map((x, idx) => `
-              <div class="exercise">
-                <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${cleanText(x.exercise)}</div>
-                  <div class="ex-meta">${cleanText(x.bucketLabel || x.bucket)} | ${cleanText(x.subcategory)}</div>
-                </div>
-                <div class="pill">Club</div>
-              </div>`).join("")}
-          </div>
-          ${renderExerciseCard("Order", s.club.flow || "-", "Basic", "mt-10")}
-          <div class="accordion mt-12">
-            <button type="button" class="accordion-header">
-              <span>Session details</span>
-              <span class="pill">Info</span>
-            </button>
-            <div class="accordion-content">
-              ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
-              ${renderExerciseCard("Phase", `${s.club.phaseName} | session ${s.club.sessionNumber}/${PHASE_SESSION_COUNT}`, "Progression", "mb-10")}
-              ${renderExerciseCard("Pattern", `${s.club.pattern.Rhythmic}+${s.club.pattern.Ballistic}+${s.club.pattern.Grinding}`, "Today", "mb-10")}
-              ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress), "mb-10")}
-              ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
-              <p class="small mt-10">Phase selection: choose subcategories by current phase, rotate the load across the main categories, and filter exercise picks by the club type of the day.</p>
-            </div>
-          </div>
-        </div>
-      </div>`;
-    }
-    
-
-if(s.bodyFlow){
-      html += `
-      <div class="accordion">
-        <button type="button" class="accordion-header">
-          <span>Body-Flow Practice</span>
-          <span class="pill">${fmtMin(s.blockTimes?.bodyFlow || 0)} | ${getBandDescription(s.total, progress)}</span>
-        </button>
-        <div class="accordion-content">
-          <div class="stack-10 mt-12">
-            ${s.bodyFlow.steps.map((x, idx) => `
-              <div class="exercise">
-                <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${cleanText(x.name)}</div>
-                  <div class="ex-meta">${cleanText(BODYFLOW_BASE_LABEL[x.start] || x.start)} -> ${cleanText(BODYFLOW_BASE_LABEL[x.end] || x.end)} | ${cleanText(bfLevelLabel(x.level || 1))}${x.isReturn ? ' | settle' : ''}</div>
-                </div>
-                <div class="pill">${cleanText(x.kind)}</div>
-              </div>`).join("")}
-          </div>
-          <div class="accordion mt-12">
-            <button type="button" class="accordion-header">
-              <span>Session details</span>
-              <span class="pill">Info</span>
-            </button>
-            <div class="accordion-content">
-              ${renderExerciseCard("Practice", s.bodyFlow.name, `${s.bodyFlow.bagType}`, "mt-12 mb-10")}
-              ${renderExerciseCard("Focus", s.bodyFlow.focus, "Movement practice", "mb-10")}
-              ${renderExerciseCard("Use", s.bodyFlow.use, "Body-Flow day", "mb-10")}
-              ${renderExerciseCard("Rule", "Body-Flow vocabulary engine. Start with a structure, follow allowed transitions, and keep breathing, movement and structure integrated.", "Flow", "mb-10")}
-              <div class="exercise mb-10">
-                <div class="ex-left">
-                  <div class="ex-title">Settings used today</div>
-                  <div class="ex-meta">Start: ${cleanText(BODYFLOW_BASE_LABEL[s.bodyFlow.startBase] || s.bodyFlow.startBase)} | Target length: ${cleanText(getBodyFlowLengthLabel(s.bodyFlow))} | Flow moves: ${cleanText(String(getBodyFlowMoveCount(s.bodyFlow)))} | Structure steps: ${cleanText(String(getBodyFlowStructureCount(s.bodyFlow)))} | Level: ${cleanText(String(s.bodyFlow.level))} | Advanced: ${s.bodyFlow.includeAdvanced ? 'ON' : 'OFF'}</div>
-                </div>
-                <div class="pill">Locked today</div>
-              </div>
-            </div>
-          </div>
-          ${isBFDebugEnabled() ? `<details class="mt-12">
-            <summary>Debug path</summary>
-            <div class="detailsBody small">${cleanText(s.bodyFlow.steps.map(x => `${BODYFLOW_BASE_LABEL[x.start] || x.start} -> ${x.name} -> ${BODYFLOW_BASE_LABEL[x.end] || x.end} [L${x.level || 1}]`).join(' | '))}</div>
-          </details>` : ``}
-        </div>
-      </div>`;
-    }
-
-    if(s.decompFlow){
-      html += `
-      <div class="accordion">
-        <button type="button" class="accordion-header">
-          <span>Body-Flow Decompression</span>
-          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} | ${s.dayType === "clubbell" ? "After Clubbell" : "Finish"}</span>
-        </button>
-        <div class="accordion-content">
-          ${renderExerciseCard("Practice", s.decompFlow.name, `${s.decompFlow.bagType} vocab`, "mt-12 mb-10")}
-          ${renderExerciseCard("Focus", s.decompFlow.focus, "Decompress", "mb-10")}
-          ${renderExerciseCard("Use", s.decompFlow.use, s.dayType === "clubbell" ? "After Clubbell" : "After Body Flow", "mb-10")}
-          ${renderExerciseCard("Rule", "Short chain only. Move gently, keep it spacious and continuous, and do not chase fatigue.", "Flow", "mb-10")}
-          <div class="stack-10">
-            ${s.decompFlow.steps.map((x, idx) => `
-              <div class="exercise">
-                <div class="ex-left">
-                  <div class="ex-title">${idx + 1}. ${cleanText(x.name)}</div>
-                  <div class="ex-meta">${cleanText(BODYFLOW_BASE_LABEL[x.start] || x.start)} -> ${cleanText(BODYFLOW_BASE_LABEL[x.end] || x.end)} | ${cleanText(x.kind)}</div>
-                </div>
-                <div class="pill">L${x.level || 1}</div>
-              </div>`).join("")}
-          </div>
-          ${renderExerciseCard("Prompt", "Let the breath slow the movement. If a transition feels rough, return to Shinbox, Quad Squat, Spinal Arch or Position of Assurance.", "Practice", "mt-10")}
-        </div>
-      </div>`;
-    }
-    html += `<div class="hr"></div>`;
-    if(!s.intuOnly){
-      html += `
-      <div class="finish-row">
-        <button id="btnStartSession" class="btn primary">Start block timer</button>
-        <button id="btnFinishSession" class="btn finish" ${s.completed ? 'disabled' : ''}>${s.completed ? 'Completed' : 'Finish session'}</button>
-        <span class="small">${s.completed ? 'Saved as completed for today.' : 'Use Finish when the training is actually done.'}</span>
-      </div>`;
-    }
-    html += `${!s.intuOnly && progress.awaitingDecision ? `<div class="finish-row"><button id="btnPhaseNext" class="btn good">Next phase</button><button id="btnPhaseRepeat" class="btn">Repeat phase</button><span class="small">${PHASE_SESSION_COUNT} Clubbell sessions completed. Choose what to do next before the next Clubbell block.</span></div>` : ""}
-    <p class="small mt-10">${summaryText}</p>`;
-
-    leftCard.innerHTML = html;
-    bindAccordions();
-    const accordions = leftCard.querySelectorAll(".accordion");
-    const defaultOpenIndex = s.club || s.bodyFlow ? 1 : 0;
-    const defaultAccordion = accordions[defaultOpenIndex] || accordions[0];
-    if(defaultAccordion){
-      defaultAccordion.classList.add("active");
-      const header = defaultAccordion.querySelector(".accordion-header");
-      if(header) header.setAttribute("aria-expanded", "true");
-    }
-    const startBtn = document.getElementById("btnStartSession");
-    if(startBtn){
-      startBtn.onclick = () => {
-        if(s.intuOnly) return;
-        startSequence();
-      };
-    }
-    const finishBtn = document.getElementById("btnFinishSession");
-    if(finishBtn){
-      finishBtn.onclick = finishSession;
-    }
-    const btnPhaseNext = document.getElementById("btnPhaseNext");
-    if(btnPhaseNext) btnPhaseNext.onclick = () => { advanceProgressDecision('next'); cachedDay = null; boot(); };
-    const btnPhaseRepeat = document.getElementById("btnPhaseRepeat");
-    if(btnPhaseRepeat) btnPhaseRepeat.onclick = () => { advanceProgressDecision('repeat'); cachedDay = null; boot(); };
-    const modeLabel = s.mode;
-    setModePill(modeLabel);
-    setDayPill("locked");
-    renderRightPanel();
-  }
-
-
-  function renderSettings(){
-    const cst = getCSTSettings();
-    const bf = getBFSettings();
-    const progress = loadProgressCached();
-    const currentSessionInPhase = Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, progress.sessionInPhase || 0));
-    settingsCstCard.innerHTML = `
-      <h2>CST settings</h2>
-      <div class="setting-list">
-        <div class="settings-note">These settings affect newly generated sessions. Today's locked session does not change until you reset the day.</div>
-        <div id="progressionCard" class="exercise">
-          <div class="ex-left">
-            <div class="ex-title">Current phase</div>
-            <div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentDurationMinutes(progress)} min`}</div>
-          </div>
-          <div class="pill">Progression</div>
-        </div>
-        <div id="progressionAdvanced" class="hidden-advanced">
-          <div class="exercise">
-            <div class="ex-left">
-              <div class="ex-title">Advanced progression override</div>
-              <div class="ex-meta">Hidden mode unlocked. Choose a phase and Clubbell session slot, then apply.</div>
-            </div>
-            <div class="pill">Advanced</div>
-          </div>
-          <div class="kv">
-            <label class="label">Phase</label>
-            <select id="progressionPhaseSelect">
-              ${PHASES.map((phase, index) => `<option value="${index}" ${index === (progress.phaseIndex || 0) ? 'selected' : ''}>${phase.name}</option>`).join('')}
-            </select>
-          </div>
-          <div class="kv">
-            <label class="label">Session</label>
-            <select id="progressionSessionSelect">
-              ${Array.from({ length:PHASE_SESSION_COUNT }, (_, index) => `<option value="${index}" ${index === currentSessionInPhase ? 'selected' : ''}>${index + 1}</option>`).join('')}
-            </select>
-          </div>
-          <div class="row">
-            <button id="btnApplyProgressionOverride" class="btn good">Apply override</button>
-            <button id="btnHideProgressionAdvanced" class="btn">Hide</button>
-          </div>
-        </div>
-        <div class="exercise">
-          <div class="ex-left">
-            <div class="ex-title">Allowed club types</div>
-            <div class="ex-meta">At least one must stay on. Clubbell days only use enabled types.</div>
-          </div>
-          <div class="pill">CST</div>
-        </div>
-        <div class="toggle-list">
-          ${[
-            { key:'single', label:'Single Club' },
-            { key:'double', label:'Double Club' },
-            { key:'2h', label:'2-Hand Club' }
-          ].map(item => `
-            <label class="toggle-item">
-              <span>${item.label}</span>
-              <input type="checkbox" data-cst-club="${item.key}" ${cst.clubTypes?.[item.key] ? 'checked' : ''}>
-            </label>`).join('')}
-        </div>
-        <div class="row">
-          <button id="btnResetPhase1" class="btn danger">Reset to phase 1</button>
-        </div>
-      </div>`;
-
-    settingsBfCard.innerHTML = `
-      <h2>Body-Flow settings</h2>
-      <div class="setting-list">
-        <div class="settings-note">These settings apply to the next Body-Flow day. This version is back on the Body-Flow base: structures, transitions, kinetic chains, rolling drills and optional advanced movements. Level 4 advanced only becomes active when practice level is set to 4.</div>
-        <div class="toggle-list">
-          <label class="toggle-item">
-            <span>Alternate with Body-Flow days</span>
-            <input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}>
-          </label>
-          <label class="toggle-item">
-            <span>Include Level 4 advanced movements</span>
-            <input type="checkbox" id="bfSettingsIncludeAdvanced" ${bf.includeAdvanced ? 'checked' : ''}>
-          </label>
-        </div>
-        <div class="kv">
-          <label class="label">Practice level</label>
-          <select id="bfSettingsPracticeLevel">
-            <option value="1">Level 1 - Structures</option>
-            <option value="2">Level 2 - Simple transitions</option>
-            <option value="3">Level 3 - Kinetic chains</option>
-            <option value="4">Level 4 - Full Body-Flow</option>
-          </select>
-        </div>
-        <div class="kv">
-          <label class="label">Target length</label>
-          <select id="bfSettingsLength">
-            <option value="random">Random 8-12</option>
-            <option value="8">8 moves</option>
-            <option value="10">10 moves</option>
-            <option value="12">12 moves</option>
-          </select>
-        </div>
-        <div class="kv">
-          <label class="label">Start structure</label>
-          <select id="bfSettingsStartBase">
-            <option value="random">Random</option>
-            ${BODYFLOW_BASES.filter(x => !x.helper).map(x => `<option value="${x.id}">${x.name}</option>`).join('')}
-          </select>
-        </div>
-        <div class="kv">
-          <label class="label">Decompression</label>
-          <select id="bfSettingsDecomp">
-            <option value="simple">Simple - Level 1</option>
-            <option value="normal">Normal - Level 2</option>
-          </select>
-        </div>
-      </div>`;
-
-    const bfEnableStandalone = document.getElementById('bfSettingsEnableStandalone');
-    const bfIncludeAdvanced = document.getElementById('bfSettingsIncludeAdvanced');
-    const bfPracticeLevel = document.getElementById('bfSettingsPracticeLevel');
-    const bfLength = document.getElementById('bfSettingsLength');
-    const bfStartBase = document.getElementById('bfSettingsStartBase');
-    const bfDecomp = document.getElementById('bfSettingsDecomp');
-    const syncBFSettingsUI = () => {
-      const enabled = !!bfEnableStandalone?.checked;
-      [bfPracticeLevel, bfLength, bfStartBase, bfDecomp].forEach(el => {
-        if(el) el.disabled = !enabled;
-      });
-      const level4Active = enabled && Number(bfPracticeLevel?.value) === 4;
-      if(bfIncludeAdvanced) bfIncludeAdvanced.disabled = !level4Active;
-      if(!level4Active && bfIncludeAdvanced) bfIncludeAdvanced.checked = false;
-    };
-    if(bfPracticeLevel) bfPracticeLevel.value = String(bf.practiceLevel);
-    if(bfLength) bfLength.value = bf.practiceLength;
-    if(bfStartBase) bfStartBase.value = bf.startBase;
-    if(bfDecomp) bfDecomp.value = bf.decompComplexity;
-    syncBFSettingsUI();
-    const persistBF = () => setBFSettings({
-      enableStandalone:bfEnableStandalone.checked,
-      practiceLevel:Number(bfPracticeLevel.value),
-      practiceLength:bfLength.value,
-      startBase:bfStartBase.value,
-      decompComplexity:bfDecomp.value,
-      includeAdvanced:bfIncludeAdvanced.checked
-    });
-    [bfEnableStandalone, bfIncludeAdvanced, bfPracticeLevel, bfLength, bfStartBase, bfDecomp].forEach(el => el && el.addEventListener('change', () => {
-      syncBFSettingsUI();
-      persistBF();
-    }));
-
-    const progressionCard = document.getElementById('progressionCard');
-    const progressionAdvanced = document.getElementById('progressionAdvanced');
-    const progressionPhaseSelect = document.getElementById('progressionPhaseSelect');
-    const progressionSessionSelect = document.getElementById('progressionSessionSelect');
-    const btnApplyProgressionOverride = document.getElementById('btnApplyProgressionOverride');
-    const btnHideProgressionAdvanced = document.getElementById('btnHideProgressionAdvanced');
-    let progressionHoldTimer = null;
-    const clearProgressionHold = () => {
-      if(progressionHoldTimer) clearTimeout(progressionHoldTimer);
-      progressionHoldTimer = null;
-    };
-    const showProgressionAdvanced = () => progressionAdvanced?.classList.add('active');
-    if(progressionCard){
-      const startHold = () => {
-        clearProgressionHold();
-        progressionHoldTimer = setTimeout(showProgressionAdvanced, 5000);
-      };
-      ['pointerdown', 'mousedown', 'touchstart'].forEach(evt => progressionCard.addEventListener(evt, startHold));
-      ['pointerup', 'pointerleave', 'pointercancel', 'mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt => progressionCard.addEventListener(evt, clearProgressionHold));
-    }
-    if(btnApplyProgressionOverride){
-      btnApplyProgressionOverride.onclick = () => {
-        const nextPhaseIndex = Math.max(0, Math.min(PHASES.length - 1, Number(progressionPhaseSelect.value)));
-        const nextSessionInPhase = Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, Number(progressionSessionSelect.value)));
-        const nextProgress = {
-          ...loadProgressCached(),
-          phaseIndex:nextPhaseIndex,
-          sessionInPhase:nextSessionInPhase,
-          awaitingDecision:false
-        };
-        saveProgressCached(nextProgress);
-        cachedDay = null;
-        renderSettings();
-        boot();
-      };
-    }
-    if(btnHideProgressionAdvanced){
-      btnHideProgressionAdvanced.onclick = () => progressionAdvanced?.classList.remove('active');
-    }
-
-    settingsCstCard.querySelectorAll('[data-cst-club]').forEach(input => {
-      input.addEventListener('change', () => {
-        const next = getCSTSettings();
-        next.clubTypes[input.dataset.cstClub] = input.checked;
-        if(!Object.values(next.clubTypes).some(Boolean)){
-          next.clubTypes[input.dataset.cstClub] = true;
-        }
-        setCSTSettings(next);
-        renderSettings();
-      });
-    });
-    const btnResetPhase1 = document.getElementById('btnResetPhase1');
-    if(btnResetPhase1) btnResetPhase1.onclick = () => {
-      saveProgressCached(resetProgressToPhase1());
-      cachedDay = null;
-      renderSettings();
-      boot();
-    };
-  }
-
   function initTabs(){
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -1722,7 +1607,13 @@ if(s.bodyFlow){
   }
 
   function renderRightNone(){
-    rightInner.innerHTML = `<h2>Status</h2><p class="small">No active timer.</p>`;
+    rightInner.innerHTML = `
+      <div class="timer-shell">
+        <div>
+          <h2>Timer</h2>
+          <p class="small">No active timer yet. Start or open a session to bring the block flow here.</p>
+        </div>
+      </div>`;
   }
 
   function syncRightPanel(s){
@@ -1773,39 +1664,47 @@ if(s.bodyFlow){
     const next = s.stages[s.currentStageIndex + 1] || null;
 
     rightInner.innerHTML = `
-      <h2>Timer</h2>
-      <div class="label">Current block</div>
-      <div id="currentStageLabel" class="stage-title">${current ? current.label : "-"}</div>
-      <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
-
-      <div class="row mt-12">
-        <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start")}</button>
-        <button id="btnNextStage" class="btn">Next block</button>
-        <button id="btnResetTimer" class="btn danger">Reset blocks</button>
-        ${!s.intuOnly ? `<button id="btnFinishRight" class="btn finish" ${s.completed ? "disabled" : ""}>${s.completed ? "Completed" : "Finish"}</button>` : ""}
-      </div>
-
-      <div class="exercise mt-12">
-        <div class="ex-left">
-          <div class="ex-title">Next</div>
-          <div id="nextStageMeta" class="ex-meta">${next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block."}</div>
+      <div class="timer-shell">
+        <div>
+          <h2>Timer</h2>
+          <p class="small">One place for the current block, the next transition and your remaining flow.</p>
         </div>
-        <div class="pill">${next ? "Up next" : "Last"}</div>
-      </div>
 
-      <div class="timeline">
-        ${s.stages.map((st, idx) => {
-          let cls = "";
-          if(idx < s.currentStageIndex) cls = "done";
-          else if(idx === s.currentStageIndex) cls = "active";
-          return `<div class="stage-pill ${cls}">
-            <span>${st.label}</span>
-            <strong class="stage-time">${idx < s.currentStageIndex ? "OK" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
-          </div>`;
-        }).join("")}
-      </div>
+        <div class="timer-hero">
+          <div class="label">Current block</div>
+          <div id="currentStageLabel" class="stage-title">${current ? current.label : "-"}</div>
+          <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
+        </div>
 
-      <div class="small mt-12">Clear beeps at 3-2-1, on block change, and at the end. Decompression never auto-starts: press Start yourself when you are ready. Wake Lock tries to keep your screen active while the timer is running.</div>
+        <div class="timer-actions">
+          <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start")}</button>
+          <button id="btnNextStage" class="btn">Next block</button>
+          <button id="btnResetTimer" class="btn danger">Reset blocks</button>
+          ${!s.intuOnly ? `<button id="btnFinishRight" class="btn finish" ${s.completed ? "disabled" : ""}>${s.completed ? "Completed" : "Finish"}</button>` : ""}
+        </div>
+
+        <div class="exercise">
+          <div class="ex-left">
+            <div class="ex-title">Next</div>
+            <div id="nextStageMeta" class="ex-meta">${next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block."}</div>
+          </div>
+          <div class="pill">${next ? "Up next" : "Last"}</div>
+        </div>
+
+        <div class="timeline">
+          ${s.stages.map((st, idx) => {
+            let cls = "";
+            if(idx < s.currentStageIndex) cls = "done";
+            else if(idx === s.currentStageIndex) cls = "active";
+            return `<div class="stage-pill ${cls}">
+              <span>${st.label}</span>
+              <strong class="stage-time">${idx < s.currentStageIndex ? "OK" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
+            </div>`;
+          }).join("")}
+        </div>
+
+        <div class="timer-note small">Clear beeps at 3-2-1, on block change, and at the end. Manual stages only start when you press Start. Wake Lock tries to keep your screen active while the timer is running.</div>
+      </div>
     `;
 
     document.getElementById("btnPlayPause").onclick = () => {
@@ -1869,6 +1768,7 @@ if(s.bodyFlow){
       setWakePill(false);
     }
   }
+
   async function releaseWakeLock(){
     try{
       if(wakeLock){
@@ -2061,6 +1961,18 @@ if(s.bodyFlow){
       dayType: d.dayType,
       completedAt: d.completedAt
     });
+    if(d.dayType === 'clubbell' && d.club){
+      const last = loadLast();
+      last.lastClubType = d.club.clubType;
+      last.lastClubTypeIndex = Number.isInteger(d.club.clubTypeIndex)
+        ? d.club.clubTypeIndex
+        : CLUB_TYPE_SEQUENCE.lastIndexOf(d.club.clubType || "");
+      const lastExerciseMap = getLastExerciseMap(last, d.club.clubType);
+      (d.club.sequence || []).forEach(item => {
+        lastExerciseMap[`${item.bucket}|${item.subcategory}`] = item.exercise;
+      });
+      saveLast(last);
+    }
     if(d.dayType === 'clubbell' && d.countsTowardProgression){
       const progress = loadProgressCached();
       progress.sessionInPhase = (progress.sessionInPhase || 0) + 1;
@@ -2123,7 +2035,7 @@ if(s.bodyFlow){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Intu only | 9-11 = 15 min fallback | 12-15 = normal session duration (15/20/25/30) | Clubbell is the default, Body-Flow only follows a completed Clubbell day</span>
+          <span class="small">0-8 = Intu only | Clubbell: 9-11 = 15 min fallback, 12-15 = progression duration (15/20/25/30) | Body-Flow day: 40 min cap | Body-Flow follows a completed Clubbell day</span>
         </div>
       </div>
     `;
@@ -2229,10 +2141,601 @@ if(s.bodyFlow){
   };
 
 
+
+
+  /***********************
+   * CST V6 BODY-FLOW OVERRIDES
+   * - Standalone Body-Flow = authentic 3/4/5 BME practice cycle, 40 min cap, no standalone decompression
+   * - Clubbell decompression = one gentle BME for 5 min, Arm Screw allowed
+   ***********************/
+
+  const V6_BME_DEFS = [
+    { id:"ARM_SCREW", name:"Arm Screw", family:"shoulder", start:["STANDING","ASSURANCE","QUAD"], end:["STANDING","ASSURANCE","QUAD"], decomp:true, standalone:false,
+      beginning:"Start from Standing, Position of Assurance, or Quad with the shoulder and arm organized.",
+      middle:"Spiral the arm and shoulder as if wringing out tension while the ribs and spine stay relaxed and breathable.",
+      ending:"Finish in the same structure with the shoulder line softer, breath easier, and no extra neck or trap tension." },
+    { id:"SHINBOX_SWITCH", name:"Shinbox Switch", family:"shinbox", start:["SHINBOX"], end:["SHINBOX"], decomp:true,
+      beginning:"Start in Shinbox with both legs folded and the torso organized.",
+      middle:"Rotate both knees and hips through the floor, switching the shinbox from one side to the other. Keep the breath moving and avoid lifting tension into the shoulders.",
+      ending:"Land in Shinbox on the opposite side, stable enough to breathe and continue." },
+    { id:"SQUAT_CREEP", name:"Squat Creep", family:"squat", start:["BOF_SQUAT","FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], end:["FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], decomp:true,
+      beginning:"Start from a low squat structure such as Flat Foot Squat, Ball of Foot Squat, Cossack, Triangle, Shooter, Hurdler, or Climber Squat.",
+      middle:"Shift weight slowly through the feet, hips, and spine while creeping from one squat orientation into another.",
+      ending:"Finish in another squat-based structure, balanced and ready for the next movement." },
+    { id:"KNEE_SWITCH", name:"Knee Switch", family:"shin-knee", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT"], decomp:true,
+      beginning:"Start from Shinbox or Shin Squat.",
+      middle:"Rotate through the knees and hips, changing the lower-body orientation without collapsing the spine.",
+      ending:"Finish in Shinbox or Shin Squat, with the pelvis and breath reorganized." },
+    { id:"SHIN_ROLL", name:"Shin Roll", family:"shin-roll", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT","SUPINE"], decomp:true,
+      beginning:"Start from Shinbox or Shin Squat.",
+      middle:"Roll across the shin and hip line into the floor, allowing the spine and pelvis to follow without bracing.",
+      ending:"Finish back in Shinbox, Shin Squat, or into a supine ground position, depending on the variation." },
+    { id:"STANDING_SHIN_ROLL", name:"Standing Shin Roll", family:"shin-roll", start:["STANDING","BOF_SQUAT","FLAT_SQUAT"], end:["SHINBOX","SHIN_SQUAT"],
+      beginning:"Start from Standing, Ball of Foot Squat, or Flat Foot Squat.",
+      middle:"Descend through a controlled roll toward the shin and hip, yielding into the ground instead of dropping.",
+      ending:"Finish in Shinbox or Shin Squat, organized and breathing." },
+    { id:"LONG_LEG_CREEP", name:"Long Leg Creep", family:"creep", start:["FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], end:["COSSACK","HURDLER","SHOOTER","CLIMBER"],
+      beginning:"Start from a squat-family structure such as Flat Foot Squat, Cossack, Triangle, Shooter, Hurdler, or Climber Squat.",
+      middle:"Extend and creep one leg long while shifting the hips and torso through a low ground path.",
+      ending:"Finish in a long-leg squat structure such as Cossack, Hurdler, Shooter, or Climber Squat." },
+    { id:"SHIN_SWING", name:"Shin Swing", family:"shin", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT"], decomp:true,
+      beginning:"Start from Shinbox or Shin Squat.",
+      middle:"Swing the shin or leg through a controlled arc, using hip rotation and spinal organization rather than momentum.",
+      ending:"Finish back in Shinbox or Shin Squat, ready to switch, roll, or continue." },
+    { id:"DOUBLE_SHIN_ROLL", name:"Double Shin Roll", family:"shin-roll", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT","SUPINE"],
+      beginning:"Start from Shinbox or Shin Squat.",
+      middle:"Roll through both shin and hip lines, allowing the pelvis and spine to transition smoothly across the floor.",
+      ending:"Finish in Shinbox, Shin Squat, or a supine ground position." },
+    { id:"LEG_SWOOP", name:"Leg Swoop", family:"leg-swoop", start:["SHINBOX","HURDLER","QUAD"], end:["QUAD","SHINBOX"],
+      beginning:"Start from Shinbox, Hurdler, or Quad Squat.",
+      middle:"Swoop the leg under or around the body while the hands, hips, and spine reorganize the base.",
+      ending:"Finish in Quad Squat or Shinbox, depending on direction." },
+    { id:"ELEVATED_SCORPION", name:"Elevated Scorpion", family:"scorpion", start:["QUAD","SPINAL_ARCH"], end:["QUAD","SPINAL_ARCH"],
+      beginning:"Start from Quad Squat or a spinal-extension support such as Spinal Arch.",
+      middle:"Lift and arc one leg across or behind the body into a scorpion-like extension and rotation.",
+      ending:"Finish back in Quad Squat or Spinal Arch, without dumping into the low back." },
+    { id:"LONG_LEG_ROLL", name:"Long Leg Roll", family:"long-leg", start:["HURDLER","SHOOTER","SUPINE"], end:["HURDLER","SIDE","SUPINE"],
+      beginning:"Start from Hurdler, Shooter, or a supine ground position.",
+      middle:"Roll across the back and hip while keeping one leg long, allowing the spine to rotate and the leg to guide the movement.",
+      ending:"Finish in Hurdler, Side Lying, or Supine Ground." },
+    { id:"LEG_THREAD", name:"Leg Thread", family:"thread", start:["QUAD","SHINBOX","HURDLER"], end:["SHINBOX","HURDLER","QUAD"],
+      beginning:"Start from Quad Squat, Shinbox, or Hurdler.",
+      middle:"Thread one leg through the body line, rotating the hips and torso while maintaining hand or ground support.",
+      ending:"Finish in Shinbox, Hurdler, or Quad Squat." },
+    { id:"DOUBLE_LEG_SWOOP", name:"Double Leg Swoop", family:"leg-swoop", start:["QUAD","SHINBOX"], end:["SHINBOX","QUAD"],
+      beginning:"Start from Quad Squat or Shinbox.",
+      middle:"Swoop both legs through or around the body as a larger integrated ground transition.",
+      ending:"Finish in Shinbox or Quad Squat, ideally with no collapse in the shoulders or spine." },
+    { id:"ARCHING_LEG_THREAD", name:"Arching Leg Thread", family:"thread", start:["QUAD","SPINAL_ARCH"], end:["HURDLER","QUAD","SPINAL_ARCH"],
+      beginning:"Start from Quad Squat or Spinal Arch.",
+      middle:"Thread the leg through while maintaining an arched or spinal-extension quality. This combines leg threading with spinal opening.",
+      ending:"Finish in Hurdler, Quad Squat, or Spinal Arch." },
+    { id:"SPINAL_ROCK", name:"Spinal Rock", family:"spinal-rock", start:["SUPINE","SHINBOX","SPINAL_SQUAT"], end:["SUPINE","SHINBOX"], decomp:true,
+      beginning:"Start from Supine, Shinbox, or Spinal Squat.",
+      middle:"Rock through the spine, using flexion, extension, and breath to move rather than muscular force.",
+      ending:"Finish in Supine or Shinbox, depending on the version." },
+    { id:"SPINAL_ROCK_EXTENDED_PIKE", name:"Spinal Rock: Extended Pike", family:"spinal-rock", start:["SUPINE","PIKE"], end:["PIKE","SUPINE"],
+      beginning:"Start from Supine or Extended Pike.",
+      middle:"Rock through the spine while extending the legs toward a pike shape.",
+      ending:"Finish in Extended Pike or return to Supine." },
+    { id:"SPINAL_ROCK_STRADDLE", name:"Spinal Rock: Straddle Split", family:"spinal-rock", start:["SUPINE","STRADDLE"], end:["STRADDLE","SUPINE"],
+      beginning:"Start from Supine or Straddle Split.",
+      middle:"Rock through the spine while opening the legs into a straddle pattern.",
+      ending:"Finish in Straddle Split or return to Supine." },
+    { id:"SPINAL_ROCK_HURDLER", name:"Spinal Rock: Hurdler Split", family:"spinal-rock", start:["SUPINE","HURDLER"], end:["HURDLER","SUPINE"],
+      beginning:"Start from Supine or Hurdler Split.",
+      middle:"Rock through the spine while shaping one leg into a hurdler position.",
+      ending:"Finish in Hurdler Split or return to Supine." },
+    { id:"SPINAL_ROCK_SHINBOX", name:"Spinal Rock: Shinbox", family:"spinal-rock", start:["SUPINE","SHINBOX"], end:["SHINBOX","SUPINE"], decomp:true,
+      beginning:"Start from Supine or Shinbox.",
+      middle:"Rock through the spine and rotate the hips toward shinbox organization.",
+      ending:"Finish in Shinbox or return to Supine." },
+    { id:"SPINAL_ROCK_BUTTERFLY", name:"Spinal Rock: Butterfly", family:"spinal-rock", start:["SUPINE","BUTTERFLY"], end:["BUTTERFLY","SUPINE"],
+      beginning:"Start from Supine or Butterfly.",
+      middle:"Rock through the spine while opening the knees into a butterfly shape.",
+      ending:"Finish in Butterfly or return to Supine." },
+    { id:"SWING_SPLIT", name:"Swing Split", family:"split", start:["COSSACK","HURDLER","STRADDLE"], end:["HURDLER","STRADDLE","COSSACK"],
+      beginning:"Start from Cossack, Hurdler, or Straddle.",
+      middle:"Swing the legs through a split-like pathway while the pelvis and spine reorganize.",
+      ending:"Finish in Hurdler, Straddle, or Cossack." },
+    { id:"QUAD_SWITCH", name:"Quad Switch", family:"quad", start:["QUAD"], end:["QUAD"], decomp:true,
+      beginning:"Start from Quad Squat.",
+      middle:"Rotate or switch the quadruped orientation while keeping the hands, spine, and hips integrated.",
+      ending:"Finish in Quad Squat, usually facing or organized differently." },
+    { id:"LONG_ARM_ROLL", name:"Long Arm Roll", family:"arm-roll", start:["SIDE","SUPINE","PRONE","QUAD"], end:["SIDE","SUPINE","PRONE"], decomp:true,
+      beginning:"Start from Side Lying, Supine, Prone, or Quad Squat.",
+      middle:"Roll through the shoulder and torso with the arm extended long, letting the arm guide the body through the ground.",
+      ending:"Finish in Side Lying, Supine, or Prone." },
+    { id:"LONG_ARM_ROLL_REVERSE", name:"Long Arm Roll Reverse", family:"arm-roll", start:["SIDE","SUPINE","PRONE"], end:["SIDE","SUPINE","PRONE","QUAD"], decomp:true,
+      beginning:"Start from Side Lying, Supine, or Prone.",
+      middle:"Reverse the long-arm rolling pathway, unwinding the shoulder, ribs, and spine.",
+      ending:"Finish in Side Lying, Supine, Prone, or Quad Squat." },
+    { id:"ARM_THREAD_SHOULDER_ROLL", name:"Arm Thread Shoulder Roll", family:"shoulder-roll", start:["QUAD","SIDE"], end:["SIDE","SUPINE","QUAD"], decomp:true,
+      beginning:"Start from Quad Squat or side-support.",
+      middle:"Thread one arm under or across the body and roll through the shoulder line.",
+      ending:"Finish in Side Lying, Supine, or back toward Quad Squat." },
+    { id:"LATERAL_SHOULDER_ROLL", name:"Lateral Shoulder Roll", family:"shoulder-roll", start:["QUAD","SIDE","PRONE"], end:["SIDE","PRONE","QUAD"],
+      beginning:"Start from Quad Squat, Side Lying, or Prone.",
+      middle:"Roll laterally across the shoulder line, transferring weight through the upper body and ribs.",
+      ending:"Finish in Side Lying, Prone, or Quad Squat." },
+    { id:"NECK_ROLL", name:"Neck Roll", family:"neck", start:["SUPINE","PRONE","SIDE"], end:["SUPINE","PRONE","SIDE"],
+      beginning:"Start from Supine, Prone, or Side Lying.",
+      middle:"Roll through the head, neck, and upper-spine pathway with extreme control and no force.",
+      ending:"Finish in Supine, Prone, or Side Lying." },
+    { id:"TWISTING_SPINAL_ARCH", name:"Twisting Spinal Arch", family:"spine", start:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"], end:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"],
+      beginning:"Start from Spinal Arch, Spinal Squat, or Quad Squat.",
+      middle:"Add rotation to the spinal arch, twisting through the spine while maintaining breath and structure.",
+      ending:"Finish in Spinal Arch, Spinal Squat, or Quad Squat." },
+    { id:"ARCHING_HIGH_LEG", name:"Arching High Leg", family:"spine", start:["SPINAL_ARCH","QUAD"], end:["SPINAL_ARCH","QUAD"],
+      beginning:"Start from Spinal Arch or Quad Squat.",
+      middle:"Lift one leg high into extension while maintaining an arched spinal structure and controlled breathing.",
+      ending:"Finish in Spinal Arch or Quad Squat." }
+  ];
+  const V6_STANDALONE_BMES = V6_BME_DEFS.filter(x => x.id !== "ARM_SCREW");
+  const V6_DECOMP_BMES = V6_BME_DEFS.filter(x => x.decomp || x.id === "ARM_SCREW");
+  function v6BmeById(id){ return V6_BME_DEFS.find(x => x.id === id); }
+  function v6Intersects(a,b){ return (a || []).some(x => (b || []).includes(x)); }
+  function v6BaseName(id){ return BODYFLOW_BASE_LABEL[id] || id || "-"; }
+  function v6BaseList(ids){ return (ids || []).map(v6BaseName).join(", "); }
+
+  function getBFSettings(){
+    const base = { enableStandalone:true, standaloneBmeCount:3 };
+    try{
+      const stored = JSON.parse(localStorage.getItem(BF_SETTINGS_KEY) || "{}");
+      const next = { ...base, ...stored };
+      next.standaloneBmeCount = Math.max(3, Math.min(5, Number(next.standaloneBmeCount) || 3));
+      return next;
+    } catch { return base; }
+  }
+  function setBFSettings(next){ localStorage.setItem(BF_SETTINGS_KEY, JSON.stringify({ ...getBFSettings(), ...next })); }
+
+  function v6PickDecompressionBme(seedKey){
+    const rng = mulberry32(hashStrToSeed(seedKey));
+    return V6_DECOMP_BMES[Math.floor(rng() * V6_DECOMP_BMES.length)];
+  }
+
+  function v6PickBmeSet(seedKey, count){
+    const rng = mulberry32(hashStrToSeed(seedKey));
+    const pool = bfShuffle(rng, V6_STANDALONE_BMES);
+    const first = pool.shift();
+    const selected = [first];
+    while(selected.length < count && pool.length){
+      const prev = selected[selected.length - 1];
+      let candidates = pool.filter(x => v6Intersects(prev.end, x.start) && !selected.some(s => s.family === x.family && selected.length < 3));
+      if(!candidates.length) candidates = pool.filter(x => v6Intersects(prev.end, x.start));
+      if(!candidates.length) candidates = pool;
+      const pick = candidates[Math.floor(rng() * candidates.length)];
+      selected.push(pick);
+      pool.splice(pool.findIndex(x => x.id === pick.id), 1);
+    }
+    return selected.slice(0, count);
+  }
+
+  function v6BuildBodyFlowLadder(bmes){
+    const steps = [];
+    bmes.forEach((bme, index) => {
+      steps.push({
+        type:"practice",
+        title:`Practice BME #${index + 1}: ${bme.name}`,
+        detail:`Study beginning -> middle -> ending. Compose the full BME ultra-slow until excess tension drops.`,
+        bmes:[bme]
+      });
+    });
+    for(let i = 0; i < bmes.length - 1; i += 1){
+      steps.push({
+        type:"graft",
+        title:`Graft #${i + 1} -> #${i + 2}: ${bmes[i].name} into ${bmes[i+1].name}`,
+        detail:`Weave the ending component of ${bmes[i].name} into the beginning component of ${bmes[i+1].name}.`,
+        bmes:[bmes[i], bmes[i+1]]
+      });
+      steps.push({
+        type:"chain",
+        title:`Chain #${i + 1} + #${i + 2}: ${bmes[i].name} -> ${bmes[i+1].name}`,
+        detail:`Practice both BME's as one continuous movement while keeping breathing, movement and structure integrated.`,
+        bmes:[bmes[i], bmes[i+1]]
+      });
+    }
+    steps.push({
+      type:"full-chain",
+      title:`Full kinetic chain: ${bmes.map(x => x.name).join(" -> ")}`,
+      detail:`Practice the complete ${bmes.length}-BME flow without forcing. Stop or repeat if bracing, wincing, flinching or excess conscious control returns.`,
+      bmes:bmes.slice()
+    });
+    return steps.map((step, index) => ({ index:index + 1, ...step }));
+  }
+
+  function v6BuildStandaloneBodyFlow(seedKey, count){
+    const bmes = v6PickBmeSet(seedKey, count);
+    return {
+      name:"Authentic Body-Flow Practice",
+      bmeCount:bmes.length,
+      bmes,
+      ladder:v6BuildBodyFlowLadder(bmes),
+      use:"Start with roughly 2 minutes of Performance Breathing, then work through the ladder as far as quality allows within the 40-minute cap. It is fine to spend the whole session on BME #1.",
+      rule:"Advance only when the current BME or link is smooth, breath-led, free of excess tension and available with minimal conscious involvement."
+    };
+  }
+
+  function buildStages(session){
+    const stages = [];
+    if(session.dayType === 'clubbell'){
+      stages.push({ key:'club', label:`Clubbell | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
+      stages.push({ key:'decomp', label:`Decompress BME | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
+    } else if(session.dayType === 'bodyflow'){
+      stages.push({ key:'bodyflow', label:`Body-Flow Practice | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow });
+    }
+    return stages;
+  }
+
+  function generateSession(mode, total){
+    const last = loadLast();
+    const band = computeBand(total);
+    const dayType = computeTrainingDayType();
+    let progress = loadProgressCached();
+
+    const session = {
+      day: todayKey(),
+      total,
+      modeRequested: mode,
+      mode: band.intuOnly ? 'INTU ONLY' : (dayType === 'clubbell' ? 'CLUBBELL DAY' : 'BODY FLOW DAY'),
+      dayType,
+      intuOnly: band.intuOnly,
+      countsTowardProgression: false,
+      delayedPlannedDay: band.intuOnly,
+      intu: intu.slice(),
+      club: null,
+      bodyFlow: null,
+      decompFlow: null,
+      blockTimes: { intu: 8 * 60, club: 0, bodyFlow: 0, decomp: 0 },
+      stages: [],
+      currentStageIndex: 0,
+      currentStageLeft: 0,
+      currentStageStartedAt: null,
+      currentStageEndsAt: null,
+      isRunning: false,
+      lastCountdownBeep: null,
+      completed: false,
+      completedAt: null,
+      settingsUsed:{ cst:getCSTSettings(), bodyFlow:getBFSettings() },
+      progressSnapshot:{
+        phaseIndex:progress.phaseIndex,
+        phaseName:getCurrentPhase(progress).name,
+        sessionInPhase:progress.sessionInPhase,
+        durationMinutes:getEffectiveMainDuration(total, progress),
+        awaitingDecision:progress.awaitingDecision,
+        pattern:getCurrentPattern(progress)
+      }
+    };
+
+    if(band.intuOnly){
+      saveLast(last);
+    } else if(dayType === 'clubbell'){
+      const clubTypePick = nextFullClubType(last);
+      const clubType = clubTypePick.type;
+      const clubPlan = generateClubExercises(clubType, progress, last);
+      const decompBme = v6PickDecompressionBme(`${todayKey()}|v6-decompress-bme`);
+      session.club = {
+        allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
+        clubType,
+        clubTypeIndex:clubTypePick.index,
+        phaseName:clubPlan.phaseName,
+        pattern:clubPlan.pattern,
+        sessionNumber:(progress.sessionInPhase || 0) + 1,
+        sequence: clubPlan.sequence,
+        flow: clubPlan.flow
+      };
+      session.decompFlow = {
+        name:"Body-Flow Decompression BME",
+        bme:decompBme,
+        focus:"One BME | 5-minute post-Clubbell reset",
+        use:"After Clubbell: practice this single BME slowly for 5 minutes. Let it unload the shoulders, spine, hips and breath. Do not turn it into conditioning.",
+        rule:"Study beginning -> middle -> ending. Repeat gently until excess tension softens."
+      };
+      session.blockTimes.club = getEffectiveMainDuration(total, progress) * 60;
+      session.blockTimes.decomp = 5 * 60;
+      session.countsTowardProgression = !!band.useProgression;
+      // Do not commit Clubbell type rotation or exercise history here.
+      // Reset day may regenerate today's plan; the rotation only advances on Finish.
+      saveLast(last);
+      saveProgressCached(progress);
+    } else {
+      const bfSettings = getBFSettings();
+      session.bodyFlow = v6BuildStandaloneBodyFlow(`${todayKey()}|v6-body-flow-practice`, bfSettings.standaloneBmeCount);
+      session.blockTimes.bodyFlow = 40 * 60;
+      saveLast(last);
+    }
+
+    session.stages = buildStages(session);
+    session.currentStageLeft = session.stages.length ? session.stages[0].seconds : 0;
+    saveDay(session);
+    return session;
+  }
+
+  function v6RenderBmeCard(bme, index = null){
+    const number = index === null ? "" : `${index + 1}. `;
+    const cueMap = {
+      ARM_SCREW:"Let the shoulder spiral without pulling the neck or trapping the breath.",
+      SHINBOX_SWITCH:"Switch from the hips, not by yanking the knees. Land softly before repeating.",
+      SQUAT_CREEP:"Creep slowly enough that both feet and hips can keep talking to the floor.",
+      KNEE_SWITCH:"Rotate through the hips and knees while keeping the spine quiet and breathable.",
+      SHIN_ROLL:"Yield into the floor; do not throw yourself into the roll.",
+      STANDING_SHIN_ROLL:"Descend under control. The ground should receive you, not catch you.",
+      LONG_LEG_CREEP:"Keep the long leg active while the pelvis stays soft and mobile.",
+      SHIN_SWING:"Use hip rotation and breath, not momentum, to swing the leg.",
+      DOUBLE_SHIN_ROLL:"Let the pelvis and spine follow the roll as one connected wave.",
+      LEG_SWOOP:"Thread the leg through a clear pathway without collapsing the shoulders.",
+      ELEVATED_SCORPION:"Open through rotation and extension without dumping into the low back.",
+      LONG_LEG_ROLL:"Let the long leg guide the roll while the spine rotates gradually.",
+      LEG_THREAD:"Thread the leg through the body line while keeping hand support light and organized.",
+      DOUBLE_LEG_SWOOP:"Keep the shoulders broad and the breath calm as both legs travel.",
+      ARCHING_LEG_THREAD:"Maintain the arch as an opening quality, not a low-back crank.",
+      SPINAL_ROCK:"Rock from breath and spinal wave, not from muscular force.",
+      SPINAL_ROCK_EXTENDED_PIKE:"Reach the pike gradually; do not force hamstring range.",
+      SPINAL_ROCK_STRADDLE:"Open the straddle only as far as the spine can keep rolling smoothly.",
+      SPINAL_ROCK_HURDLER:"Shape the hurdler position without twisting or bracing the knee.",
+      SPINAL_ROCK_SHINBOX:"Let the rock deliver you into Shinbox instead of muscling the sit-up.",
+      SPINAL_ROCK_BUTTERFLY:"Let the knees open with the rock; do not pry the hips open.",
+      SWING_SPLIT:"Swing the legs through the pathway without chasing depth or speed.",
+      QUAD_SWITCH:"Keep the hands rooted and rotate around a quiet, breathable spine.",
+      LONG_ARM_ROLL:"Let the extended arm guide the roll; keep the neck relaxed.",
+      LONG_ARM_ROLL_REVERSE:"Reverse the pathway slowly and unwind the ribs before the shoulder.",
+      ARM_THREAD_SHOULDER_ROLL:"Thread the arm and shoulder softly; never drop weight into the neck.",
+      LATERAL_SHOULDER_ROLL:"Transfer weight across the shoulder line with extreme control and no neck pressure.",
+      NECK_ROLL:"Use minimal range and zero force. If there is pressure, stop and regress.",
+      TWISTING_SPINAL_ARCH:"Twist through the whole spine while keeping the breath spacious.",
+      ARCHING_HIGH_LEG:"Lift the leg only as high as the arch stays integrated and controlled."
+    };
+    const cue = cueMap[bme.id] || "Move slowly enough that breathing, structure and direction stay connected.";
+    return `<details class="intu-item bme-item">
+      <summary class="intu-summary">
+        <div class="ex-left">
+          <div class="ex-title">${number}${cleanText(bme.name)}</div>
+          <div class="ex-meta">Starts: ${cleanText(v6BaseList(bme.start))} | Finishes: ${cleanText(v6BaseList(bme.end))}</div>
+        </div>
+        <div class="pill">BME</div>
+      </summary>
+      <div class="intu-body">
+        <div><strong>Setup:</strong> ${cleanText(bme.beginning)}</div>
+        <div class="mt-10"><strong>Move:</strong> ${cleanText(bme.middle)}</div>
+        <div class="mt-10"><strong>Finish:</strong> ${cleanText(bme.ending)}</div>
+        <div class="mt-10"><strong>Cue:</strong> ${cleanText(cue)}</div>
+      </div>
+    </details>`;
+  }
+
+  function renderSession(s){
+    const progress = loadProgressCached();
+    const summaryText = s.intuOnly
+      ? "Today is recovery-focused: Intu only. Because no Clubbell or Body-Flow session is completed today, tomorrow defaults back to Clubbell."
+      : s.dayType === "clubbell"
+      ? "Today: Intu, then Clubbell, then finish with one 5-minute Body-Flow Decompression BME. Finish this session to unlock a standalone Body-Flow day tomorrow."
+      : "Today: standalone Body-Flow. Use the 40-minute cap to work through the selected BME cycle as far as quality allows. No extra decompression stage is needed.";
+
+    let html = `<h2>Today</h2>`;
+    if(s.intuOnly){
+      html += `${renderExerciseCard("Intu-only day", `Score 0-8: Intu only today. The calendar cycle still continues as normal.`, "Recovery", "mb-12")}`;
+    }
+
+    html += `
+      <div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Intu</span>
+          <span class="pill">15 drills | ${fmtMin(s.blockTimes?.intu || 0)}</span>
+        </button>
+        <div class="accordion-content">
+          <div class="stack-10 mt-12">
+            ${s.intu.map(x => `
+              <details class="intu-item">
+                <summary class="intu-summary">
+                  <div class="ex-left"><div class="ex-title">${cleanText(x.title)} - ${cleanText(x.reps)}</div></div>
+                  <div class="pill">Intu</div>
+                </summary>
+                <div class="intu-body">${cleanText(x.description)}</div>
+              </details>`).join("")}
+          </div>
+        </div>
+      </div>`;
+
+    if(s.club){
+      html += `
+      <div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Clubbell training</span>
+          <span class="pill">${s.club.clubType.toUpperCase()} | ${fmtMin(s.blockTimes?.club || 0)}</span>
+        </button>
+        <div class="accordion-content">
+          <div class="stack-10 mt-12">
+            ${s.club.sequence.map((x, idx) => renderClubExerciseAccordionCard(x, idx)).join("")}
+          </div>
+          ${renderExerciseCard("Order", s.club.flow || "-", "Basic", "mt-10")}
+          <div class="accordion mt-12">
+            <button type="button" class="accordion-header"><span>Session details</span><span class="pill">Info</span></button>
+            <div class="accordion-content">
+              ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
+              ${renderExerciseCard("Phase", `${s.club.phaseName} | session ${s.club.sessionNumber}/${PHASE_SESSION_COUNT}`, "Progression", "mb-10")}
+              ${renderExerciseCard("Pattern", `${s.club.pattern.Rhythmic}+${s.club.pattern.Ballistic}+${s.club.pattern.Grinding}`, "Today", "mb-10")}
+              ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress), "mb-10")}
+              ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    if(s.bodyFlow){
+      html += `
+      <div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Standalone Body-Flow Practice</span>
+          <span class="pill">${s.bodyFlow.bmeCount} BME's | 40 min cap</span>
+        </button>
+        <div class="accordion-content">
+          ${renderExerciseCard("Use", s.bodyFlow.use, "Practice", "mt-12 mb-10")}
+          ${renderExerciseCard("Rule", s.bodyFlow.rule, "Quality", "mb-10")}
+          ${renderExerciseCard("Performance Breathing", "Begin with roughly 2 minutes. Use full exhalations to prepare; let the inhale happen rather than forcing it.", "Start", "mb-10")}
+          <div class="accordion mt-12 active">
+            <button type="button" class="accordion-header"><span>Today's BME cycle</span><span class="pill">${s.bodyFlow.bmeCount} BME's</span></button>
+            <div class="accordion-content">
+              <div class="stack-10 mt-12">${s.bodyFlow.bmes.map((bme, idx) => v6RenderBmeCard(bme, idx)).join("")}</div>
+            </div>
+          </div>
+          <div class="accordion mt-12">
+            <button type="button" class="accordion-header"><span>Practice ladder</span><span class="pill">${s.bodyFlow.ladder.length} steps</span></button>
+            <div class="accordion-content">
+              <div class="stack-10 mt-12">
+                ${s.bodyFlow.ladder.map(step => `
+                  <div class="exercise">
+                    <div class="ex-left">
+                      <div class="ex-title">${step.index}. ${cleanText(step.title)}</div>
+                      <div class="ex-meta">${cleanText(step.detail)}</div>
+                    </div>
+                    <div class="pill">${cleanText(step.type)}</div>
+                  </div>`).join("")}
+              </div>
+            </div>
+          </div>
+          ${isBFDebugEnabled() ? `<details class="mt-12"><summary>Debug BME path</summary><div class="detailsBody small">${cleanText(s.bodyFlow.bmes.map(x => `${x.name} [${v6BaseList(x.start)} -> ${v6BaseList(x.end)}]`).join(' | '))}</div></details>` : ``}
+        </div>
+      </div>`;
+    }
+
+    if(s.decompFlow?.bme){
+      const bme = s.decompFlow.bme;
+      html += `
+      <div class="accordion">
+        <button type="button" class="accordion-header">
+          <span>Body-Flow Decompression BME</span>
+          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} | After Clubbell</span>
+        </button>
+        <div class="accordion-content">
+          ${renderExerciseCard("Practice", s.decompFlow.name, "Decompress", "mt-12 mb-10")}
+          ${renderExerciseCard("Use", s.decompFlow.use, "After Clubbell", "mb-10")}
+          ${renderExerciseCard("Rule", s.decompFlow.rule, "BME", "mb-10")}
+          <div class="stack-10">${v6RenderBmeCard(bme)}</div>
+          ${renderExerciseCard("Prompt", "Move slowly for 5 minutes. If it feels rough, make the range smaller and let the breath soften the movement.", "Practice", "mt-10")}
+        </div>
+      </div>`;
+    }
+
+    html += `<div class="hr"></div>`;
+    if(!s.intuOnly){
+      html += `<div class="finish-row">
+        <button id="btnStartSession" class="btn primary">Start block timer</button>
+        <button id="btnFinishSession" class="btn finish" ${s.completed ? 'disabled' : ''}>${s.completed ? 'Completed' : 'Finish session'}</button>
+        <span class="small">${s.completed ? 'Saved as completed for today.' : 'Use Finish when the training is actually done.'}</span>
+      </div>`;
+    }
+    html += `${!s.intuOnly && progress.awaitingDecision ? `<div class="finish-row"><button id="btnPhaseNext" class="btn good">Next phase</button><button id="btnPhaseRepeat" class="btn">Repeat phase</button><span class="small">${PHASE_SESSION_COUNT} Clubbell sessions completed. Choose what to do next before the next Clubbell block.</span></div>` : ""}
+    <p class="small mt-10">${summaryText}</p>`;
+
+    leftCard.innerHTML = html;
+    bindAccordions();
+    const accordions = leftCard.querySelectorAll(".accordion");
+    const defaultOpenIndex = s.club || s.bodyFlow ? 1 : 0;
+    const defaultAccordion = accordions[defaultOpenIndex] || accordions[0];
+    if(defaultAccordion){
+      defaultAccordion.classList.add("active");
+      const header = defaultAccordion.querySelector(".accordion-header");
+      if(header) header.setAttribute("aria-expanded", "true");
+    }
+    const startBtn = document.getElementById("btnStartSession");
+    if(startBtn) startBtn.onclick = () => { if(!s.intuOnly) startSequence(); };
+    const finishBtn = document.getElementById("btnFinishSession");
+    if(finishBtn) finishBtn.onclick = finishSession;
+    const btnPhaseNext = document.getElementById("btnPhaseNext");
+    if(btnPhaseNext) btnPhaseNext.onclick = () => { advanceProgressDecision('next'); cachedDay = null; boot(); };
+    const btnPhaseRepeat = document.getElementById("btnPhaseRepeat");
+    if(btnPhaseRepeat) btnPhaseRepeat.onclick = () => { advanceProgressDecision('repeat'); cachedDay = null; boot(); };
+    setModePill(s.mode);
+    setDayPill("locked");
+    renderRightPanel();
+  }
+
+  function renderSettings(){
+    const cst = getCSTSettings();
+    const bf = getBFSettings();
+    const progress = loadProgressCached();
+    const currentSessionInPhase = Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, progress.sessionInPhase || 0));
+    settingsCstCard.innerHTML = `
+      <h2>CST settings</h2>
+      <div class="setting-list">
+        <div class="settings-note">These settings affect newly generated sessions. Today's locked session does not change until you reset the day.</div>
+        <div id="progressionCard" class="exercise">
+          <div class="ex-left"><div class="ex-title">Current phase</div><div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentDurationMinutes(progress)} min`}</div></div>
+          <div class="pill">Progression</div>
+        </div>
+        <div id="progressionAdvanced" class="hidden-advanced">
+          <div class="exercise"><div class="ex-left"><div class="ex-title">Advanced progression override</div><div class="ex-meta">Hidden mode unlocked. Choose a phase and Clubbell session slot, then apply.</div></div><div class="pill">Advanced</div></div>
+          <div class="kv"><label class="label">Phase</label><select id="progressionPhaseSelect">${PHASES.map((phase, index) => `<option value="${index}" ${index === (progress.phaseIndex || 0) ? 'selected' : ''}>${phase.name}</option>`).join('')}</select></div>
+          <div class="kv"><label class="label">Session</label><select id="progressionSessionSelect">${Array.from({ length:PHASE_SESSION_COUNT }, (_, index) => `<option value="${index}" ${index === currentSessionInPhase ? 'selected' : ''}>${index + 1}</option>`).join('')}</select></div>
+          <div class="row"><button id="btnApplyProgressionOverride" class="btn good">Apply override</button><button id="btnHideProgressionAdvanced" class="btn">Hide</button></div>
+        </div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Allowed club types</div><div class="ex-meta">At least one must stay on. Clubbell days only use enabled types.</div></div><div class="pill">CST</div></div>
+        <div class="toggle-list">
+          ${[{ key:'single', label:'Single Club' },{ key:'double', label:'Double Club' },{ key:'2h', label:'2-Hand Club' }].map(item => `<label class="toggle-item"><span>${item.label}</span><input type="checkbox" data-cst-club="${item.key}" ${cst.clubTypes?.[item.key] ? 'checked' : ''}></label>`).join('')}
+        </div>
+        <div class="row"><button id="btnResetPhase1" class="btn danger">Reset to phase 1</button></div>
+      </div>`;
+
+    settingsBfCard.innerHTML = `
+      <h2>Body-Flow settings</h2>
+      <div class="setting-list">
+        <div class="settings-note">CST V6: standalone Body-Flow uses an authentic BME practice cycle. It is no longer a random flow sequence and has no levels. Clubbell days keep a 5-minute single-BME decompression, where Arm Screw is allowed.</div>
+        <div class="toggle-list">
+          <label class="toggle-item"><span>Alternate with standalone Body-Flow days</span><input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}></label>
+        </div>
+        <div class="kv">
+          <label class="label">Standalone BME count</label>
+          <select id="bfSettingsBmeCount">
+            <option value="3">3 BME's - default/authentic</option>
+            <option value="4">4 BME's - extended</option>
+            <option value="5">5 BME's - maximum</option>
+          </select>
+        </div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Standalone timer</div><div class="ex-meta">One 40-minute cap. Start with Performance Breathing and move through the ladder as far as quality allows. No standalone decompression.</div></div><div class="pill">V6</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Clubbell decompression</div><div class="ex-meta">After Clubbell the app gives one BME for 5 minutes. Arm Screw is included here because it works well as a shoulder and ribcage reset.</div></div><div class="pill">V6</div></div>
+      </div>`;
+
+    const bfEnableStandalone = document.getElementById('bfSettingsEnableStandalone');
+    const bfCount = document.getElementById('bfSettingsBmeCount');
+    if(bfCount) bfCount.value = String(bf.standaloneBmeCount);
+    const persistBF = () => setBFSettings({ enableStandalone:!!bfEnableStandalone.checked, standaloneBmeCount:Number(bfCount.value) });
+    [bfEnableStandalone, bfCount].forEach(el => el && el.addEventListener('change', persistBF));
+
+    const progressionCard = document.getElementById('progressionCard');
+    const progressionAdvanced = document.getElementById('progressionAdvanced');
+    const progressionPhaseSelect = document.getElementById('progressionPhaseSelect');
+    const progressionSessionSelect = document.getElementById('progressionSessionSelect');
+    const btnApplyProgressionOverride = document.getElementById('btnApplyProgressionOverride');
+    const btnHideProgressionAdvanced = document.getElementById('btnHideProgressionAdvanced');
+    let progressionHoldTimer = null;
+    const clearProgressionHold = () => { if(progressionHoldTimer) clearTimeout(progressionHoldTimer); progressionHoldTimer = null; };
+    const showProgressionAdvanced = () => progressionAdvanced?.classList.add('active');
+    if(progressionCard){
+      const startHold = () => { clearProgressionHold(); progressionHoldTimer = setTimeout(showProgressionAdvanced, 5000); };
+      ['pointerdown', 'mousedown', 'touchstart'].forEach(evt => progressionCard.addEventListener(evt, startHold));
+      ['pointerup', 'pointerleave', 'pointercancel', 'mouseup', 'mouseleave', 'touchend', 'touchcancel'].forEach(evt => progressionCard.addEventListener(evt, clearProgressionHold));
+    }
+    if(btnApplyProgressionOverride){
+      btnApplyProgressionOverride.onclick = () => {
+        saveProgressCached({ ...loadProgressCached(), phaseIndex:Math.max(0, Math.min(PHASES.length - 1, Number(progressionPhaseSelect.value))), sessionInPhase:Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, Number(progressionSessionSelect.value))), awaitingDecision:false });
+        cachedDay = null; renderSettings(); boot();
+      };
+    }
+    if(btnHideProgressionAdvanced) btnHideProgressionAdvanced.onclick = () => progressionAdvanced?.classList.remove('active');
+    settingsCstCard.querySelectorAll('[data-cst-club]').forEach(input => {
+      input.addEventListener('change', () => {
+        const next = getCSTSettings(); next.clubTypes[input.dataset.cstClub] = input.checked;
+        if(!Object.values(next.clubTypes).some(Boolean)) next.clubTypes[input.dataset.cstClub] = true;
+        setCSTSettings(next); renderSettings();
+      });
+    });
+    const btnResetPhase1 = document.getElementById('btnResetPhase1');
+    if(btnResetPhase1) btnResetPhase1.onclick = () => { saveProgressCached(resetProgressToPhase1()); cachedDay = null; renderSettings(); boot(); };
+  }
+
   setWakePill(false);
   initTabs();
   boot();
 })();
 </script>
-</body>
-</html>
