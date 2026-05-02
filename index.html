@@ -342,28 +342,23 @@
     .tab{flex:1 0 auto; text-align:center; padding:10px 12px}
     .grid{gap:12px}
     #rightCard{
-      position:sticky;
-      top:8px;
-      order:-1;
-      z-index:5;
+      position:static;
+      order:initial;
       border-color:rgba(143,184,216,.18);
     }
-    #leftCard{order:1}
     .time{font-size:48px}
     .stage-title{font-size:19px}
     .timer-shell{gap:12px}
     .timer-hero{padding:14px 15px; border-radius:18px}
     .timer-actions{
-      position:sticky;
-      bottom:calc(10px + env(safe-area-inset-bottom));
-      z-index:3;
-      margin:0 -4px;
-      padding:10px;
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:rgba(12,18,23,.92);
-      backdrop-filter:blur(14px);
-      box-shadow:0 12px 30px rgba(0,0,0,.28);
+      position:static;
+      margin:0;
+      padding:0;
+      border:0;
+      border-radius:0;
+      background:transparent;
+      backdrop-filter:none;
+      box-shadow:none;
     }
     .timer-actions .btn{flex:1 1 calc(50% - 6px); min-height:48px}
     .timer-note{display:none}
@@ -375,22 +370,23 @@
     .total,
     .toggle-item{border-radius:16px}
     .exercise{padding:12px 13px}
-    .finish-row{
-      position:sticky;
-      bottom:calc(10px + env(safe-area-inset-bottom));
-      z-index:2;
-      margin:16px -4px 0;
-      padding:10px;
-      border:1px solid var(--line);
-      border-radius:18px;
-      background:rgba(12,18,23,.92);
-      backdrop-filter:blur(14px);
-      box-shadow:0 12px 30px rgba(0,0,0,.22);
-    }
+    .finish-row{position:static; margin:16px 0 0; padding:0; border:0; border-radius:0; background:transparent; backdrop-filter:none; box-shadow:none}
     .finish-row .btn{flex:1 1 calc(50% - 6px); min-height:48px}
     .finish-row .small{width:100%; font-size:11px}
-    .score-row{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr))}
+    .gate-grid{gap:10px}
+    .gate-row{
+      gap:7px;
+      padding:10px 12px;
+      border:1px solid var(--line);
+      border-radius:16px;
+      background:rgba(255,255,255,.02);
+    }
+    .gate-row .label{font-size:11px}
+    .score-row{display:grid; grid-template-columns:repeat(6, minmax(0, 1fr)); gap:6px}
     .score-btn{width:100%; height:44px}
+    .score-label{margin-top:2px; min-height:auto}
+    .gate-grid > .row .small{font-size:11px; line-height:1.45}
+    .total{padding:12px 13px}
     .kv{grid-template-columns:1fr}
     .kv select{width:100%}
   }
