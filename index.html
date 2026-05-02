@@ -1429,10 +1429,19 @@ function getDefaultLastState(){
     return completed.dayType === 'clubbell' ? 'bodyflow' : 'clubbell';
   }
 
-  function nextFullClubType(lastState = loadLast()){
+  function nextFullClubType(progress = null, lastState = loadLast()){
     const cstSettings = getCSTSettings();
     const enabledTypes = CLUB_TYPE_SEQUENCE.filter(type => cstSettings.clubTypes?.[type]);
     if(!enabledTypes.length) return { type:"single", index:0 };
+
+    if(progress){
+      const sessionIndex = getSessionSlot(progress) % CLUB_TYPE_SEQUENCE.length;
+      for(let offset = 0; offset < CLUB_TYPE_SEQUENCE.length; offset += 1){
+        const idx = (sessionIndex + offset) % CLUB_TYPE_SEQUENCE.length;
+        const type = CLUB_TYPE_SEQUENCE[idx];
+        if(cstSettings.clubTypes?.[type]) return { type, index:idx };
+      }
+    }
 
     let previousIndex = Number.isInteger(lastState.lastClubTypeIndex) ? lastState.lastClubTypeIndex : -1;
     if(previousIndex < 0 || previousIndex >= CLUB_TYPE_SEQUENCE.length){
@@ -1529,7 +1538,7 @@ function getDefaultLastState(){
     if(band.intuOnly){
       saveLast(last);
     } else if(dayType === 'clubbell'){
-      const clubTypePick = nextFullClubType(last);
+      const clubTypePick = nextFullClubType(progress, last);
       const clubType = clubTypePick.type;
       const clubPlan = generateClubExercises(clubType, progress, last);
       const bfSettings = getBFSettings();
