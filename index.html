@@ -2348,10 +2348,46 @@ function getDefaultLastState(){
   ];
   const V6_STANDALONE_BMES = V6_BME_DEFS.filter(x => x.id !== "ARM_SCREW");
   const V6_DECOMP_BMES = V6_BME_DEFS.filter(x => x.decomp || x.id === "ARM_SCREW");
+  const BF_BME_BAG_KEY = "cst_bodyflow_bme_bag_v6";
+  const BF_DECOMP_BAG_KEY = "cst_bodyflow_decomp_bag_v6";
   function v6BmeById(id){ return V6_BME_DEFS.find(x => x.id === id); }
   function v6Intersects(a,b){ return (a || []).some(x => (b || []).includes(x)); }
   function v6BaseName(id){ return BODYFLOW_BASE_LABEL[id] || id || "-"; }
   function v6BaseList(ids){ return (ids || []).map(v6BaseName).join(", "); }
+  function v6LoadBagIds(key, defs){
+    try{
+      const allowed = new Set(defs.map(x => x.id));
+      const stored = JSON.parse(localStorage.getItem(key) || "[]");
+      if(!Array.isArray(stored)) return [];
+      return stored.filter(id => allowed.has(id));
+    } catch {
+      return [];
+    }
+  }
+  function v6SaveBagIds(key, ids){
+    localStorage.setItem(key, JSON.stringify(ids));
+  }
+  function v6RefillBagIds(key, defs, seedKey, excludeIds = []){
+    const exclude = new Set(excludeIds);
+    const rng = mulberry32(hashStrToSeed(`${seedKey}|${key}|${excludeIds.join(",")}`));
+    const ids = bfShuffle(rng, defs.map(x => x.id).filter(id => !exclude.has(id)));
+    v6SaveBagIds(key, ids);
+    return ids;
+  }
+  function v6TakeBagItem(key, defs, seedKey, excludeIds = []){
+    let bag = v6LoadBagIds(key, defs).filter(id => !excludeIds.includes(id));
+    if(!bag.length){
+      bag = v6RefillBagIds(key, defs, seedKey, excludeIds);
+    }
+    if(!bag.length && excludeIds.length){
+      bag = v6RefillBagIds(key, defs, `${seedKey}|fallback`);
+    }
+    const id = bag.length ? rand(bag) : null;
+    if(!id) return defs[0] || null;
+    bag = bag.filter(x => x !== id);
+    v6SaveBagIds(key, bag);
+    return defs.find(x => x.id === id) || defs[0] || null;
+  }
 
   function getBFSettings(){
     const base = { enableStandalone:true, standaloneBmeCount:3 };
@@ -2365,24 +2401,49 @@ function getDefaultLastState(){
   function setBFSettings(next){ localStorage.setItem(BF_SETTINGS_KEY, JSON.stringify({ ...getBFSettings(), ...next })); }
 
   function v6PickDecompressionBme(seedKey){
-    const rng = mulberry32(hashStrToSeed(seedKey));
-    return V6_DECOMP_BMES[Math.floor(rng() * V6_DECOMP_BMES.length)];
+    return v6TakeBagItem(BF_DECOMP_BAG_KEY, V6_DECOMP_BMES, seedKey);
   }
 
   function v6PickBmeSet(seedKey, count){
-    const rng = mulberry32(hashStrToSeed(seedKey));
-    const pool = bfShuffle(rng, V6_STANDALONE_BMES);
-    const first = pool.shift();
-    const selected = [first];
-    while(selected.length < count && pool.length){
+    let bag = v6LoadBagIds(BF_BME_BAG_KEY, V6_STANDALONE_BMES);
+    if(!bag.length){
+      bag = v6RefillBagIds(BF_BME_BAG_KEY, V6_STANDALONE_BMES, seedKey);
+    }
+
+    const selected = [];
+    while(selected.length < count){
+      let pool = bag
+        .filter(id => !selected.some(item => item.id === id))
+        .map(id => V6_STANDALONE_BMES.find(x => x.id === id))
+        .filter(Boolean);
+      if(!pool.length){
+        bag = v6RefillBagIds(BF_BME_BAG_KEY, V6_STANDALONE_BMES, `${seedKey}|refill`, selected.map(x => x.id));
+        if(!bag.length){
+          bag = v6RefillBagIds(BF_BME_BAG_KEY, V6_STANDALONE_BMES, `${seedKey}|refill-all`);
+        }
+        pool = bag
+          .filter(id => !selected.some(item => item.id === id))
+          .map(id => V6_STANDALONE_BMES.find(x => x.id === id))
+          .filter(Boolean);
+      }
+      if(!pool.length) break;
+
+      if(!selected.length){
+        const first = rand(pool);
+        selected.push(first);
+        bag = bag.filter(id => id !== first.id);
+        continue;
+      }
+
       const prev = selected[selected.length - 1];
       let candidates = pool.filter(x => v6Intersects(prev.end, x.start) && !selected.some(s => s.family === x.family && selected.length < 3));
       if(!candidates.length) candidates = pool.filter(x => v6Intersects(prev.end, x.start));
       if(!candidates.length) candidates = pool;
-      const pick = candidates[Math.floor(rng() * candidates.length)];
+      const pick = rand(candidates);
       selected.push(pick);
-      pool.splice(pool.findIndex(x => x.id === pick.id), 1);
+      bag = bag.filter(id => id !== pick.id);
     }
+    v6SaveBagIds(BF_BME_BAG_KEY, bag);
     return selected.slice(0, count);
   }
 
