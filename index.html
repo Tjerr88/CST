@@ -2485,7 +2485,7 @@ function getDefaultLastState(){
     if(band.intuOnly){
       saveLast(last);
     } else if(dayType === 'clubbell'){
-      const clubTypePick = nextFullClubType(last);
+      const clubTypePick = nextFullClubType(progress, last);
       const clubType = clubTypePick.type;
       const clubPlan = generateClubExercises(clubType, progress, last);
       const decompBme = v6PickDecompressionBme(`${todayKey()}|v6-decompress-bme`);
