@@ -290,6 +290,7 @@
     gap:10px;
     align-items:center;
   }
+  .status-optional{display:inline-flex}
   #leftCard,
   #rightCard,
   #settingsCstCard,
@@ -315,12 +316,81 @@
   .timer-note{padding:14px 15px; border-radius:16px; border:1px solid var(--line); background:rgba(255,255,255,.02)}
   .card h2 + .small{margin-top:-2px}
   @media (max-width: 959px){
-    body{padding:16px 12px 24px}
-    .card{padding:16px}
-    .topbar-card{padding:18px}
-    h1{font-size:24px}
-    .time{font-size:54px}
-    #rightCard{position:static}
+    body{padding:10px 10px calc(96px + env(safe-area-inset-bottom))}
+    .wrap{gap:12px}
+    .card{padding:14px; border-radius:20px}
+    .topbar-card{padding:14px 14px 12px}
+    .topbar-head{gap:6px}
+    .eyebrow{font-size:11px}
+    .hero-copy{display:none}
+    h1{font-size:22px}
+    h2{font-size:15px}
+    .toolbar{gap:12px; margin-top:14px}
+    .toolbar-actions{width:100%}
+    .toolbar-actions .btn{flex:1 1 0}
+    .toolbar-status{gap:8px}
+    .status-optional{display:none}
+    .pill{padding:6px 9px; font-size:11px}
+    .tabbar{
+      display:flex;
+      width:100%;
+      margin-top:12px;
+      overflow:auto;
+      scrollbar-width:none;
+    }
+    .tabbar::-webkit-scrollbar{display:none}
+    .tab{flex:1 0 auto; text-align:center; padding:10px 12px}
+    .grid{gap:12px}
+    #rightCard{
+      position:sticky;
+      top:8px;
+      order:-1;
+      z-index:5;
+      border-color:rgba(143,184,216,.18);
+    }
+    #leftCard{order:1}
+    .time{font-size:48px}
+    .stage-title{font-size:19px}
+    .timer-shell{gap:12px}
+    .timer-hero{padding:14px 15px; border-radius:18px}
+    .timer-actions{
+      position:sticky;
+      bottom:calc(10px + env(safe-area-inset-bottom));
+      z-index:3;
+      margin:0 -4px;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(12,18,23,.92);
+      backdrop-filter:blur(14px);
+      box-shadow:0 12px 30px rgba(0,0,0,.28);
+    }
+    .timer-actions .btn{flex:1 1 calc(50% - 6px); min-height:48px}
+    .timer-note{display:none}
+    .accordion{border-radius:18px}
+    .accordion-header{padding:13px 14px; align-items:flex-start}
+    .accordion-content{padding:0 12px 12px}
+    .exercise,
+    .intu-item,
+    .total,
+    .toggle-item{border-radius:16px}
+    .exercise{padding:12px 13px}
+    .finish-row{
+      position:sticky;
+      bottom:calc(10px + env(safe-area-inset-bottom));
+      z-index:2;
+      margin:16px -4px 0;
+      padding:10px;
+      border:1px solid var(--line);
+      border-radius:18px;
+      background:rgba(12,18,23,.92);
+      backdrop-filter:blur(14px);
+      box-shadow:0 12px 30px rgba(0,0,0,.22);
+    }
+    .finish-row .btn{flex:1 1 calc(50% - 6px); min-height:48px}
+    .finish-row .small{width:100%; font-size:11px}
+    .score-row{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr))}
+    .score-btn{width:100%; height:44px}
     .kv{grid-template-columns:1fr}
     .kv select{width:100%}
   }
@@ -346,8 +416,8 @@
       <div class="toolbar-status">
         <span id="modePill" class="pill">Mode: <strong>-</strong></span>
         <span id="dayPill" class="pill">Today: <strong>new</strong></span>
-        <span id="wakePill" class="pill">Wake Lock: <strong>off</strong></span>
-        <span class="pill beep-pill">Beeps: <strong>3-2-1 + switch + done</strong></span>
+        <span id="wakePill" class="pill status-optional">Wake Lock: <strong>off</strong></span>
+        <span class="pill beep-pill status-optional">Beeps: <strong>3-2-1 + switch + done</strong></span>
       </div>
     </div>
     <div class="tabbar">
