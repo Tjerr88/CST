@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator V6 - Body Flow</title>
+<title>CST Generator V6 - Body Flow Book Logic</title>
 <style>
   :root{
     --bg:#0c1217;
@@ -401,7 +401,7 @@
   <div class="card topbar-card">
     <div class="topbar-head">
       <div class="eyebrow">CST Session Flow</div>
-      <h1>CST Generator V6 - Body Flow</h1>
+      <h1>CST Generator V6 - Body Flow Book Logic</h1>
       <p class="hero-copy">Rustiger overzicht voor je dagtraining: dezelfde inhoud, dezelfde opbouw, maar met meer focus op wat nu belangrijk is.</p>
     </div>
     <div class="toolbar">
@@ -2195,7 +2195,9 @@ function getDefaultLastState(){
       renderSession(day);
     } else {
       btnMain.textContent = "Start";
-      if(loadProgressCached().awaitingDecision) renderPhaseDecision();
+      const progress = loadProgressCached();
+      const nextDayType = computeTrainingDayType();
+      if(progress.awaitingDecision && nextDayType === 'clubbell') renderPhaseDecision();
       else renderGate(null);
     }
   }
@@ -2225,126 +2227,488 @@ function getDefaultLastState(){
    ***********************/
 
   const V6_BME_DEFS = [
-    { id:"ARM_SCREW", name:"Arm Screw", family:"shoulder", start:["STANDING","ASSURANCE","QUAD"], end:["STANDING","ASSURANCE","QUAD"], decomp:true, standalone:false,
-      beginning:"Start from Standing, Position of Assurance, or Quad with the shoulder and arm organized.",
-      middle:"Spiral the arm and shoulder as if wringing out tension while the ribs and spine stay relaxed and breathable.",
-      ending:"Finish in the same structure with the shoulder line softer, breath easier, and no extra neck or trap tension." },
-    { id:"SHINBOX_SWITCH", name:"Shinbox Switch", family:"shinbox", start:["SHINBOX"], end:["SHINBOX"], decomp:true,
-      beginning:"Start in Shinbox with both legs folded and the torso organized.",
-      middle:"Rotate both knees and hips through the floor, switching the shinbox from one side to the other. Keep the breath moving and avoid lifting tension into the shoulders.",
-      ending:"Land in Shinbox on the opposite side, stable enough to breathe and continue." },
-    { id:"SQUAT_CREEP", name:"Squat Creep", family:"squat", start:["BOF_SQUAT","FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], end:["FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], decomp:true,
-      beginning:"Start from a low squat structure such as Flat Foot Squat, Ball of Foot Squat, Cossack, Triangle, Shooter, Hurdler, or Climber Squat.",
-      middle:"Shift weight slowly through the feet, hips, and spine while creeping from one squat orientation into another.",
-      ending:"Finish in another squat-based structure, balanced and ready for the next movement." },
-    { id:"KNEE_SWITCH", name:"Knee Switch", family:"shin-knee", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT"], decomp:true,
-      beginning:"Start from Shinbox or Shin Squat.",
-      middle:"Rotate through the knees and hips, changing the lower-body orientation without collapsing the spine.",
-      ending:"Finish in Shinbox or Shin Squat, with the pelvis and breath reorganized." },
-    { id:"SHIN_ROLL", name:"Shin Roll", family:"shin-roll", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT","SUPINE"], decomp:true,
-      beginning:"Start from Shinbox or Shin Squat.",
-      middle:"Roll across the shin and hip line into the floor, allowing the spine and pelvis to follow without bracing.",
-      ending:"Finish back in Shinbox, Shin Squat, or into a supine ground position, depending on the variation." },
-    { id:"STANDING_SHIN_ROLL", name:"Standing Shin Roll", family:"shin-roll", start:["STANDING","BOF_SQUAT","FLAT_SQUAT"], end:["SHINBOX","SHIN_SQUAT"],
-      beginning:"Start from Standing, Ball of Foot Squat, or Flat Foot Squat.",
-      middle:"Descend through a controlled roll toward the shin and hip, yielding into the ground instead of dropping.",
-      ending:"Finish in Shinbox or Shin Squat, organized and breathing." },
-    { id:"LONG_LEG_CREEP", name:"Long Leg Creep", family:"creep", start:["FLAT_SQUAT","COSSACK","TRIANGLE","SHOOTER","HURDLER","CLIMBER"], end:["COSSACK","HURDLER","SHOOTER","CLIMBER"],
-      beginning:"Start from a squat-family structure such as Flat Foot Squat, Cossack, Triangle, Shooter, Hurdler, or Climber Squat.",
-      middle:"Extend and creep one leg long while shifting the hips and torso through a low ground path.",
-      ending:"Finish in a long-leg squat structure such as Cossack, Hurdler, Shooter, or Climber Squat." },
-    { id:"SHIN_SWING", name:"Shin Swing", family:"shin", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT"], decomp:true,
-      beginning:"Start from Shinbox or Shin Squat.",
-      middle:"Swing the shin or leg through a controlled arc, using hip rotation and spinal organization rather than momentum.",
-      ending:"Finish back in Shinbox or Shin Squat, ready to switch, roll, or continue." },
-    { id:"DOUBLE_SHIN_ROLL", name:"Double Shin Roll", family:"shin-roll", start:["SHINBOX","SHIN_SQUAT"], end:["SHINBOX","SHIN_SQUAT","SUPINE"],
-      beginning:"Start from Shinbox or Shin Squat.",
-      middle:"Roll through both shin and hip lines, allowing the pelvis and spine to transition smoothly across the floor.",
-      ending:"Finish in Shinbox, Shin Squat, or a supine ground position." },
-    { id:"LEG_SWOOP", name:"Leg Swoop", family:"leg-swoop", start:["SHINBOX","HURDLER","QUAD"], end:["QUAD","SHINBOX"],
-      beginning:"Start from Shinbox, Hurdler, or Quad Squat.",
-      middle:"Swoop the leg under or around the body while the hands, hips, and spine reorganize the base.",
-      ending:"Finish in Quad Squat or Shinbox, depending on direction." },
-    { id:"ELEVATED_SCORPION", name:"Elevated Scorpion", family:"scorpion", start:["QUAD","SPINAL_ARCH"], end:["QUAD","SPINAL_ARCH"],
-      beginning:"Start from Quad Squat or a spinal-extension support such as Spinal Arch.",
-      middle:"Lift and arc one leg across or behind the body into a scorpion-like extension and rotation.",
-      ending:"Finish back in Quad Squat or Spinal Arch, without dumping into the low back." },
-    { id:"LONG_LEG_ROLL", name:"Long Leg Roll", family:"long-leg", start:["HURDLER","SHOOTER","SUPINE"], end:["HURDLER","SIDE","SUPINE"],
-      beginning:"Start from Hurdler, Shooter, or a supine ground position.",
-      middle:"Roll across the back and hip while keeping one leg long, allowing the spine to rotate and the leg to guide the movement.",
-      ending:"Finish in Hurdler, Side Lying, or Supine Ground." },
-    { id:"LEG_THREAD", name:"Leg Thread", family:"thread", start:["QUAD","SHINBOX","HURDLER"], end:["SHINBOX","HURDLER","QUAD"],
-      beginning:"Start from Quad Squat, Shinbox, or Hurdler.",
-      middle:"Thread one leg through the body line, rotating the hips and torso while maintaining hand or ground support.",
-      ending:"Finish in Shinbox, Hurdler, or Quad Squat." },
-    { id:"DOUBLE_LEG_SWOOP", name:"Double Leg Swoop", family:"leg-swoop", start:["QUAD","SHINBOX"], end:["SHINBOX","QUAD"],
-      beginning:"Start from Quad Squat or Shinbox.",
-      middle:"Swoop both legs through or around the body as a larger integrated ground transition.",
-      ending:"Finish in Shinbox or Quad Squat, ideally with no collapse in the shoulders or spine." },
-    { id:"ARCHING_LEG_THREAD", name:"Arching Leg Thread", family:"thread", start:["QUAD","SPINAL_ARCH"], end:["HURDLER","QUAD","SPINAL_ARCH"],
-      beginning:"Start from Quad Squat or Spinal Arch.",
-      middle:"Thread the leg through while maintaining an arched or spinal-extension quality. This combines leg threading with spinal opening.",
-      ending:"Finish in Hurdler, Quad Squat, or Spinal Arch." },
-    { id:"SPINAL_ROCK", name:"Spinal Rock", family:"spinal-rock", start:["SUPINE","SHINBOX","SPINAL_SQUAT"], end:["SUPINE","SHINBOX"], decomp:true,
-      beginning:"Start from Supine, Shinbox, or Spinal Squat.",
-      middle:"Rock through the spine, using flexion, extension, and breath to move rather than muscular force.",
-      ending:"Finish in Supine or Shinbox, depending on the version." },
-    { id:"SPINAL_ROCK_EXTENDED_PIKE", name:"Spinal Rock: Extended Pike", family:"spinal-rock", start:["SUPINE","PIKE"], end:["PIKE","SUPINE"],
-      beginning:"Start from Supine or Extended Pike.",
-      middle:"Rock through the spine while extending the legs toward a pike shape.",
-      ending:"Finish in Extended Pike or return to Supine." },
-    { id:"SPINAL_ROCK_STRADDLE", name:"Spinal Rock: Straddle Split", family:"spinal-rock", start:["SUPINE","STRADDLE"], end:["STRADDLE","SUPINE"],
-      beginning:"Start from Supine or Straddle Split.",
-      middle:"Rock through the spine while opening the legs into a straddle pattern.",
-      ending:"Finish in Straddle Split or return to Supine." },
-    { id:"SPINAL_ROCK_HURDLER", name:"Spinal Rock: Hurdler Split", family:"spinal-rock", start:["SUPINE","HURDLER"], end:["HURDLER","SUPINE"],
-      beginning:"Start from Supine or Hurdler Split.",
-      middle:"Rock through the spine while shaping one leg into a hurdler position.",
-      ending:"Finish in Hurdler Split or return to Supine." },
-    { id:"SPINAL_ROCK_SHINBOX", name:"Spinal Rock: Shinbox", family:"spinal-rock", start:["SUPINE","SHINBOX"], end:["SHINBOX","SUPINE"], decomp:true,
-      beginning:"Start from Supine or Shinbox.",
-      middle:"Rock through the spine and rotate the hips toward shinbox organization.",
-      ending:"Finish in Shinbox or return to Supine." },
-    { id:"SPINAL_ROCK_BUTTERFLY", name:"Spinal Rock: Butterfly", family:"spinal-rock", start:["SUPINE","BUTTERFLY"], end:["BUTTERFLY","SUPINE"],
-      beginning:"Start from Supine or Butterfly.",
-      middle:"Rock through the spine while opening the knees into a butterfly shape.",
-      ending:"Finish in Butterfly or return to Supine." },
-    { id:"SWING_SPLIT", name:"Swing Split", family:"split", start:["COSSACK","HURDLER","STRADDLE"], end:["HURDLER","STRADDLE","COSSACK"],
-      beginning:"Start from Cossack, Hurdler, or Straddle.",
-      middle:"Swing the legs through a split-like pathway while the pelvis and spine reorganize.",
-      ending:"Finish in Hurdler, Straddle, or Cossack." },
-    { id:"QUAD_SWITCH", name:"Quad Switch", family:"quad", start:["QUAD"], end:["QUAD"], decomp:true,
-      beginning:"Start from Quad Squat.",
-      middle:"Rotate or switch the quadruped orientation while keeping the hands, spine, and hips integrated.",
-      ending:"Finish in Quad Squat, usually facing or organized differently." },
-    { id:"LONG_ARM_ROLL", name:"Long Arm Roll", family:"arm-roll", start:["SIDE","SUPINE","PRONE","QUAD"], end:["SIDE","SUPINE","PRONE"], decomp:true,
-      beginning:"Start from Side Lying, Supine, Prone, or Quad Squat.",
-      middle:"Roll through the shoulder and torso with the arm extended long, letting the arm guide the body through the ground.",
-      ending:"Finish in Side Lying, Supine, or Prone." },
-    { id:"LONG_ARM_ROLL_REVERSE", name:"Long Arm Roll Reverse", family:"arm-roll", start:["SIDE","SUPINE","PRONE"], end:["SIDE","SUPINE","PRONE","QUAD"], decomp:true,
-      beginning:"Start from Side Lying, Supine, or Prone.",
-      middle:"Reverse the long-arm rolling pathway, unwinding the shoulder, ribs, and spine.",
-      ending:"Finish in Side Lying, Supine, Prone, or Quad Squat." },
-    { id:"ARM_THREAD_SHOULDER_ROLL", name:"Arm Thread Shoulder Roll", family:"shoulder-roll", start:["QUAD","SIDE"], end:["SIDE","SUPINE","QUAD"], decomp:true,
-      beginning:"Start from Quad Squat or side-support.",
-      middle:"Thread one arm under or across the body and roll through the shoulder line.",
-      ending:"Finish in Side Lying, Supine, or back toward Quad Squat." },
-    { id:"LATERAL_SHOULDER_ROLL", name:"Lateral Shoulder Roll", family:"shoulder-roll", start:["QUAD","SIDE","PRONE"], end:["SIDE","PRONE","QUAD"],
-      beginning:"Start from Quad Squat, Side Lying, or Prone.",
-      middle:"Roll laterally across the shoulder line, transferring weight through the upper body and ribs.",
-      ending:"Finish in Side Lying, Prone, or Quad Squat." },
-    { id:"NECK_ROLL", name:"Neck Roll", family:"neck", start:["SUPINE","PRONE","SIDE"], end:["SUPINE","PRONE","SIDE"],
-      beginning:"Start from Supine, Prone, or Side Lying.",
-      middle:"Roll through the head, neck, and upper-spine pathway with extreme control and no force.",
-      ending:"Finish in Supine, Prone, or Side Lying." },
-    { id:"TWISTING_SPINAL_ARCH", name:"Twisting Spinal Arch", family:"spine", start:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"], end:["SPINAL_ARCH","SPINAL_SQUAT","QUAD"],
-      beginning:"Start from Spinal Arch, Spinal Squat, or Quad Squat.",
-      middle:"Add rotation to the spinal arch, twisting through the spine while maintaining breath and structure.",
-      ending:"Finish in Spinal Arch, Spinal Squat, or Quad Squat." },
-    { id:"ARCHING_HIGH_LEG", name:"Arching High Leg", family:"spine", start:["SPINAL_ARCH","QUAD"], end:["SPINAL_ARCH","QUAD"],
-      beginning:"Start from Spinal Arch or Quad Squat.",
-      middle:"Lift one leg high into extension while maintaining an arched spinal structure and controlled breathing.",
-      ending:"Finish in Spinal Arch or Quad Squat." }
+      {
+          "id": "ARM_SCREW",
+          "name": "Arm Screw",
+          "family": "shoulder",
+          "start": [
+              "STANDING"
+          ],
+          "end": [
+              "STANDING"
+          ],
+          "decomp": true,
+          "standalone": false,
+          "beginning": "Stand tall with both arms extended straight out to the sides, parallel to the floor.",
+          "middle": "Exhale and rotate one whole arm forward. Let the same-side shoulder, hip and knee subtly participate: the hip moves outward slightly and the same-side knee dips inward. Keep the arms stretched in opposite directions.",
+          "ending": "Roll the shoulder backward and return to upright posture. Switch sides."
+      },
+      {
+          "id": "SHINBOX_SWITCH",
+          "name": "Shinbox Switch",
+          "family": "shinbox",
+          "start": [
+              "SHINBOX"
+          ],
+          "end": [
+              "SHINBOX"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Shinbox.",
+          "middle": "Exhale and curve the spine backward as both knees lift. Keep both feet on the ground and do not adjust the foot placement. Continue through the seated position without pausing.",
+          "ending": "Inhale as the chest expands and the knees drop into the opposite Shinbox."
+      },
+      {
+          "id": "SQUAT_CREEP",
+          "name": "Squat Creep",
+          "family": "squat",
+          "start": [
+              "BOF_SQUAT"
+          ],
+          "end": [
+              "FLAT_SQUAT"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Ball of Foot Squat.",
+          "middle": "Transfer your weight onto one foot. Step the free leg forward only far enough to place that foot flat on the ground. As your weight shifts onto the advanced leg, draw the opposite knee backward without moving its planted foot; let that foot only pivot.",
+          "ending": "With your weight balanced on the forward leg, step linearly forward until the back foot becomes flat on the ground. Repeat."
+      },
+      {
+          "id": "KNEE_SWITCH",
+          "name": "Knee Switch",
+          "family": "shin-knee",
+          "start": [
+              "FLAT_SQUAT"
+          ],
+          "end": [
+              "COSSACK"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Flat Foot Squat.",
+          "middle": "Let the inside of one knee drop toward the ground until the shin makes full contact. Do not strain the knee. Let the hip push the dropping knee slightly forward as it travels down.",
+          "ending": "Arrive in Cossack Squat. To return, shift the hips and weight off the flat foot so the dropped knee becomes light, then come back toward Ball of Foot Squat and switch sides."
+      },
+      {
+          "id": "SHIN_ROLL",
+          "name": "Shin Roll",
+          "family": "shin-roll",
+          "start": [
+              "FLAT_SQUAT"
+          ],
+          "end": [
+              "TRIANGLE"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Flat Foot Squat.",
+          "middle": "Drop the knee as in Knee Switch to arrive in Cossack Squat. Shift your weight parallel to the ground by rolling your bottom over your shin. Keep the instep and top of the foot in contact with the ground.",
+          "ending": "Curl the toes under, pass through Shin Squat, and roll the weight around until the planted shin pivots toward the opposite foot, arriving in Triangle Squat."
+      },
+      {
+          "id": "STANDING_SHIN_ROLL",
+          "name": "Standing Shin Roll",
+          "family": "shin-roll",
+          "start": [
+              "STANDING"
+          ],
+          "end": [
+              "SHIN_SQUAT",
+              "SHINBOX"
+          ],
+          "beginning": "Begin from standing and prepare to descend under control.",
+          "middle": "Lower toward the ground and guide one shin toward the floor, using the hip and leg to control the descent instead of dropping.",
+          "ending": "Land into a shin-supported position with your structure organized and breath calm."
+      },
+      {
+          "id": "LONG_LEG_CREEP",
+          "name": "Long Leg Creep",
+          "family": "creep",
+          "start": [
+              "COSSACK",
+              "HURDLER",
+              "SHOOTER",
+              "CLIMBER"
+          ],
+          "end": [
+              "COSSACK",
+              "HURDLER",
+              "SHOOTER",
+              "CLIMBER"
+          ],
+          "beginning": "Begin low, with one leg able to extend long.",
+          "middle": "Creep the long leg through the floor path while transferring weight through the hips, feet and hands as needed.",
+          "ending": "Settle into the next long-leg squat shape with enough control to continue."
+      },
+      {
+          "id": "SHIN_SWING",
+          "name": "Shin Swing",
+          "family": "shin",
+          "start": [
+              "SHIN_SQUAT",
+              "SHINBOX"
+          ],
+          "end": [
+              "SHIN_SQUAT",
+              "SHINBOX"
+          ],
+          "decomp": true,
+          "beginning": "Begin in a shin-supported position.",
+          "middle": "Free the moving leg and swing it in a large controlled arc while the hip guides the motion.",
+          "ending": "Land in the next shin-based position without crashing the knee or hip."
+      },
+      {
+          "id": "DOUBLE_SHIN_ROLL",
+          "name": "Double Shin Roll",
+          "family": "shin-roll",
+          "start": [
+              "SHIN_SQUAT",
+              "SHINBOX"
+          ],
+          "end": [
+              "SHIN_SQUAT",
+              "SHINBOX",
+              "SUPINE"
+          ],
+          "beginning": "Begin with both shins available to roll through.",
+          "middle": "Roll across one shin line and continue into the second, letting the hips and pelvis travel rather than forcing the spine.",
+          "ending": "Settle into the next shin or ground position."
+      },
+      {
+          "id": "LEG_SWOOP",
+          "name": "Leg Swoop",
+          "family": "leg-swoop",
+          "start": [
+              "SHINBOX",
+              "QUAD"
+          ],
+          "end": [
+              "QUAD",
+              "SHINBOX"
+          ],
+          "beginning": "Begin from a grounded position where one leg can travel underneath or around the body.",
+          "middle": "Swoop the leg through the space under or around the body while the hands and hips reorganize your base.",
+          "ending": "Land in Quad Squat or Shinbox, depending on direction."
+      },
+      {
+          "id": "ELEVATED_SCORPION",
+          "name": "Elevated Scorpion",
+          "family": "scorpion",
+          "start": [
+              "QUAD"
+          ],
+          "end": [
+              "QUAD",
+              "SPINAL_ARCH"
+          ],
+          "beginning": "Begin in a strong hands-and-feet support.",
+          "middle": "Lift one leg and arc it up and across or behind the body, letting the spine rotate and extend without forcing the low back.",
+          "ending": "Return to a stable supported position."
+      },
+      {
+          "id": "LONG_LEG_ROLL",
+          "name": "Long Leg Roll",
+          "family": "long-leg",
+          "start": [
+              "HURDLER",
+              "SHOOTER",
+              "SUPINE"
+          ],
+          "end": [
+              "HURDLER",
+              "SIDE",
+              "SUPINE"
+          ],
+          "beginning": "Begin with one leg extended long.",
+          "middle": "Roll across the hip and back while the long leg guides the rotation.",
+          "ending": "Land in a controlled ground position, keeping the extended leg organized."
+      },
+      {
+          "id": "LEG_THREAD",
+          "name": "Leg Thread",
+          "family": "thread",
+          "start": [
+              "QUAD",
+              "SHINBOX",
+              "HURDLER"
+          ],
+          "end": [
+              "SHINBOX",
+              "HURDLER",
+              "QUAD"
+          ],
+          "beginning": "Begin in a supported ground position with room to pass one leg through.",
+          "middle": "Thread the leg through the body line while the hips and torso rotate around the support.",
+          "ending": "Land in the next ground structure with the shoulders and spine still organized."
+      },
+      {
+          "id": "DOUBLE_LEG_SWOOP",
+          "name": "Double Leg Swoop",
+          "family": "leg-swoop",
+          "start": [
+              "QUAD",
+              "SHINBOX"
+          ],
+          "end": [
+              "SHINBOX",
+              "QUAD",
+              "ASSURANCE"
+          ],
+          "beginning": "Begin with both legs able to travel through the ground path.",
+          "middle": "Move the top leg over as far as possible, then allow the bottom leg to follow and thread underneath. Let the hips swing the lower body through without rushing.",
+          "ending": "Expose the front of the body toward the ground, then either continue into another revolution or settle."
+      },
+      {
+          "id": "ARCHING_LEG_THREAD",
+          "name": "Arching Leg Thread",
+          "family": "thread",
+          "start": [
+              "SPINAL_ARCH"
+          ],
+          "end": [
+              "SPINAL_ARCH"
+          ],
+          "beginning": "Begin in Spinal Arch with elbows close to the ribs and hands near the chin.",
+          "middle": "Thread one leg underneath while maintaining the arch. Reach deeply with the threading leg to expose the front of the body toward the ground. Transfer weight to the forearms and balls of the feet.",
+          "ending": "Shift weight to one forearm, free the top shoulder to roll upward and around, then thread the opposite leg underneath to arrive back in Spinal Arch."
+      },
+      {
+          "id": "SPINAL_ROCK",
+          "name": "Spinal Rock",
+          "family": "spinal-rock",
+          "start": [
+              "SUPINE"
+          ],
+          "end": [
+              "SUPINE"
+          ],
+          "decomp": true,
+          "beginning": "Begin seated in Ready Position.",
+          "middle": "Arch the spine backward and tuck the pelvis upward so the spine rounds. Roll backward with the chin tucked and exhale as the lungs compress.",
+          "ending": "Rock back, project the solar plexus upward, then inhale and lengthen the spine as you return upright."
+      },
+      {
+          "id": "SPINAL_ROCK_EXTENDED_PIKE",
+          "name": "Spinal Rock: Extended Pike",
+          "family": "spinal-rock",
+          "start": [
+              "PIKE",
+              "SUPINE"
+          ],
+          "end": [
+              "PIKE",
+              "SUPINE"
+          ],
+          "beginning": "Sit with legs extended forward and together.",
+          "middle": "Roll backward, bringing the knees close. When on the shoulder blades, exhale and extend the legs upward.",
+          "ending": "Bring the knees back toward the chest and return to seated."
+      },
+      {
+          "id": "SPINAL_ROCK_STRADDLE",
+          "name": "Spinal Rock: Straddle Split",
+          "family": "spinal-rock",
+          "start": [
+              "STRADDLE",
+              "SUPINE"
+          ],
+          "end": [
+              "STRADDLE",
+              "SUPINE"
+          ],
+          "beginning": "Sit with legs extended outward and the spine lifted.",
+          "middle": "Exhale and roll backward, bringing the knees toward the sides of the head. When on the shoulder blades, gently lock the knees.",
+          "ending": "Relax the knees back toward the chest and return to Straddle Split while inhaling and lengthening the spine."
+      },
+      {
+          "id": "SPINAL_ROCK_HURDLER",
+          "name": "Spinal Rock: Hurdler Split",
+          "family": "spinal-rock",
+          "start": [
+              "HURDLER",
+              "SUPINE"
+          ],
+          "end": [
+              "HURDLER",
+              "SUPINE"
+          ],
+          "beginning": "Sit with one leg extended forward and the other tucked.",
+          "middle": "Keep the spine lifted. Exhale and roll backward, bringing the extended leg back over the head while maintaining the tucked-leg relationship.",
+          "ending": "Relax the knee back toward the chest, switch the leg relationship, and land in the opposite Hurdler Split."
+      },
+      {
+          "id": "SPINAL_ROCK_SHINBOX",
+          "name": "Spinal Rock: Shinbox",
+          "family": "spinal-rock",
+          "start": [
+              "SHINBOX",
+              "SUPINE"
+          ],
+          "end": [
+              "SHINBOX",
+              "SUPINE"
+          ],
+          "decomp": true,
+          "beginning": "Begin seated and organize the legs toward Shinbox.",
+          "middle": "Rock backward through the spine, then use the return to rotate the hips toward Shinbox.",
+          "ending": "Land in Shinbox with the torso lifted and breath re-established."
+      },
+      {
+          "id": "SPINAL_ROCK_BUTTERFLY",
+          "name": "Spinal Rock: Butterfly",
+          "family": "spinal-rock",
+          "start": [
+              "BUTTERFLY",
+              "SUPINE"
+          ],
+          "end": [
+              "BUTTERFLY",
+              "SUPINE"
+          ],
+          "beginning": "Begin seated with soles of the feet together and knees open.",
+          "middle": "Roll backward through the spine while keeping the butterfly shape available.",
+          "ending": "Return to Butterfly with the spine lifted."
+      },
+      {
+          "id": "SWING_SPLIT",
+          "name": "Swing Split",
+          "family": "split",
+          "start": [
+              "STRADDLE",
+              "HURDLER",
+              "COSSACK"
+          ],
+          "end": [
+              "STRADDLE",
+              "HURDLER",
+              "COSSACK"
+          ],
+          "beginning": "Begin in a split-like seated position.",
+          "middle": "Swing the legs through a controlled pathway, letting the pelvis rotate and reorganize.",
+          "ending": "Land in the opposite split orientation and continue alternating."
+      },
+      {
+          "id": "QUAD_SWITCH",
+          "name": "Quad Switch",
+          "family": "quad",
+          "start": [
+              "QUAD"
+          ],
+          "end": [
+              "QUAD"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Quad Squat.",
+          "middle": "Lift opposite arm and leg while keeping the spine parallel to the ground. Thread the lifted knee underneath the diagonal line as the free shoulder swings backward.",
+          "ending": "Place the hand where the foot was and the foot where the hand was, arriving in Reverse Quad Squat. Repeat the opposite arm-leg combo to return."
+      },
+      {
+          "id": "LONG_ARM_ROLL",
+          "name": "Long Arm Roll",
+          "family": "arm-roll",
+          "start": [
+              "COSSACK"
+          ],
+          "end": [
+              "ASSURANCE"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Cossack Squat with an Arm Screw. The shoulder that rolls downward is over the knee of the planted shin.",
+          "middle": "Exhale and roll under the shoulder, not over it. Keep screwing the shoulder underneath. Lift the heel of the planted shin as you begin the roll. Use the opposite hand to plant and guide.",
+          "ending": "Tuck the chin, move the head under the free armpit, roll across the shoulder blades, and land in Position of Assurance."
+      },
+      {
+          "id": "LONG_ARM_ROLL_REVERSE",
+          "name": "Long Arm Roll Reverse",
+          "family": "arm-roll",
+          "start": [
+              "ASSURANCE"
+          ],
+          "end": [
+              "SHIN_SQUAT"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Position of Assurance with arms outstretched.",
+          "middle": "Exhale and contract the abdomen. Bring the feet overhead slowly and under control while the neck moves opposite the legs. Do not throw the legs.",
+          "ending": "Bend the far knee down, place the near foot close to the head on the ball of the foot, then set the flat foot down and tuck into Shin Squat."
+      },
+      {
+          "id": "ARM_THREAD_SHOULDER_ROLL",
+          "name": "Arm Thread Shoulder Roll",
+          "family": "shoulder-roll",
+          "start": [
+              "SHIN_SQUAT"
+          ],
+          "end": [
+              "SUPINE",
+              "SIDE"
+          ],
+          "decomp": true,
+          "beginning": "Begin in Shin Squat.",
+          "middle": "Thread the arm on the same side as the planted shin between the shin and the opposite foot. Continue extending and screwing the arm until the back is exposed to the ground.",
+          "ending": "Use the opposite hand as a brace, tuck the chin, move the head under the bracing armpit, and roll under without letting the shoulder or head crash into the ground."
+      },
+      {
+          "id": "LATERAL_SHOULDER_ROLL",
+          "name": "Lateral Shoulder Roll",
+          "family": "shoulder-roll",
+          "start": [
+              "SIDE",
+              "PRONE",
+              "QUAD"
+          ],
+          "end": [
+              "SIDE",
+              "PRONE",
+              "QUAD"
+          ],
+          "beginning": "Begin in a low ground position where the shoulder can travel laterally.",
+          "middle": "Transfer weight across the shoulder line while keeping the head and neck protected.",
+          "ending": "Land softly in the next ground position."
+      },
+      {
+          "id": "NECK_ROLL",
+          "name": "Neck Roll",
+          "family": "neck",
+          "start": [
+              "SUPINE",
+              "PRONE",
+              "SIDE"
+          ],
+          "end": [
+              "SUPINE",
+              "PRONE",
+              "SIDE"
+          ],
+          "beginning": "Begin very low and controlled, with no load forced into the neck.",
+          "middle": "Roll through the upper spine and neck pathway only within a range that stays smooth and pain-free.",
+          "ending": "Return to a stable ground position."
+      },
+      {
+          "id": "TWISTING_SPINAL_ARCH",
+          "name": "Twisting Spinal Arch",
+          "family": "spine",
+          "start": [
+              "SPINAL_ARCH"
+          ],
+          "end": [
+              "SPINAL_ARCH"
+          ],
+          "beginning": "Begin in Spinal Arch.",
+          "middle": "Maintain the arched spinal quality while adding rotation through the torso.",
+          "ending": "Return to Spinal Arch or continue into the opposite twisting side."
+      },
+      {
+          "id": "ARCHING_HIGH_LEG",
+          "name": "Arching High Leg",
+          "family": "spine",
+          "start": [
+              "SPINAL_ARCH"
+          ],
+          "end": [
+              "SPINAL_ARCH"
+          ],
+          "beginning": "Begin in an arched supported position.",
+          "middle": "Lift one leg high while maintaining the spinal arch and controlled breath.",
+          "ending": "Return the leg and re-establish the arch before switching or continuing."
+      }
   ];
   const V6_STANDALONE_BMES = V6_BME_DEFS.filter(x => x.id !== "ARM_SCREW");
   const V6_DECOMP_BMES = V6_BME_DEFS.filter(x => x.decomp || x.id === "ARM_SCREW");
@@ -2428,17 +2792,14 @@ function getDefaultLastState(){
       }
       if(!pool.length) break;
 
-      if(!selected.length){
-        const first = rand(pool);
-        selected.push(first);
-        bag = bag.filter(id => id !== first.id);
-        continue;
+      // Book logic: do NOT pre-solve the kinetic chain.
+      // The app selects the BME's; the practitioner explores the grafts afterwards.
+      // We only avoid too much same-family repetition when possible.
+      let candidates = pool;
+      if(selected.length && candidates.length > 1){
+        const differentFamily = candidates.filter(x => !selected.some(s => s.family === x.family));
+        if(differentFamily.length) candidates = differentFamily;
       }
-
-      const prev = selected[selected.length - 1];
-      let candidates = pool.filter(x => v6Intersects(prev.end, x.start) && !selected.some(s => s.family === x.family && selected.length < 3));
-      if(!candidates.length) candidates = pool.filter(x => v6Intersects(prev.end, x.start));
-      if(!candidates.length) candidates = pool;
       const pick = rand(candidates);
       selected.push(pick);
       bag = bag.filter(id => id !== pick.id);
@@ -2458,23 +2819,25 @@ function getDefaultLastState(){
       });
     });
     for(let i = 0; i < bmes.length - 1; i += 1){
+      const hasSharedBase = v6Intersects(bmes[i].end, bmes[i+1].start);
       steps.push({
         type:"graft",
         title:`Graft #${i + 1} -> #${i + 2}: ${bmes[i].name} into ${bmes[i+1].name}`,
-        detail:`Weave the ending component of ${bmes[i].name} into the beginning component of ${bmes[i+1].name}.`,
-        bmes:[bmes[i], bmes[i+1]]
+        detail:`Explore how the ending component of ${bmes[i].name} can arrive at the beginning component of ${bmes[i+1].name} with the least necessary tension. This does not need to be pre-matched by the generator; the transition is the practice.${hasSharedBase ? " A shared listed base may make this easier." : ""}`,
+        bmes:[bmes[i], bmes[i+1]],
+        hasSharedBase
       });
       steps.push({
         type:"chain",
         title:`Chain #${i + 1} + #${i + 2}: ${bmes[i].name} -> ${bmes[i+1].name}`,
-        detail:`Practice both BME's as one continuous movement while keeping breathing, movement and structure integrated.`,
+        detail:`Practice both BME's as one continuous movement after you have found a workable graft. Keep breathing, movement and structure integrated.`,
         bmes:[bmes[i], bmes[i+1]]
       });
     }
     steps.push({
       type:"full-chain",
       title:`Full kinetic chain: ${bmes.map(x => x.name).join(" -> ")}`,
-      detail:`Practice the complete ${bmes.length}-BME flow without forcing. Stop or repeat if bracing, wincing, flinching or excess conscious control returns.`,
+      detail:`Practice the complete ${bmes.length}-BME flow only as far as the grafts stay clean. Stop, regress, or return to separate BME practice if bracing, wincing, flinching or excess conscious control returns.`,
       bmes:bmes.slice()
     });
     return steps.map((step, index) => ({ index:index + 1, ...step }));
@@ -2487,8 +2850,8 @@ function getDefaultLastState(){
       bmeCount:bmes.length,
       bmes,
       ladder:v6BuildBodyFlowLadder(bmes),
-      use:"Start with roughly 2 minutes of Performance Breathing, then work through the ladder as far as quality allows within the 40-minute cap. It is fine to spend the whole session on BME #1.",
-      rule:"Advance only when the current BME or link is smooth, breath-led, free of excess tension and available with minimal conscious involvement."
+      use:"Start with roughly 2 minutes of Performance Breathing, then practice the selected BME's separately before exploring the grafts. Work only as far as quality allows within the 40-minute cap. It is fine to spend the whole session on BME #1.",
+      rule:"Advance only when the current BME or explored graft is smooth, breath-led, free of excess tension and available with minimal conscious involvement. The BME's do not need to be pre-linked by matching start/end positions."
     };
   }
 
@@ -2816,7 +3179,7 @@ function getDefaultLastState(){
     settingsBfCard.innerHTML = `
       <h2>Body-Flow settings</h2>
       <div class="setting-list">
-        <div class="settings-note">CST V6: standalone Body-Flow uses an authentic BME practice cycle. It is no longer a random flow sequence and has no levels. Clubbell days keep a 5-minute single-BME decompression, where Arm Screw is allowed.</div>
+        <div class="settings-note">CST V6: standalone Body-Flow uses an authentic BME practice cycle. It is no longer a random flow sequence and has no levels. The generator does not force seamless start/end matching; you explore the grafts during practice. Clubbell days keep a 5-minute single-BME decompression, where Arm Screw is allowed.</div>
         <div class="toggle-list">
           <label class="toggle-item"><span>Alternate with standalone Body-Flow days</span><input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}></label>
         </div>
@@ -2828,7 +3191,7 @@ function getDefaultLastState(){
             <option value="5">5 BME's - maximum</option>
           </select>
         </div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Standalone timer</div><div class="ex-meta">One 40-minute cap. Start with Performance Breathing and move through the ladder as far as quality allows. No standalone decompression.</div></div><div class="pill">V6</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Standalone timer</div><div class="ex-meta">One 40-minute cap. Start with Performance Breathing, practice each BME, then explore the grafts. No standalone decompression.</div></div><div class="pill">V6</div></div>
         <div class="exercise"><div class="ex-left"><div class="ex-title">Clubbell decompression</div><div class="ex-meta">After Clubbell the app gives one BME for 5 minutes. Arm Screw is included here because it works well as a shoulder and ribcage reset.</div></div><div class="pill">V6</div></div>
       </div>`;
 
