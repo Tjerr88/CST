@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator V6</title>
+<title>CST Generator V6 - Book Start Finish</title>
 <style>
   :root{
     --bg:#0c1217;
@@ -2925,7 +2925,10 @@ function getDefaultLastState(){
   function buildStages(session){
     const stages = [];
     if(session.dayType === 'clubbell'){
-      stages.push({ key:'club', label:`Clubbell | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
+      const clubLabel = session.club?.blockMode === "sets"
+        ? `Clubbell | ${session.club?.targetSets || 0} sets`
+        : `Clubbell | ${fmtMin(session.blockTimes.club)}`;
+      stages.push({ key:'club', label:clubLabel, seconds:session.blockTimes.club });
       stages.push({ key:'decomp', label:`Decompress BME | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
     } else if(session.dayType === 'bodyflow'){
       stages.push({ key:'bodyflow', label:`Body-Flow Practice | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow });
@@ -2960,6 +2963,7 @@ function getDefaultLastState(){
       currentStageEndsAt: null,
       isRunning: false,
       lastCountdownBeep: null,
+      lastMinuteCue: null,
       completed: false,
       completedAt: null,
       settingsUsed:{ cst:getCSTSettings(), bodyFlow:getBFSettings() },
@@ -2976,12 +2980,15 @@ function getDefaultLastState(){
     if(band.intuOnly){
       saveLast(last);
     } else if(dayType === 'clubbell'){
+      const cstSettings = getCSTSettings();
       const clubTypePick = nextFullClubType(progress, last);
       const clubType = clubTypePick.type;
       const clubPlan = generateClubExercises(clubType, progress, last);
       const decompBme = v6PickDecompressionBme(`${todayKey()}|v6-decompress-bme`);
       session.club = {
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
+        blockMode:cstSettings.clubMode,
+        targetSets:getCurrentSetCount(progress),
         clubType,
         clubTypeIndex:clubTypePick.index,
         phaseName:clubPlan.phaseName,
@@ -2997,7 +3004,7 @@ function getDefaultLastState(){
         use:"After Clubbell: practice this single BME slowly for 5 minutes. Let it unload the shoulders, spine, hips and breath. Do not turn it into conditioning.",
         rule:"Study beginning -> middle -> ending. Repeat gently until excess tension softens."
       };
-      session.blockTimes.club = getEffectiveMainDuration(total, progress) * 60;
+      session.blockTimes.club = (cstSettings.clubMode === "sets" ? getCurrentSetCount(progress) : getEffectiveMainDuration(total, progress)) * 60;
       session.blockTimes.decomp = 5 * 60;
       session.countsTowardProgression = !!band.useProgression;
       // Do not commit Clubbell type rotation or exercise history here.
