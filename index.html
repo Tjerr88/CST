@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>CST Generator V6</title>
+<title>CST Generator V6 - Book Start Finish</title>
 <style>
   :root{
     --bg:#0c1217;
@@ -792,6 +792,7 @@ const PHASES = [
 const CLUB_TYPE_SEQUENCE = ["single","2h","single","double","single","2h"];
 const PHASE_SESSION_COUNT = 24;
 const PHASE_DURATIONS = [15,20,25,30];
+const PHASE_SET_COUNTS = [16,20,24,28];
 function clubCompatible(exercise, clubType){
   const modes = exercise.modes || ["single","double"];
   if(clubType === "single") return modes.includes("single");
@@ -852,6 +853,13 @@ function getCurrentPattern(progress){
 function getCurrentDurationMinutes(progress){
   const idx = Math.max(0, Math.min(PHASE_DURATIONS.length - 1, Math.floor(getSessionSlot(progress) / CLUB_TYPE_SEQUENCE.length)));
   return PHASE_DURATIONS[idx];
+}
+function getCurrentSetCount(progress){
+  const idx = Math.max(0, Math.min(PHASE_SET_COUNTS.length - 1, Math.floor(getSessionSlot(progress) / CLUB_TYPE_SEQUENCE.length)));
+  return PHASE_SET_COUNTS[idx];
+}
+function getCurrentClubStepLabel(progress, cstSettings = getCSTSettings()){
+  return cstSettings.clubMode === "sets" ? `${getCurrentSetCount(progress)} sets` : `${getCurrentDurationMinutes(progress)} min`;
 }
 function getSubcategoryBag(progress, bucket){
   if(!progress.subcategoryBags || typeof progress.subcategoryBags !== 'object') progress.subcategoryBags = { Rhythmic:[], Ballistic:[], Grinding:[] };
@@ -948,15 +956,16 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   }
   function setBFSettings(next){ localStorage.setItem(BF_SETTINGS_KEY, JSON.stringify(next)); }
 
-  function getCSTSettings(){
-    const base = { clubTypes:{ single:true, double:true, "2h":true } };
-    try{
-      const stored = JSON.parse(localStorage.getItem(CST_SETTINGS_KEY) || "{}");
-      const next = { ...base, ...stored, clubTypes:{ ...base.clubTypes, ...(stored.clubTypes || {}) } };
-      if(!Object.values(next.clubTypes).some(Boolean)) next.clubTypes.single = true;
-      return next;
-    } catch { return base; }
-  }
+function getCSTSettings(){
+  const base = { clubTypes:{ single:true, double:true, "2h":true }, clubMode:"timer" };
+  try{
+    const stored = JSON.parse(localStorage.getItem(CST_SETTINGS_KEY) || "{}");
+    const next = { ...base, ...stored, clubTypes:{ ...base.clubTypes, ...(stored.clubTypes || {}) } };
+    if(!Object.values(next.clubTypes).some(Boolean)) next.clubTypes.single = true;
+    if(!["timer", "sets"].includes(String(next.clubMode))) next.clubMode = "timer";
+    return next;
+  } catch { return base; }
+}
   function setCSTSettings(next){
     const current = getCSTSettings();
     const merged = { ...current, ...next, clubTypes:{ ...current.clubTypes, ...((next && next.clubTypes) || {}) } };
@@ -1188,6 +1197,21 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   let lastTickSyncSecond = null;
   let accordionsBound = false;
 
+  function isClubSetModeSession(session){
+    return !!(session?.dayType === "clubbell" && session?.club?.blockMode === "sets");
+  }
+  function getClubSetProgress(session, secondsLeft = getStageSecondsLeft(session)){
+    const currentStage = getCurrentStage(session);
+    if(!isClubSetModeSession(session) || currentStage?.key !== "club") return null;
+    const totalSets = Number(session?.club?.targetSets) || 0;
+    const totalSeconds = Number(currentStage.seconds) || 0;
+    if(!totalSets || !totalSeconds) return null;
+    const elapsedSeconds = Math.max(0, totalSeconds - Math.max(0, secondsLeft));
+    const completedSets = Math.min(totalSets, Math.floor(elapsedSeconds / 60));
+    const currentSet = Math.min(totalSets, completedSets + 1);
+    return { totalSets, completedSets, currentSet, remainingSets:Math.max(0, totalSets - completedSets) };
+  }
+
   function dateKeyForOffset(days){
     const d = new Date();
     d.setHours(12,0,0,0);
@@ -1219,10 +1243,12 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
     if(band.useProgression) return getCurrentDurationMinutes(progress);
     return band.minutes || 15;
   }
-  function getBandDescription(total, progress){
+  function getBandDescription(total, progress, cstSettings = getCSTSettings()){
     const band = computeBand(total);
     if(band.intuOnly) return 'Intu only';
-    if(band.useProgression) return `Normal session (${getCurrentDurationMinutes(progress)} min from progression)`;
+    if(band.useProgression) return cstSettings.clubMode === "sets"
+      ? `Normal session (${getCurrentSetCount(progress)} sets from progression)`
+      : `Normal session (${getCurrentDurationMinutes(progress)} min from progression)`;
     return `15 min fallback`;
   }
   function formatModeLabel(mode){
@@ -1486,7 +1512,10 @@ function getDefaultLastState(){
   function buildStages(session){
     const stages = [];
     if(session.dayType === 'clubbell'){
-      stages.push({ key:'club', label:`Clubbell | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club });
+      const clubLabel = session.club?.blockMode === "sets"
+        ? `Clubbell | ${session.club?.targetSets || 0} sets`
+        : `Clubbell | ${fmtMin(session.blockTimes.club)}`;
+      stages.push({ key:'club', label:clubLabel, seconds:session.blockTimes.club });
       stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
     } else if(session.dayType === 'bodyflow'){
       stages.push({ key:'bodyflow', label:`Body Flow | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow });
@@ -1522,6 +1551,7 @@ function getDefaultLastState(){
       currentStageEndsAt: null,
       isRunning: false,
       lastCountdownBeep: null,
+      lastMinuteCue: null,
       completed: false,
       completedAt: null,
       settingsUsed:{ cst:getCSTSettings(), bodyFlow:getBFSettings() },
@@ -1538,6 +1568,7 @@ function getDefaultLastState(){
     if(band.intuOnly){
       saveLast(last);
     } else if(dayType === 'clubbell'){
+      const cstSettings = getCSTSettings();
       const clubTypePick = nextFullClubType(progress, last);
       const clubType = clubTypePick.type;
       const clubPlan = generateClubExercises(clubType, progress, last);
@@ -1552,6 +1583,8 @@ function getDefaultLastState(){
       });
       session.club = {
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
+        blockMode:cstSettings.clubMode,
+        targetSets:getCurrentSetCount(progress),
         clubType,
         clubTypeIndex:clubTypePick.index,
         phaseName:clubPlan.phaseName,
@@ -1567,7 +1600,7 @@ function getDefaultLastState(){
         bagType: 'Body-Flow',
         ...decompSequence
       };
-      session.blockTimes.club = getEffectiveMainDuration(total, progress) * 60;
+      session.blockTimes.club = (cstSettings.clubMode === "sets" ? getCurrentSetCount(progress) : getEffectiveMainDuration(total, progress)) * 60;
       session.blockTimes.decomp = 5 * 60;
       session.countsTowardProgression = !!band.useProgression;
       // Do not commit Clubbell type rotation or exercise history here.
@@ -1701,6 +1734,7 @@ function getDefaultLastState(){
     const next = s.stages[s.currentStageIndex + 1] || null;
     const currentLabel = document.getElementById("currentStageLabel");
     const timeDisplay = document.getElementById("timeDisplay");
+    const stageAssist = document.getElementById("stageAssist");
     const playPauseBtn = document.getElementById("btnPlayPause");
     const nextStageMeta = document.getElementById("nextStageMeta");
 
@@ -1710,8 +1744,14 @@ function getDefaultLastState(){
     }
 
     hydrateStageTime(s);
+    const setProgress = getClubSetProgress(s, s.currentStageLeft || 0);
     currentLabel.textContent = current ? current.label : "-";
     timeDisplay.textContent = fmt(s.currentStageLeft || 0);
+    if(stageAssist){
+      stageAssist.textContent = setProgress
+        ? `Set ${setProgress.currentSet}/${setProgress.totalSets} | beep every minute`
+        : "Countdown runs for the current block.";
+    }
     playPauseBtn.textContent = s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start");
     nextStageMeta.textContent = next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block.";
 
@@ -1737,6 +1777,7 @@ function getDefaultLastState(){
     hydrateStageTime(s);
     const current = getCurrentStage(s);
     const next = s.stages[s.currentStageIndex + 1] || null;
+    const setProgress = getClubSetProgress(s, s.currentStageLeft || 0);
 
     rightInner.innerHTML = `
       <div class="timer-shell">
@@ -1749,6 +1790,7 @@ function getDefaultLastState(){
           <div class="label">Current block</div>
           <div id="currentStageLabel" class="stage-title">${current ? current.label : "-"}</div>
           <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
+          <p id="stageAssist" class="small mt-10">${setProgress ? `Set ${setProgress.currentSet}/${setProgress.totalSets} | beep every minute` : "Countdown runs for the current block."}</p>
         </div>
 
         <div class="timer-actions">
@@ -1778,7 +1820,7 @@ function getDefaultLastState(){
           }).join("")}
         </div>
 
-        <div class="timer-note small">Clear beeps at 3-2-1, on block change, and at the end. Manual stages only start when you press Start. Wake Lock tries to keep your screen active while the timer is running.</div>
+        <div class="timer-note small">${isClubSetModeSession(s) ? "Sets mode: every minute marks the next set. The block still counts down, and you can move on manually when your sets are done." : "Clear beeps at 3-2-1, on block change, and at the end. Manual stages only start when you press Start. Wake Lock tries to keep your screen active while the timer is running."}</div>
       </div>
     `;
 
@@ -1826,6 +1868,9 @@ function getDefaultLastState(){
     await beep(880,0.12,0.08);
     setTimeout(() => beep(1175,0.14,0.08), 150);
   }
+  async function patternMinuteCue(){
+    await beep(988,0.12,0.08);
+  }
   async function patternDone(){
     await beep(880,0.12,0.08);
     setTimeout(() => beep(1175,0.12,0.08), 150);
@@ -1872,6 +1917,14 @@ function getDefaultLastState(){
       const secondsLeft = getStageSecondsLeft(d);
       d.currentStageLeft = secondsLeft;
 
+      if(isClubSetModeSession(d) && cur.key === "club" && secondsLeft > 0 && secondsLeft < cur.seconds && secondsLeft % 60 === 0 && d.lastMinuteCue !== secondsLeft){
+        d.lastMinuteCue = secondsLeft;
+        saveDay(d);
+        syncRightPanel(d);
+        await patternMinuteCue();
+        return;
+      }
+
       if([3,2,1].includes(secondsLeft) && d.lastCountdownBeep !== secondsLeft){
         d.lastCountdownBeep = secondsLeft;
         saveDay(d);
@@ -1902,6 +1955,7 @@ function getDefaultLastState(){
     hydrateStageTime(d);
     d.isRunning = true;
     d.lastCountdownBeep = null;
+    d.lastMinuteCue = null;
     armStageClock(d);
     saveDay(d);
     await ensureAudio();
@@ -1943,6 +1997,7 @@ function getDefaultLastState(){
     d.currentStageLeft = d.stages[d.currentStageIndex].seconds;
     clearStageClock(d);
     d.lastCountdownBeep = null;
+    d.lastMinuteCue = null;
     const nextStage = d.stages[d.currentStageIndex];
     const shouldAutoRun = !nextStage?.manualStart && !manual;
     d.isRunning = shouldAutoRun;
@@ -1968,6 +2023,7 @@ function getDefaultLastState(){
     d.isRunning = false;
     clearStageClock(d);
     d.lastCountdownBeep = null;
+    d.lastMinuteCue = null;
     saveDay(d);
     if(timer) clearInterval(timer);
     timer = null;
@@ -2110,7 +2166,7 @@ function getDefaultLastState(){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Intu only | Clubbell: 9-11 = 15 min fallback, 12-15 = progression duration (15/20/25/30) | Body-Flow day: 40 min cap | Body-Flow follows a completed Clubbell day</span>
+          <span class="small">0-8 = Intu only | Clubbell: 9-11 = 15 min fallback, 12-15 = progression target via settings: timer (15/20/25/30) or sets (16/20/24/28) | Body-Flow day: 40 min cap | Body-Flow follows a completed Clubbell day</span>
         </div>
       </div>
     `;
@@ -2228,488 +2284,499 @@ function getDefaultLastState(){
 
   const V6_BME_DEFS = [
       {
-          "id": "ARM_SCREW",
-          "name": "Arm Screw",
-          "family": "shoulder",
-          "start": [
-              "STANDING"
-          ],
-          "end": [
-              "STANDING"
-          ],
-          "decomp": true,
-          "standalone": false,
-          "beginning": "Stand tall with both arms extended straight out to the sides, parallel to the floor.",
-          "middle": "Exhale and rotate one whole arm forward. Let the same-side shoulder, hip and knee subtly participate: the hip moves outward slightly and the same-side knee dips inward. Keep the arms stretched in opposite directions.",
-          "ending": "Roll the shoulder backward and return to upright posture. Switch sides."
+            "id": "ARM_SCREW",
+            "name": "Arm Screw",
+            "family": "shoulder",
+            "start": [
+                  "STANDING"
+            ],
+            "end": [
+                  "STANDING"
+            ],
+            "decomp": true,
+            "standalone": false,
+            "beginning": "Stand tall with both arms extended straight out to the sides, parallel to the floor.",
+            "middle": "Exhale and rotate one whole arm forward. Let the same-side shoulder, hip and knee subtly participate: the hip moves outward slightly and the same-side knee dips inward. Keep the arms stretched in opposite directions.",
+            "ending": "Roll the shoulder backward and return to upright posture. Switch sides.",
+            "bookStart": "Standing, arms extended to the sides",
+            "bookFinish": "Standing/upright posture"
       },
       {
-          "id": "SHINBOX_SWITCH",
-          "name": "Shinbox Switch",
-          "family": "shinbox",
-          "start": [
-              "SHINBOX"
-          ],
-          "end": [
-              "SHINBOX"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Shinbox.",
-          "middle": "Exhale and curve the spine backward as both knees lift. Keep both feet on the ground and do not adjust the foot placement. Continue through the seated position without pausing.",
-          "ending": "Inhale as the chest expands and the knees drop into the opposite Shinbox."
+            "id": "SHINBOX_SWITCH",
+            "name": "Shinbox Switch",
+            "family": "shinbox",
+            "start": [
+                  "SHINBOX"
+            ],
+            "end": [
+                  "SHINBOX"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Shinbox.",
+            "middle": "Exhale and curve the spine backward as both knees lift. Keep both feet on the ground and do not adjust the foot placement. Continue through the seated position without pausing.",
+            "ending": "Inhale as the chest expands and the knees drop into the opposite Shinbox.",
+            "bookStart": "Shinbox",
+            "bookFinish": "Opposite Shinbox"
       },
       {
-          "id": "SQUAT_CREEP",
-          "name": "Squat Creep",
-          "family": "squat",
-          "start": [
-              "BOF_SQUAT"
-          ],
-          "end": [
-              "FLAT_SQUAT"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Ball of Foot Squat.",
-          "middle": "Transfer your weight onto one foot. Step the free leg forward only far enough to place that foot flat on the ground. As your weight shifts onto the advanced leg, draw the opposite knee backward without moving its planted foot; let that foot only pivot.",
-          "ending": "With your weight balanced on the forward leg, step linearly forward until the back foot becomes flat on the ground. Repeat."
+            "id": "SQUAT_CREEP",
+            "name": "Squat Creep",
+            "family": "squat",
+            "start": [
+                  "BOF_SQUAT"
+            ],
+            "end": [
+                  "FLAT_SQUAT"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Ball of Foot Squat.",
+            "middle": "Transfer your weight onto one foot. Step the free leg forward only far enough to place that foot flat on the ground. As your weight shifts onto the advanced leg, draw the opposite knee backward without moving its planted foot; let that foot only pivot.",
+            "ending": "With your weight balanced on the forward leg, step linearly forward until the back foot becomes flat on the ground. Repeat.",
+            "bookStart": "Ball of Foot Squat",
+            "bookFinish": "Forward creeping squat step / flat-foot placement"
       },
       {
-          "id": "KNEE_SWITCH",
-          "name": "Knee Switch",
-          "family": "shin-knee",
-          "start": [
-              "FLAT_SQUAT"
-          ],
-          "end": [
-              "COSSACK"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Flat Foot Squat.",
-          "middle": "Let the inside of one knee drop toward the ground until the shin makes full contact. Do not strain the knee. Let the hip push the dropping knee slightly forward as it travels down.",
-          "ending": "Arrive in Cossack Squat. To return, shift the hips and weight off the flat foot so the dropped knee becomes light, then come back toward Ball of Foot Squat and switch sides."
+            "id": "KNEE_SWITCH",
+            "name": "Knee Switch",
+            "family": "shin-knee",
+            "start": [
+                  "FLAT_SQUAT"
+            ],
+            "end": [
+                  "COSSACK"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Flat Foot Squat.",
+            "middle": "Let the inside of one knee drop toward the ground until the shin makes full contact. Do not strain the knee. Let the hip push the dropping knee slightly forward as it travels down.",
+            "ending": "Arrive in Cossack Squat. To return, shift the hips and weight off the flat foot so the dropped knee becomes light, then come back toward Ball of Foot Squat and switch sides.",
+            "bookStart": "Flat Foot Squat",
+            "bookFinish": "Cossack Squat, then return toward Ball of Foot Squat"
       },
       {
-          "id": "SHIN_ROLL",
-          "name": "Shin Roll",
-          "family": "shin-roll",
-          "start": [
-              "FLAT_SQUAT"
-          ],
-          "end": [
-              "TRIANGLE"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Flat Foot Squat.",
-          "middle": "Drop the knee as in Knee Switch to arrive in Cossack Squat. Shift your weight parallel to the ground by rolling your bottom over your shin. Keep the instep and top of the foot in contact with the ground.",
-          "ending": "Curl the toes under, pass through Shin Squat, and roll the weight around until the planted shin pivots toward the opposite foot, arriving in Triangle Squat."
+            "id": "SHIN_ROLL",
+            "name": "Shin Roll",
+            "family": "shin-roll",
+            "start": [
+                  "FLAT_SQUAT"
+            ],
+            "end": [
+                  "TRIANGLE"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Flat Foot Squat.",
+            "middle": "Drop the knee as in Knee Switch to arrive in Cossack Squat. Shift your weight parallel to the ground by rolling your bottom over your shin. Keep the instep and top of the foot in contact with the ground.",
+            "ending": "Curl the toes under, pass through Shin Squat, and roll the weight around until the planted shin pivots toward the opposite foot, arriving in Triangle Squat.",
+            "bookStart": "Flat Foot Squat",
+            "bookFinish": "Triangle Squat"
       },
       {
-          "id": "STANDING_SHIN_ROLL",
-          "name": "Standing Shin Roll",
-          "family": "shin-roll",
-          "start": [
-              "STANDING"
-          ],
-          "end": [
-              "SHIN_SQUAT",
-              "SHINBOX"
-          ],
-          "beginning": "Begin from standing and prepare to descend under control.",
-          "middle": "Lower toward the ground and guide one shin toward the floor, using the hip and leg to control the descent instead of dropping.",
-          "ending": "Land into a shin-supported position with your structure organized and breath calm."
+            "id": "STANDING_SHIN_ROLL",
+            "name": "Standing Shin Roll",
+            "family": "shin-roll",
+            "start": [
+                  "STANDING"
+            ],
+            "end": [
+                  "SHIN_SQUAT"
+            ],
+            "beginning": "Begin from standing and prepare to descend under control.",
+            "middle": "Lower toward the ground and guide one shin toward the floor, using the hip and leg to control the descent instead of dropping.",
+            "ending": "Land into a shin-supported position with your structure organized and breath calm.",
+            "bookStart": "Standing",
+            "bookFinish": "Shin-supported ground position"
       },
       {
-          "id": "LONG_LEG_CREEP",
-          "name": "Long Leg Creep",
-          "family": "creep",
-          "start": [
-              "COSSACK",
-              "HURDLER",
-              "SHOOTER",
-              "CLIMBER"
-          ],
-          "end": [
-              "COSSACK",
-              "HURDLER",
-              "SHOOTER",
-              "CLIMBER"
-          ],
-          "beginning": "Begin low, with one leg able to extend long.",
-          "middle": "Creep the long leg through the floor path while transferring weight through the hips, feet and hands as needed.",
-          "ending": "Settle into the next long-leg squat shape with enough control to continue."
+            "id": "LONG_LEG_CREEP",
+            "name": "Long Leg Creep",
+            "family": "creep",
+            "start": [
+                  "COSSACK"
+            ],
+            "end": [
+                  "COSSACK"
+            ],
+            "beginning": "Begin low, with one leg able to extend long.",
+            "middle": "Creep the long leg through the floor path while transferring weight through the hips, feet and hands as needed.",
+            "ending": "Settle into the next long-leg squat shape with enough control to continue.",
+            "bookStart": "Low long-leg squat position",
+            "bookFinish": "Next long-leg squat position"
       },
       {
-          "id": "SHIN_SWING",
-          "name": "Shin Swing",
-          "family": "shin",
-          "start": [
-              "SHIN_SQUAT",
-              "SHINBOX"
-          ],
-          "end": [
-              "SHIN_SQUAT",
-              "SHINBOX"
-          ],
-          "decomp": true,
-          "beginning": "Begin in a shin-supported position.",
-          "middle": "Free the moving leg and swing it in a large controlled arc while the hip guides the motion.",
-          "ending": "Land in the next shin-based position without crashing the knee or hip."
+            "id": "SHIN_SWING",
+            "name": "Shin Swing",
+            "family": "shin",
+            "start": [
+                  "SHIN_SQUAT"
+            ],
+            "end": [
+                  "SHIN_SQUAT"
+            ],
+            "decomp": true,
+            "beginning": "Begin in a shin-supported position.",
+            "middle": "Free the moving leg and swing it in a large controlled arc while the hip guides the motion.",
+            "ending": "Land in the next shin-based position without crashing the knee or hip.",
+            "bookStart": "Shin-supported position",
+            "bookFinish": "Shin-supported position / opposite orientation"
       },
       {
-          "id": "DOUBLE_SHIN_ROLL",
-          "name": "Double Shin Roll",
-          "family": "shin-roll",
-          "start": [
-              "SHIN_SQUAT",
-              "SHINBOX"
-          ],
-          "end": [
-              "SHIN_SQUAT",
-              "SHINBOX",
-              "SUPINE"
-          ],
-          "beginning": "Begin with both shins available to roll through.",
-          "middle": "Roll across one shin line and continue into the second, letting the hips and pelvis travel rather than forcing the spine.",
-          "ending": "Settle into the next shin or ground position."
+            "id": "DOUBLE_SHIN_ROLL",
+            "name": "Double Shin Roll",
+            "family": "shin-roll",
+            "start": [
+                  "SHIN_SQUAT"
+            ],
+            "end": [
+                  "SUPINE"
+            ],
+            "beginning": "Begin with both shins available to roll through.",
+            "middle": "Roll across one shin line and continue into the second, letting the hips and pelvis travel rather than forcing the spine.",
+            "ending": "Settle into the next shin or ground position.",
+            "bookStart": "Shin-supported position",
+            "bookFinish": "Shin / rolling ground position"
       },
       {
-          "id": "LEG_SWOOP",
-          "name": "Leg Swoop",
-          "family": "leg-swoop",
-          "start": [
-              "SHINBOX",
-              "QUAD"
-          ],
-          "end": [
-              "QUAD",
-              "SHINBOX"
-          ],
-          "beginning": "Begin from a grounded position where one leg can travel underneath or around the body.",
-          "middle": "Swoop the leg through the space under or around the body while the hands and hips reorganize your base.",
-          "ending": "Land in Quad Squat or Shinbox, depending on direction."
+            "id": "LEG_SWOOP",
+            "name": "Leg Swoop",
+            "family": "leg-swoop",
+            "start": [
+                  "SHINBOX"
+            ],
+            "end": [
+                  "QUAD"
+            ],
+            "beginning": "Begin from a grounded position where one leg can travel underneath or around the body.",
+            "middle": "Swoop the leg through the space under or around the body while the hands and hips reorganize your base.",
+            "ending": "Land in Quad Squat or Shinbox, depending on direction.",
+            "bookStart": "Grounded leg-swoop setup",
+            "bookFinish": "Quad Squat or Shinbox, depending on direction"
       },
       {
-          "id": "ELEVATED_SCORPION",
-          "name": "Elevated Scorpion",
-          "family": "scorpion",
-          "start": [
-              "QUAD"
-          ],
-          "end": [
-              "QUAD",
-              "SPINAL_ARCH"
-          ],
-          "beginning": "Begin in a strong hands-and-feet support.",
-          "middle": "Lift one leg and arc it up and across or behind the body, letting the spine rotate and extend without forcing the low back.",
-          "ending": "Return to a stable supported position."
+            "id": "ELEVATED_SCORPION",
+            "name": "Elevated Scorpion",
+            "family": "scorpion",
+            "start": [
+                  "QUAD"
+            ],
+            "end": [
+                  "QUAD"
+            ],
+            "beginning": "Begin in a strong hands-and-feet support.",
+            "middle": "Lift one leg and arc it up and across or behind the body, letting the spine rotate and extend without forcing the low back.",
+            "ending": "Return to a stable supported position.",
+            "bookStart": "Strong hands-and-feet support",
+            "bookFinish": "Stable supported position"
       },
       {
-          "id": "LONG_LEG_ROLL",
-          "name": "Long Leg Roll",
-          "family": "long-leg",
-          "start": [
-              "HURDLER",
-              "SHOOTER",
-              "SUPINE"
-          ],
-          "end": [
-              "HURDLER",
-              "SIDE",
-              "SUPINE"
-          ],
-          "beginning": "Begin with one leg extended long.",
-          "middle": "Roll across the hip and back while the long leg guides the rotation.",
-          "ending": "Land in a controlled ground position, keeping the extended leg organized."
+            "id": "LONG_LEG_ROLL",
+            "name": "Long Leg Roll",
+            "family": "long-leg",
+            "start": [
+                  "HURDLER"
+            ],
+            "end": [
+                  "SUPINE"
+            ],
+            "beginning": "Begin with one leg extended long.",
+            "middle": "Roll across the hip and back while the long leg guides the rotation.",
+            "ending": "Land in a controlled ground position, keeping the extended leg organized.",
+            "bookStart": "Long-leg ground position",
+            "bookFinish": "Controlled ground position"
       },
       {
-          "id": "LEG_THREAD",
-          "name": "Leg Thread",
-          "family": "thread",
-          "start": [
-              "QUAD",
-              "SHINBOX",
-              "HURDLER"
-          ],
-          "end": [
-              "SHINBOX",
-              "HURDLER",
-              "QUAD"
-          ],
-          "beginning": "Begin in a supported ground position with room to pass one leg through.",
-          "middle": "Thread the leg through the body line while the hips and torso rotate around the support.",
-          "ending": "Land in the next ground structure with the shoulders and spine still organized."
+            "id": "LEG_THREAD",
+            "name": "Leg Thread",
+            "family": "thread",
+            "start": [
+                  "QUAD"
+            ],
+            "end": [
+                  "SHINBOX"
+            ],
+            "beginning": "Begin in a supported ground position with room to pass one leg through.",
+            "middle": "Thread the leg through the body line while the hips and torso rotate around the support.",
+            "ending": "Land in the next ground structure with the shoulders and spine still organized.",
+            "bookStart": "Supported ground position with room to pass one leg through",
+            "bookFinish": "Next ground structure"
       },
       {
-          "id": "DOUBLE_LEG_SWOOP",
-          "name": "Double Leg Swoop",
-          "family": "leg-swoop",
-          "start": [
-              "QUAD",
-              "SHINBOX"
-          ],
-          "end": [
-              "SHINBOX",
-              "QUAD",
-              "ASSURANCE"
-          ],
-          "beginning": "Begin with both legs able to travel through the ground path.",
-          "middle": "Move the top leg over as far as possible, then allow the bottom leg to follow and thread underneath. Let the hips swing the lower body through without rushing.",
-          "ending": "Expose the front of the body toward the ground, then either continue into another revolution or settle."
+            "id": "DOUBLE_LEG_SWOOP",
+            "name": "Double Leg Swoop",
+            "family": "leg-swoop",
+            "start": [
+                  "QUAD"
+            ],
+            "end": [
+                  "ASSURANCE"
+            ],
+            "beginning": "Begin with both legs able to travel through the ground path.",
+            "middle": "Move the top leg over as far as possible, then allow the bottom leg to follow and thread underneath. Let the hips swing the lower body through without rushing.",
+            "ending": "Expose the front of the body toward the ground, then either continue into another revolution or settle.",
+            "bookStart": "Both legs free to travel through the ground path",
+            "bookFinish": "Front-body-exposed ground position or settled position"
       },
       {
-          "id": "ARCHING_LEG_THREAD",
-          "name": "Arching Leg Thread",
-          "family": "thread",
-          "start": [
-              "SPINAL_ARCH"
-          ],
-          "end": [
-              "SPINAL_ARCH"
-          ],
-          "beginning": "Begin in Spinal Arch with elbows close to the ribs and hands near the chin.",
-          "middle": "Thread one leg underneath while maintaining the arch. Reach deeply with the threading leg to expose the front of the body toward the ground. Transfer weight to the forearms and balls of the feet.",
-          "ending": "Shift weight to one forearm, free the top shoulder to roll upward and around, then thread the opposite leg underneath to arrive back in Spinal Arch."
+            "id": "ARCHING_LEG_THREAD",
+            "name": "Arching Leg Thread",
+            "family": "thread",
+            "start": [
+                  "SPINAL_ARCH"
+            ],
+            "end": [
+                  "SPINAL_ARCH"
+            ],
+            "beginning": "Begin in Spinal Arch with elbows close to the ribs and hands near the chin.",
+            "middle": "Thread one leg underneath while maintaining the arch. Reach deeply with the threading leg to expose the front of the body toward the ground. Transfer weight to the forearms and balls of the feet.",
+            "ending": "Shift weight to one forearm, free the top shoulder to roll upward and around, then thread the opposite leg underneath to arrive back in Spinal Arch.",
+            "bookStart": "Spinal Arch",
+            "bookFinish": "Spinal Arch"
       },
       {
-          "id": "SPINAL_ROCK",
-          "name": "Spinal Rock",
-          "family": "spinal-rock",
-          "start": [
-              "SUPINE"
-          ],
-          "end": [
-              "SUPINE"
-          ],
-          "decomp": true,
-          "beginning": "Begin seated in Ready Position.",
-          "middle": "Arch the spine backward and tuck the pelvis upward so the spine rounds. Roll backward with the chin tucked and exhale as the lungs compress.",
-          "ending": "Rock back, project the solar plexus upward, then inhale and lengthen the spine as you return upright."
+            "id": "SPINAL_ROCK",
+            "name": "Spinal Rock",
+            "family": "spinal-rock",
+            "start": [
+                  "SUPINE"
+            ],
+            "end": [
+                  "SUPINE"
+            ],
+            "decomp": true,
+            "beginning": "Begin seated in Ready Position.",
+            "middle": "Arch the spine backward and tuck the pelvis upward so the spine rounds. Roll backward with the chin tucked and exhale as the lungs compress.",
+            "ending": "Rock back, project the solar plexus upward, then inhale and lengthen the spine as you return upright.",
+            "bookStart": "Seated Ready Position",
+            "bookFinish": "Seated Ready Position"
       },
       {
-          "id": "SPINAL_ROCK_EXTENDED_PIKE",
-          "name": "Spinal Rock: Extended Pike",
-          "family": "spinal-rock",
-          "start": [
-              "PIKE",
-              "SUPINE"
-          ],
-          "end": [
-              "PIKE",
-              "SUPINE"
-          ],
-          "beginning": "Sit with legs extended forward and together.",
-          "middle": "Roll backward, bringing the knees close. When on the shoulder blades, exhale and extend the legs upward.",
-          "ending": "Bring the knees back toward the chest and return to seated."
+            "id": "SPINAL_ROCK_EXTENDED_PIKE",
+            "name": "Spinal Rock: Extended Pike",
+            "family": "spinal-rock",
+            "start": [
+                  "PIKE"
+            ],
+            "end": [
+                  "PIKE"
+            ],
+            "beginning": "Sit with legs extended forward and together.",
+            "middle": "Roll backward, bringing the knees close. When on the shoulder blades, exhale and extend the legs upward.",
+            "ending": "Bring the knees back toward the chest and return to seated.",
+            "bookStart": "Seated Ready Position with legs extended together",
+            "bookFinish": "Extended Pike / seated return"
       },
       {
-          "id": "SPINAL_ROCK_STRADDLE",
-          "name": "Spinal Rock: Straddle Split",
-          "family": "spinal-rock",
-          "start": [
-              "STRADDLE",
-              "SUPINE"
-          ],
-          "end": [
-              "STRADDLE",
-              "SUPINE"
-          ],
-          "beginning": "Sit with legs extended outward and the spine lifted.",
-          "middle": "Exhale and roll backward, bringing the knees toward the sides of the head. When on the shoulder blades, gently lock the knees.",
-          "ending": "Relax the knees back toward the chest and return to Straddle Split while inhaling and lengthening the spine."
+            "id": "SPINAL_ROCK_STRADDLE",
+            "name": "Spinal Rock: Straddle Split",
+            "family": "spinal-rock",
+            "start": [
+                  "STRADDLE"
+            ],
+            "end": [
+                  "STRADDLE"
+            ],
+            "beginning": "Sit with legs extended outward and the spine lifted.",
+            "middle": "Exhale and roll backward, bringing the knees toward the sides of the head. When on the shoulder blades, gently lock the knees.",
+            "ending": "Relax the knees back toward the chest and return to Straddle Split while inhaling and lengthening the spine.",
+            "bookStart": "Seated Straddle Split",
+            "bookFinish": "Straddle Split"
       },
       {
-          "id": "SPINAL_ROCK_HURDLER",
-          "name": "Spinal Rock: Hurdler Split",
-          "family": "spinal-rock",
-          "start": [
-              "HURDLER",
-              "SUPINE"
-          ],
-          "end": [
-              "HURDLER",
-              "SUPINE"
-          ],
-          "beginning": "Sit with one leg extended forward and the other tucked.",
-          "middle": "Keep the spine lifted. Exhale and roll backward, bringing the extended leg back over the head while maintaining the tucked-leg relationship.",
-          "ending": "Relax the knee back toward the chest, switch the leg relationship, and land in the opposite Hurdler Split."
+            "id": "SPINAL_ROCK_HURDLER",
+            "name": "Spinal Rock: Hurdler Split",
+            "family": "spinal-rock",
+            "start": [
+                  "HURDLER"
+            ],
+            "end": [
+                  "HURDLER"
+            ],
+            "beginning": "Sit with one leg extended forward and the other tucked.",
+            "middle": "Keep the spine lifted. Exhale and roll backward, bringing the extended leg back over the head while maintaining the tucked-leg relationship.",
+            "ending": "Relax the knee back toward the chest, switch the leg relationship, and land in the opposite Hurdler Split.",
+            "bookStart": "Seated Hurdler Split",
+            "bookFinish": "Opposite Hurdler Split"
       },
       {
-          "id": "SPINAL_ROCK_SHINBOX",
-          "name": "Spinal Rock: Shinbox",
-          "family": "spinal-rock",
-          "start": [
-              "SHINBOX",
-              "SUPINE"
-          ],
-          "end": [
-              "SHINBOX",
-              "SUPINE"
-          ],
-          "decomp": true,
-          "beginning": "Begin seated and organize the legs toward Shinbox.",
-          "middle": "Rock backward through the spine, then use the return to rotate the hips toward Shinbox.",
-          "ending": "Land in Shinbox with the torso lifted and breath re-established."
+            "id": "SPINAL_ROCK_SHINBOX",
+            "name": "Spinal Rock: Shinbox",
+            "family": "spinal-rock",
+            "start": [
+                  "SHINBOX"
+            ],
+            "end": [
+                  "SHINBOX"
+            ],
+            "decomp": true,
+            "beginning": "Begin seated and organize the legs toward Shinbox.",
+            "middle": "Rock backward through the spine, then use the return to rotate the hips toward Shinbox.",
+            "ending": "Land in Shinbox with the torso lifted and breath re-established.",
+            "bookStart": "Seated / Shinbox setup",
+            "bookFinish": "Shinbox"
       },
       {
-          "id": "SPINAL_ROCK_BUTTERFLY",
-          "name": "Spinal Rock: Butterfly",
-          "family": "spinal-rock",
-          "start": [
-              "BUTTERFLY",
-              "SUPINE"
-          ],
-          "end": [
-              "BUTTERFLY",
-              "SUPINE"
-          ],
-          "beginning": "Begin seated with soles of the feet together and knees open.",
-          "middle": "Roll backward through the spine while keeping the butterfly shape available.",
-          "ending": "Return to Butterfly with the spine lifted."
+            "id": "SPINAL_ROCK_BUTTERFLY",
+            "name": "Spinal Rock: Butterfly",
+            "family": "spinal-rock",
+            "start": [
+                  "BUTTERFLY"
+            ],
+            "end": [
+                  "BUTTERFLY"
+            ],
+            "beginning": "Begin seated with soles of the feet together and knees open.",
+            "middle": "Roll backward through the spine while keeping the butterfly shape available.",
+            "ending": "Return to Butterfly with the spine lifted.",
+            "bookStart": "Seated Butterfly",
+            "bookFinish": "Seated Butterfly"
       },
       {
-          "id": "SWING_SPLIT",
-          "name": "Swing Split",
-          "family": "split",
-          "start": [
-              "STRADDLE",
-              "HURDLER",
-              "COSSACK"
-          ],
-          "end": [
-              "STRADDLE",
-              "HURDLER",
-              "COSSACK"
-          ],
-          "beginning": "Begin in a split-like seated position.",
-          "middle": "Swing the legs through a controlled pathway, letting the pelvis rotate and reorganize.",
-          "ending": "Land in the opposite split orientation and continue alternating."
+            "id": "SWING_SPLIT",
+            "name": "Swing Split",
+            "family": "split",
+            "start": [
+                  "STRADDLE"
+            ],
+            "end": [
+                  "HURDLER"
+            ],
+            "beginning": "Begin in a split-like seated position.",
+            "middle": "Swing the legs through a controlled pathway, letting the pelvis rotate and reorganize.",
+            "ending": "Land in the opposite split orientation and continue alternating.",
+            "bookStart": "Split-like seated position",
+            "bookFinish": "Opposite split orientation"
       },
       {
-          "id": "QUAD_SWITCH",
-          "name": "Quad Switch",
-          "family": "quad",
-          "start": [
-              "QUAD"
-          ],
-          "end": [
-              "QUAD"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Quad Squat.",
-          "middle": "Lift opposite arm and leg while keeping the spine parallel to the ground. Thread the lifted knee underneath the diagonal line as the free shoulder swings backward.",
-          "ending": "Place the hand where the foot was and the foot where the hand was, arriving in Reverse Quad Squat. Repeat the opposite arm-leg combo to return."
+            "id": "QUAD_SWITCH",
+            "name": "Quad Switch",
+            "family": "quad",
+            "start": [
+                  "QUAD"
+            ],
+            "end": [
+                  "QUAD"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Quad Squat.",
+            "middle": "Lift opposite arm and leg while keeping the spine parallel to the ground. Thread the lifted knee underneath the diagonal line as the free shoulder swings backward.",
+            "ending": "Place the hand where the foot was and the foot where the hand was, arriving in Reverse Quad Squat. Repeat the opposite arm-leg combo to return.",
+            "bookStart": "Quad Squat",
+            "bookFinish": "Reverse Quad Squat / Quad Squat"
       },
       {
-          "id": "LONG_ARM_ROLL",
-          "name": "Long Arm Roll",
-          "family": "arm-roll",
-          "start": [
-              "COSSACK"
-          ],
-          "end": [
-              "ASSURANCE"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Cossack Squat with an Arm Screw. The shoulder that rolls downward is over the knee of the planted shin.",
-          "middle": "Exhale and roll under the shoulder, not over it. Keep screwing the shoulder underneath. Lift the heel of the planted shin as you begin the roll. Use the opposite hand to plant and guide.",
-          "ending": "Tuck the chin, move the head under the free armpit, roll across the shoulder blades, and land in Position of Assurance."
+            "id": "LONG_ARM_ROLL",
+            "name": "Long Arm Roll",
+            "family": "arm-roll",
+            "start": [
+                  "COSSACK"
+            ],
+            "end": [
+                  "ASSURANCE"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Cossack Squat with an Arm Screw. The shoulder that rolls downward is over the knee of the planted shin.",
+            "middle": "Exhale and roll under the shoulder, not over it. Keep screwing the shoulder underneath. Lift the heel of the planted shin as you begin the roll. Use the opposite hand to plant and guide.",
+            "ending": "Tuck the chin, move the head under the free armpit, roll across the shoulder blades, and land in Position of Assurance.",
+            "bookStart": "Cossack Squat with Arm Screw",
+            "bookFinish": "Position of Assurance"
       },
       {
-          "id": "LONG_ARM_ROLL_REVERSE",
-          "name": "Long Arm Roll Reverse",
-          "family": "arm-roll",
-          "start": [
-              "ASSURANCE"
-          ],
-          "end": [
-              "SHIN_SQUAT"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Position of Assurance with arms outstretched.",
-          "middle": "Exhale and contract the abdomen. Bring the feet overhead slowly and under control while the neck moves opposite the legs. Do not throw the legs.",
-          "ending": "Bend the far knee down, place the near foot close to the head on the ball of the foot, then set the flat foot down and tuck into Shin Squat."
+            "id": "LONG_ARM_ROLL_REVERSE",
+            "name": "Long Arm Roll Reverse",
+            "family": "arm-roll",
+            "start": [
+                  "ASSURANCE"
+            ],
+            "end": [
+                  "SHIN_SQUAT"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Position of Assurance with arms outstretched.",
+            "middle": "Exhale and contract the abdomen. Bring the feet overhead slowly and under control while the neck moves opposite the legs. Do not throw the legs.",
+            "ending": "Bend the far knee down, place the near foot close to the head on the ball of the foot, then set the flat foot down and tuck into Shin Squat.",
+            "bookStart": "Position of Assurance",
+            "bookFinish": "Shin Squat"
       },
       {
-          "id": "ARM_THREAD_SHOULDER_ROLL",
-          "name": "Arm Thread Shoulder Roll",
-          "family": "shoulder-roll",
-          "start": [
-              "SHIN_SQUAT"
-          ],
-          "end": [
-              "SUPINE",
-              "SIDE"
-          ],
-          "decomp": true,
-          "beginning": "Begin in Shin Squat.",
-          "middle": "Thread the arm on the same side as the planted shin between the shin and the opposite foot. Continue extending and screwing the arm until the back is exposed to the ground.",
-          "ending": "Use the opposite hand as a brace, tuck the chin, move the head under the bracing armpit, and roll under without letting the shoulder or head crash into the ground."
+            "id": "ARM_THREAD_SHOULDER_ROLL",
+            "name": "Arm Thread Shoulder Roll",
+            "family": "shoulder-roll",
+            "start": [
+                  "SHIN_SQUAT"
+            ],
+            "end": [
+                  "SUPINE"
+            ],
+            "decomp": true,
+            "beginning": "Begin in Shin Squat.",
+            "middle": "Thread the arm on the same side as the planted shin between the shin and the opposite foot. Continue extending and screwing the arm until the back is exposed to the ground.",
+            "ending": "Use the opposite hand as a brace, tuck the chin, move the head under the bracing armpit, and roll under without letting the shoulder or head crash into the ground.",
+            "bookStart": "Shin Squat",
+            "bookFinish": "Shoulder-blade roll / ground position"
       },
       {
-          "id": "LATERAL_SHOULDER_ROLL",
-          "name": "Lateral Shoulder Roll",
-          "family": "shoulder-roll",
-          "start": [
-              "SIDE",
-              "PRONE",
-              "QUAD"
-          ],
-          "end": [
-              "SIDE",
-              "PRONE",
-              "QUAD"
-          ],
-          "beginning": "Begin in a low ground position where the shoulder can travel laterally.",
-          "middle": "Transfer weight across the shoulder line while keeping the head and neck protected.",
-          "ending": "Land softly in the next ground position."
+            "id": "LATERAL_SHOULDER_ROLL",
+            "name": "Lateral Shoulder Roll",
+            "family": "shoulder-roll",
+            "start": [
+                  "SIDE"
+            ],
+            "end": [
+                  "SIDE"
+            ],
+            "beginning": "Begin in a low ground position where the shoulder can travel laterally.",
+            "middle": "Transfer weight across the shoulder line while keeping the head and neck protected.",
+            "ending": "Land softly in the next ground position.",
+            "bookStart": "Low shoulder-roll setup",
+            "bookFinish": "Opposite ground orientation"
       },
       {
-          "id": "NECK_ROLL",
-          "name": "Neck Roll",
-          "family": "neck",
-          "start": [
-              "SUPINE",
-              "PRONE",
-              "SIDE"
-          ],
-          "end": [
-              "SUPINE",
-              "PRONE",
-              "SIDE"
-          ],
-          "beginning": "Begin very low and controlled, with no load forced into the neck.",
-          "middle": "Roll through the upper spine and neck pathway only within a range that stays smooth and pain-free.",
-          "ending": "Return to a stable ground position."
+            "id": "NECK_ROLL",
+            "name": "Neck Roll",
+            "family": "neck",
+            "start": [
+                  "SUPINE"
+            ],
+            "end": [
+                  "SUPINE"
+            ],
+            "beginning": "Begin very low and controlled, with no load forced into the neck.",
+            "middle": "Roll through the upper spine and neck pathway only within a range that stays smooth and pain-free.",
+            "ending": "Return to a stable ground position.",
+            "bookStart": "Low controlled ground position",
+            "bookFinish": "Stable ground position"
       },
       {
-          "id": "TWISTING_SPINAL_ARCH",
-          "name": "Twisting Spinal Arch",
-          "family": "spine",
-          "start": [
-              "SPINAL_ARCH"
-          ],
-          "end": [
-              "SPINAL_ARCH"
-          ],
-          "beginning": "Begin in Spinal Arch.",
-          "middle": "Maintain the arched spinal quality while adding rotation through the torso.",
-          "ending": "Return to Spinal Arch or continue into the opposite twisting side."
+            "id": "TWISTING_SPINAL_ARCH",
+            "name": "Twisting Spinal Arch",
+            "family": "spine",
+            "start": [
+                  "SPINAL_ARCH"
+            ],
+            "end": [
+                  "SPINAL_ARCH"
+            ],
+            "beginning": "Begin in Spinal Arch.",
+            "middle": "Maintain the arched spinal quality while adding rotation through the torso.",
+            "ending": "Return to Spinal Arch or continue into the opposite twisting side.",
+            "bookStart": "Spinal Arch",
+            "bookFinish": "Spinal Arch / opposite twist"
       },
       {
-          "id": "ARCHING_HIGH_LEG",
-          "name": "Arching High Leg",
-          "family": "spine",
-          "start": [
-              "SPINAL_ARCH"
-          ],
-          "end": [
-              "SPINAL_ARCH"
-          ],
-          "beginning": "Begin in an arched supported position.",
-          "middle": "Lift one leg high while maintaining the spinal arch and controlled breath.",
-          "ending": "Return the leg and re-establish the arch before switching or continuing."
+            "id": "ARCHING_HIGH_LEG",
+            "name": "Arching High Leg",
+            "family": "spine",
+            "start": [
+                  "SPINAL_ARCH"
+            ],
+            "end": [
+                  "SPINAL_ARCH"
+            ],
+            "beginning": "Begin in an arched supported position.",
+            "middle": "Lift one leg high while maintaining the spinal arch and controlled breath.",
+            "ending": "Return the leg and re-establish the arch before switching or continuing.",
+            "bookStart": "Supported Spinal Arch",
+            "bookFinish": "Spinal Arch"
       }
-  ];
+];
   const V6_STANDALONE_BMES = V6_BME_DEFS.filter(x => x.id !== "ARM_SCREW");
   const V6_DECOMP_BMES = V6_BME_DEFS.filter(x => x.decomp || x.id === "ARM_SCREW");
   const BF_BME_BAG_KEY = "cst_bodyflow_bme_bag_v6";
@@ -2989,7 +3056,7 @@ function getDefaultLastState(){
       <summary class="intu-summary">
         <div class="ex-left">
           <div class="ex-title">${number}${cleanText(bme.name)}</div>
-          <div class="ex-meta">Starts: ${cleanText(v6BaseList(bme.start))} | Finishes: ${cleanText(v6BaseList(bme.end))}</div>
+          <div class="ex-meta">Book start: ${cleanText(bme.bookStart || v6BaseList(bme.start))} | Book finish: ${cleanText(bme.bookFinish || v6BaseList(bme.end))}</div>
         </div>
         <div class="pill">BME</div>
       </summary>
@@ -3053,7 +3120,7 @@ function getDefaultLastState(){
               ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
               ${renderExerciseCard("Phase", `${s.club.phaseName} | session ${s.club.sessionNumber}/${PHASE_SESSION_COUNT}`, "Progression", "mb-10")}
               ${renderExerciseCard("Pattern", `${s.club.pattern.Rhythmic}+${s.club.pattern.Ballistic}+${s.club.pattern.Grinding}`, "Today", "mb-10")}
-              ${renderExerciseCard("Clubbell target duration", fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress), "mb-10")}
+              ${renderExerciseCard("Clubbell target", s.club.blockMode === "sets" ? `${s.club.targetSets} sets (${fmtMin(s.blockTimes?.club || 0)})` : fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress, s.settingsUsed?.cst || getCSTSettings()), "mb-10")}
               ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
             </div>
           </div>
@@ -3160,7 +3227,7 @@ function getDefaultLastState(){
       <div class="setting-list">
         <div class="settings-note">These settings affect newly generated sessions. Today's locked session does not change until you reset the day.</div>
         <div id="progressionCard" class="exercise">
-          <div class="ex-left"><div class="ex-title">Current phase</div><div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentDurationMinutes(progress)} min`}</div></div>
+          <div class="ex-left"><div class="ex-title">Current phase</div><div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentClubStepLabel(progress, cst)}`}</div></div>
           <div class="pill">Progression</div>
         </div>
         <div id="progressionAdvanced" class="hidden-advanced">
@@ -3173,13 +3240,18 @@ function getDefaultLastState(){
         <div class="toggle-list">
           ${[{ key:'single', label:'Single Club' },{ key:'double', label:'Double Club' },{ key:'2h', label:'2-Hand Club' }].map(item => `<label class="toggle-item"><span>${item.label}</span><input type="checkbox" data-cst-club="${item.key}" ${cst.clubTypes?.[item.key] ? 'checked' : ''}></label>`).join('')}
         </div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Clubbell block mode</div><div class="ex-meta">Timer keeps the current countdown. Sets uses 16/20/24/28 sets and gives one beep every minute.</div></div><div class="pill">Mode</div></div>
+        <div class="toggle-list">
+          <label class="toggle-item"><span>Timer</span><input type="radio" name="clubBlockMode" value="timer" ${cst.clubMode === 'timer' ? 'checked' : ''}></label>
+          <label class="toggle-item"><span>Sets</span><input type="radio" name="clubBlockMode" value="sets" ${cst.clubMode === 'sets' ? 'checked' : ''}></label>
+        </div>
         <div class="row"><button id="btnResetPhase1" class="btn danger">Reset to phase 1</button></div>
       </div>`;
 
     settingsBfCard.innerHTML = `
       <h2>Body-Flow settings</h2>
       <div class="setting-list">
-        <div class="settings-note">CST V6: standalone Body-Flow uses an authentic BME practice cycle. It is no longer a random flow sequence and has no levels. The generator does not force seamless start/end matching; you explore the grafts during practice. Clubbell days keep a 5-minute single-BME decompression, where Arm Screw is allowed.</div>
+        <div class="settings-note">CST V6: standalone Body-Flow uses an authentic BME practice cycle. It is no longer a random flow sequence and has no levels. The generator does not force seamless start/end matching; the cards show the book start/finish, and you explore the grafts during practice. Clubbell days keep a 5-minute single-BME decompression, where Arm Screw is allowed.</div>
         <div class="toggle-list">
           <label class="toggle-item"><span>Alternate with standalone Body-Flow days</span><input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}></label>
         </div>
@@ -3227,6 +3299,13 @@ function getDefaultLastState(){
         const next = getCSTSettings(); next.clubTypes[input.dataset.cstClub] = input.checked;
         if(!Object.values(next.clubTypes).some(Boolean)) next.clubTypes[input.dataset.cstClub] = true;
         setCSTSettings(next); renderSettings();
+      });
+    });
+    settingsCstCard.querySelectorAll('input[name="clubBlockMode"]').forEach(input => {
+      input.addEventListener('change', () => {
+        if(!input.checked) return;
+        setCSTSettings({ ...getCSTSettings(), clubMode:input.value });
+        renderSettings();
       });
     });
     const btnResetPhase1 = document.getElementById('btnResetPhase1');
