@@ -402,7 +402,7 @@
     <div class="topbar-head">
       <div class="eyebrow">The Old Club</div>
       <h1>The Old Club</h1>
-      <p class="hero-copy">Clubbell strength. Ground flow. Built to keep moving.</p>
+      <p class="hero-copy">Club strength. Ground flow. Built to keep moving.</p>
     </div>
     <div class="toolbar">
       <div class="toolbar-actions">
@@ -858,8 +858,46 @@ function getCurrentSetCount(progress){
   const idx = Math.max(0, Math.min(PHASE_SET_COUNTS.length - 1, Math.floor(getSessionSlot(progress) / CLUB_TYPE_SEQUENCE.length)));
   return PHASE_SET_COUNTS[idx];
 }
+function getPatternWorkTotal(pattern){
+  if(!pattern) return 0;
+  return ["Rhythmic","Ballistic","Grinding"].reduce((sum, key) => sum + (Number(pattern[key]) || 0), 0);
+}
+function getClubSetSeconds(pattern){
+  const total = getPatternWorkTotal(pattern);
+  if(total >= 9) return 90;
+  if(total >= 6) return 75;
+  return 60;
+}
+function getClubSetSideLabel(clubType, setIndex){
+  if(!["single", "2h"].includes(String(clubType))) return "";
+  return setIndex % 2 === 1 ? "Left" : "Right";
+}
+function buildClubSetStages(session, decompLabel){
+  const totalSets = Number(session?.club?.targetSets) || 0;
+  const setSeconds = Number(session?.club?.setSeconds) || 60;
+  const clubType = String(session?.club?.clubType || "");
+  const stages = Array.from({ length:totalSets }, (_, index) => {
+    const setIndex = index + 1;
+    const side = getClubSetSideLabel(clubType, setIndex);
+    return {
+      key:'club',
+      label:`Set ${setIndex}/${totalSets}${side ? ` | ${side}` : ""}`,
+      seconds:setSeconds,
+      setIndex,
+      setSide:side,
+      isSetStage:true
+    };
+  });
+  stages.push({ key:'decomp', label:decompLabel, seconds:session.blockTimes.decomp, manualStart:true });
+  return stages;
+}
 function getCurrentClubStepLabel(progress, cstSettings = getCSTSettings()){
-  return cstSettings.clubMode === "sets" ? `${getCurrentSetCount(progress)} sets` : `${getCurrentDurationMinutes(progress)} min`;
+  if(cstSettings.clubMode === "sets"){
+    const setCount = getCurrentSetCount(progress);
+    const setSeconds = getClubSetSeconds(getCurrentPattern(progress));
+    return `${setCount} sets x ${setSeconds}s`;
+  }
+  return `${getCurrentDurationMinutes(progress)} min`;
 }
 function getSubcategoryBag(progress, bucket){
   if(!progress.subcategoryBags || typeof progress.subcategoryBags !== 'object') progress.subcategoryBags = { Rhythmic:[], Ballistic:[], Grinding:[] };
@@ -957,12 +995,12 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   function setBFSettings(next){ localStorage.setItem(BF_SETTINGS_KEY, JSON.stringify(next)); }
 
 function getCSTSettings(){
-  const base = { clubTypes:{ single:true, double:true, "2h":true }, clubMode:"timer" };
+  const base = { clubTypes:{ single:true, double:true, "2h":true }, clubMode:"sets" };
   try{
     const stored = JSON.parse(localStorage.getItem(CST_SETTINGS_KEY) || "{}");
     const next = { ...base, ...stored, clubTypes:{ ...base.clubTypes, ...(stored.clubTypes || {}) } };
     if(!Object.values(next.clubTypes).some(Boolean)) next.clubTypes.single = true;
-    if(!["timer", "sets"].includes(String(next.clubMode))) next.clubMode = "timer";
+    if(!["timer", "sets"].includes(String(next.clubMode))) next.clubMode = "sets";
     return next;
   } catch { return base; }
 }
@@ -1171,7 +1209,7 @@ function getCSTSettings(){
     return { seedKey, level, includeAdvanced, requestedLength:opts.length ?? length, length:steps.length, startBase, endBase:steps[steps.length-1].end, steps };
   }
   function bfLevelLabel(level){
-    const map = {1:"Level 1 - Structures", 2:"Level 2 - Simple transitions", 3:"Level 3 - Kinetic chains", 4:"Level 4 - Full Body-Flow"};
+    const map = {1:"Level 1 - Structures", 2:"Level 2 - Simple transitions", 3:"Level 3 - Kinetic chains", 4:"Level 4 - Full Ground Flow"};
     return map[level] || `Level ${level}`;
   }
 
@@ -1204,12 +1242,16 @@ function getCSTSettings(){
     const currentStage = getCurrentStage(session);
     if(!isClubSetModeSession(session) || currentStage?.key !== "club") return null;
     const totalSets = Number(session?.club?.targetSets) || 0;
-    const totalSeconds = Number(currentStage.seconds) || 0;
-    if(!totalSets || !totalSeconds) return null;
-    const elapsedSeconds = Math.max(0, totalSeconds - Math.max(0, secondsLeft));
-    const completedSets = Math.min(totalSets, Math.floor(elapsedSeconds / 60));
-    const currentSet = Math.min(totalSets, completedSets + 1);
-    return { totalSets, completedSets, currentSet, remainingSets:Math.max(0, totalSets - completedSets) };
+    const currentSet = Number(currentStage?.setIndex) || Math.min(totalSets, session.currentStageIndex + 1);
+    const completedSets = Math.max(0, currentSet - 1);
+    return {
+      totalSets,
+      completedSets,
+      currentSet,
+      remainingSets:Math.max(0, totalSets - completedSets),
+      sideLabel:String(currentStage?.setSide || ""),
+      setSeconds:Number(currentStage?.seconds) || Number(session?.club?.setSeconds) || 0
+    };
   }
 
   function dateKeyForOffset(days){
@@ -1245,16 +1287,16 @@ function getCSTSettings(){
   }
   function getBandDescription(total, progress, cstSettings = getCSTSettings()){
     const band = computeBand(total);
-    if(band.intuOnly) return 'Intu only';
+    if(band.intuOnly) return 'Mobility Prep only';
     if(band.useProgression) return cstSettings.clubMode === "sets"
       ? `Normal session (${getCurrentSetCount(progress)} sets from progression)`
       : `Normal session (${getCurrentDurationMinutes(progress)} min from progression)`;
     return `15 min fallback`;
   }
   function formatModeLabel(mode){
-    if(mode === "INTU ONLY") return "Intu only";
-    if(mode === "CLUBBELL DAY") return "Clubbell day";
-    if(mode === "BODY FLOW DAY") return "Body Flow day";
+    if(mode === "INTU ONLY") return "Mobility Prep only";
+    if(mode === "CLUBBELL DAY") return "Club day";
+    if(mode === "BODY FLOW DAY") return "Ground Flow day";
     return mode || "-";
   }
   function setPillValue(pill, value){
@@ -1273,6 +1315,16 @@ function getCSTSettings(){
     return String(value ?? "")
       .replaceAll("Ã¢â‚¬â€", "-")
       .replaceAll("Ã¢â‚¬Â¢", "â€¢")
+      .replace(/\bClubbell Decompression\b/gi, "Ground Flow Reset")
+      .replace(/\bDecompression BME\b/gi, "Decompression Element")
+      .replace(/\bStandalone Body-Flow\b/gi, "Ground Flow Practice")
+      .replace(/\bBody-Flow\b/gi, "Ground Flow")
+      .replace(/\bBody Flow\b/gi, "Ground Flow")
+      .replace(/\bBME's\b/g, "Movement Elements")
+      .replace(/\bBME\b/g, "Movement Element")
+      .replace(/\bClubbell\b/gi, "Club")
+      .replace(/\bIntu\b/gi, "Mobility Prep")
+      .replace(/\bCST\b/gi, "Old Club Practice")
       .replace(/\bOke\b/g, "OK")
       .replace(/\bfull-body\b/gi, "full body")
       .replace(/\bper kant\b/gi, "per side")
@@ -1349,7 +1401,7 @@ function getDefaultLastState(){
           return {
             ...stage,
             key:"bodyflow",
-            label:String(stage.label || "").replace(/^Stand-alone flow/i, "Body Flow")
+            label:String(stage.label || "").replace(/^Stand-alone flow/i, "Ground Flow")
           };
         }
         return stage;
@@ -1510,18 +1562,22 @@ function getDefaultLastState(){
 
 
   function buildStages(session){
-    const stages = [];
     if(session.dayType === 'clubbell'){
-      const clubLabel = session.club?.blockMode === "sets"
-        ? `Clubbell | ${session.club?.targetSets || 0} sets`
-        : `Clubbell | ${fmtMin(session.blockTimes.club)}`;
-      stages.push({ key:'club', label:clubLabel, seconds:session.blockTimes.club });
-      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
-    } else if(session.dayType === 'bodyflow'){
-      stages.push({ key:'bodyflow', label:`Body Flow | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow });
-      stages.push({ key:'decomp', label:`Decompress | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
+      if(session.club?.blockMode === "sets"){
+        return buildClubSetStages(session, `Decompress | ${fmtMin(session.blockTimes.decomp)}`);
+      }
+      return [
+        { key:'club', label:`Club | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club },
+        { key:'decomp', label:`Decompression Element | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true }
+      ];
     }
-    return stages;
+    if(session.dayType === 'bodyflow'){
+      const stages = [];
+      stages.push({ key:'bodyflow', label:`Ground Flow | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow });
+      stages.push({ key:'decomp', label:`Decompression Element | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
+      return stages;
+    }
+    return [];
   }
 
   function generateSession(mode, total){
@@ -1585,6 +1641,7 @@ function getDefaultLastState(){
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
         blockMode:cstSettings.clubMode,
         targetSets:getCurrentSetCount(progress),
+        setSeconds:getClubSetSeconds(clubPlan.pattern),
         clubType,
         clubTypeIndex:clubTypePick.index,
         phaseName:clubPlan.phaseName,
@@ -1600,7 +1657,9 @@ function getDefaultLastState(){
         bagType: 'Body-Flow',
         ...decompSequence
       };
-      session.blockTimes.club = (cstSettings.clubMode === "sets" ? getCurrentSetCount(progress) : getEffectiveMainDuration(total, progress)) * 60;
+      session.blockTimes.club = cstSettings.clubMode === "sets"
+        ? getCurrentSetCount(progress) * session.club.setSeconds
+        : getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
       session.countsTowardProgression = !!band.useProgression;
       // Do not commit Clubbell type rotation or exercise history here.
@@ -1745,15 +1804,15 @@ function getDefaultLastState(){
 
     hydrateStageTime(s);
     const setProgress = getClubSetProgress(s, s.currentStageLeft || 0);
-    currentLabel.textContent = current ? current.label : "-";
+    currentLabel.textContent = current ? cleanText(current.label) : "-";
     timeDisplay.textContent = fmt(s.currentStageLeft || 0);
     if(stageAssist){
       stageAssist.textContent = setProgress
-        ? `Set ${setProgress.currentSet}/${setProgress.totalSets} | beep every minute`
+        ? `Set ${setProgress.currentSet}/${setProgress.totalSets}${setProgress.sideLabel ? ` | ${setProgress.sideLabel}` : ""} | ${setProgress.setSeconds}s`
         : "Countdown runs for the current block.";
     }
     playPauseBtn.textContent = s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start");
-    nextStageMeta.textContent = next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block.";
+    nextStageMeta.textContent = next ? cleanText(next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block.";
 
     rightInner.querySelectorAll(".stage-pill").forEach((pill, idx) => {
       pill.classList.remove("active", "done");
@@ -1788,9 +1847,9 @@ function getDefaultLastState(){
 
         <div class="timer-hero">
           <div class="label">Current block</div>
-          <div id="currentStageLabel" class="stage-title">${current ? current.label : "-"}</div>
+          <div id="currentStageLabel" class="stage-title">${current ? cleanText(current.label) : "-"}</div>
           <div id="timeDisplay" class="time">${fmt(s.currentStageLeft || 0)}</div>
-          <p id="stageAssist" class="small mt-10">${setProgress ? `Set ${setProgress.currentSet}/${setProgress.totalSets} | beep every minute` : "Countdown runs for the current block."}</p>
+          <p id="stageAssist" class="small mt-10">${setProgress ? `Set ${setProgress.currentSet}/${setProgress.totalSets}${setProgress.sideLabel ? ` | ${setProgress.sideLabel}` : ""} | ${setProgress.setSeconds}s` : "Countdown runs for the current block."}</p>
         </div>
 
         <div class="timer-actions">
@@ -1803,7 +1862,7 @@ function getDefaultLastState(){
         <div class="exercise">
           <div class="ex-left">
             <div class="ex-title">Next</div>
-            <div id="nextStageMeta" class="ex-meta">${next ? (next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block."}</div>
+            <div id="nextStageMeta" class="ex-meta">${next ? cleanText(next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block."}</div>
           </div>
           <div class="pill">${next ? "Up next" : "Last"}</div>
         </div>
@@ -1814,13 +1873,13 @@ function getDefaultLastState(){
             if(idx < s.currentStageIndex) cls = "done";
             else if(idx === s.currentStageIndex) cls = "active";
             return `<div class="stage-pill ${cls}">
-              <span>${st.label}</span>
+              <span>${cleanText(st.label)}</span>
               <strong class="stage-time">${idx < s.currentStageIndex ? "OK" : idx === s.currentStageIndex ? fmt(s.currentStageLeft) : fmt(st.seconds)}</strong>
             </div>`;
           }).join("")}
         </div>
 
-        <div class="timer-note small">${isClubSetModeSession(s) ? "Sets mode: every minute marks the next set. The block still counts down, and you can move on manually when your sets are done." : "Clear beeps at 3-2-1, on block change, and at the end. Manual stages only start when you press Start. Wake Lock tries to keep your screen active while the timer is running."}</div>
+        <div class="timer-note small">${isClubSetModeSession(s) ? "Sets mode runs one set per block. Each set gets its own countdown and switches automatically to the next set." : "Clear beeps at 3-2-1, on block change, and at the end. Manual stages only start when you press Start. Wake Lock tries to keep your screen active while the timer is running."}</div>
       </div>
     `;
 
@@ -1916,14 +1975,6 @@ function getDefaultLastState(){
       if(!cur) return;
       const secondsLeft = getStageSecondsLeft(d);
       d.currentStageLeft = secondsLeft;
-
-      if(isClubSetModeSession(d) && cur.key === "club" && secondsLeft > 0 && secondsLeft < cur.seconds && secondsLeft % 60 === 0 && d.lastMinuteCue !== secondsLeft){
-        d.lastMinuteCue = secondsLeft;
-        saveDay(d);
-        syncRightPanel(d);
-        await patternMinuteCue();
-        return;
-      }
 
       if([3,2,1].includes(secondsLeft) && d.lastCountdownBeep !== secondsLeft){
         d.lastCountdownBeep = secondsLeft;
@@ -2129,7 +2180,7 @@ function getDefaultLastState(){
     leftCard.innerHTML = `
       <h2>Phase checkpoint</h2>
       ${renderExerciseCard("Current phase", `${phase.name} completed`, "Checkpoint", "mb-12")}
-      <p class="small">You completed ${PHASE_SESSION_COUNT} Clubbell sessions in this phase. Choose whether to advance or repeat before generating the next Clubbell day.</p>
+      <p class="small">You completed ${PHASE_SESSION_COUNT} Club sessions in this phase. Choose whether to advance or repeat before generating the next Club day.</p>
       <div class="finish-row">
         <button id="btnGateNextPhase" class="btn good">Next phase</button>
         <button id="btnGateRepeatPhase" class="btn">Repeat phase</button>
@@ -2166,7 +2217,7 @@ function getDefaultLastState(){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Intu only | Clubbell: 9-11 = 15 min fallback, 12-15 = progression target via settings: timer (15/20/25/30) or sets (16/20/24/28) | Body-Flow day: 40 min cap | Body-Flow follows a completed Clubbell day</span>
+          <span class="small">0-8 = Mobility Prep only | Club: 9-11 = 15 min fallback, 12-15 = progression target via settings: timer (15/20/25/30) or sets (16/20/24/28) | Ground Flow day: 40 min cap | Ground Flow follows a completed Club day</span>
         </div>
       </div>
     `;
@@ -2923,17 +2974,19 @@ function getDefaultLastState(){
   }
 
   function buildStages(session){
-    const stages = [];
     if(session.dayType === 'clubbell'){
-      const clubLabel = session.club?.blockMode === "sets"
-        ? `Clubbell | ${session.club?.targetSets || 0} sets`
-        : `Clubbell | ${fmtMin(session.blockTimes.club)}`;
-      stages.push({ key:'club', label:clubLabel, seconds:session.blockTimes.club });
-      stages.push({ key:'decomp', label:`Decompress BME | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true });
-    } else if(session.dayType === 'bodyflow'){
-      stages.push({ key:'bodyflow', label:`Body-Flow Practice | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow });
+      if(session.club?.blockMode === "sets"){
+        return buildClubSetStages(session, `Decompression Element | ${fmtMin(session.blockTimes.decomp)}`);
+      }
+      return [
+        { key:'club', label:`Club | ${fmtMin(session.blockTimes.club)}`, seconds:session.blockTimes.club },
+        { key:'decomp', label:`Decompression Element | ${fmtMin(session.blockTimes.decomp)}`, seconds:session.blockTimes.decomp, manualStart:true }
+      ];
     }
-    return stages;
+    if(session.dayType === 'bodyflow'){
+      return [{ key:'bodyflow', label:`Ground Flow Practice | ${fmtMin(session.blockTimes.bodyFlow)}`, seconds:session.blockTimes.bodyFlow }];
+    }
+    return [];
   }
 
   function generateSession(mode, total){
@@ -2989,6 +3042,7 @@ function getDefaultLastState(){
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
         blockMode:cstSettings.clubMode,
         targetSets:getCurrentSetCount(progress),
+        setSeconds:getClubSetSeconds(clubPlan.pattern),
         clubType,
         clubTypeIndex:clubTypePick.index,
         phaseName:clubPlan.phaseName,
@@ -3004,7 +3058,9 @@ function getDefaultLastState(){
         use:"After Clubbell: practice this single BME slowly for 5 minutes. Let it unload the shoulders, spine, hips and breath. Do not turn it into conditioning.",
         rule:"Study beginning -> middle -> ending. Repeat gently until excess tension softens."
       };
-      session.blockTimes.club = (cstSettings.clubMode === "sets" ? getCurrentSetCount(progress) : getEffectiveMainDuration(total, progress)) * 60;
+      session.blockTimes.club = cstSettings.clubMode === "sets"
+        ? getCurrentSetCount(progress) * session.club.setSeconds
+        : getEffectiveMainDuration(total, progress) * 60;
       session.blockTimes.decomp = 5 * 60;
       session.countsTowardProgression = !!band.useProgression;
       // Do not commit Clubbell type rotation or exercise history here.
@@ -3065,7 +3121,7 @@ function getDefaultLastState(){
           <div class="ex-title">${number}${cleanText(bme.name)}</div>
           <div class="ex-meta">Book start: ${cleanText(bme.bookStart || v6BaseList(bme.start))} | Book finish: ${cleanText(bme.bookFinish || v6BaseList(bme.end))}</div>
         </div>
-        <div class="pill">BME</div>
+        <div class="pill">Movement Element</div>
       </summary>
       <div class="intu-body">
         <div><strong>Setup:</strong> ${cleanText(bme.beginning)}</div>
@@ -3079,20 +3135,20 @@ function getDefaultLastState(){
   function renderSession(s){
     const progress = loadProgressCached();
     const summaryText = s.intuOnly
-      ? "Today is recovery-focused: Intu only. Because no Clubbell or Body-Flow session is completed today, tomorrow defaults back to Clubbell."
+      ? "Today is recovery-focused: Mobility Prep only. Because no Club or Ground Flow session is completed today, tomorrow defaults back to Club."
       : s.dayType === "clubbell"
-      ? "Today: Intu, then Clubbell, then finish with one 5-minute Body-Flow Decompression BME. Finish this session to unlock a standalone Body-Flow day tomorrow."
-      : "Today: standalone Body-Flow. Use the 40-minute cap to work through the selected BME cycle as far as quality allows. No extra decompression stage is needed.";
+      ? "Today: Mobility Prep, then Club, then finish with one 5-minute Ground Flow Decompression Element. Finish this session to unlock a standalone Ground Flow day tomorrow."
+      : "Today: standalone Ground Flow. Use the 40-minute cap to work through the selected Movement Element cycle as far as quality allows. No extra decompression stage is needed.";
 
     let html = `<h2>Today</h2>`;
     if(s.intuOnly){
-      html += `${renderExerciseCard("Intu-only day", `Score 0-8: Intu only today. The calendar cycle still continues as normal.`, "Recovery", "mb-12")}`;
+      html += `${renderExerciseCard("Mobility Prep-only day", `Score 0-8: Mobility Prep only today. The calendar cycle still continues as normal.`, "Recovery", "mb-12")}`;
     }
 
     html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Intu</span>
+          <span>Mobility Prep</span>
           <span class="pill">15 drills | ${fmtMin(s.blockTimes?.intu || 0)}</span>
         </button>
         <div class="accordion-content">
@@ -3101,7 +3157,7 @@ function getDefaultLastState(){
               <details class="intu-item">
                 <summary class="intu-summary">
                   <div class="ex-left"><div class="ex-title">${cleanText(x.title)} - ${cleanText(x.reps)}</div></div>
-                  <div class="pill">Intu</div>
+                  <div class="pill">Mobility Prep</div>
                 </summary>
                 <div class="intu-body">${cleanText(x.description)}</div>
               </details>`).join("")}
@@ -3113,8 +3169,8 @@ function getDefaultLastState(){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Clubbell training</span>
-          <span class="pill">${s.club.clubType.toUpperCase()} | ${fmtMin(s.blockTimes?.club || 0)}</span>
+          <span>Club training</span>
+          <span class="pill">${s.club.clubType.toUpperCase()} | ${s.club.blockMode === "sets" ? `${s.club.targetSets} x ${s.club.setSeconds}s` : fmtMin(s.blockTimes?.club || 0)}</span>
         </button>
         <div class="accordion-content">
           <div class="stack-10 mt-12">
@@ -3127,8 +3183,8 @@ function getDefaultLastState(){
               ${renderExerciseCard("Club type", s.club.clubType.toUpperCase(), s.mode, "mt-12 mb-10")}
               ${renderExerciseCard("Phase", `${s.club.phaseName} | session ${s.club.sessionNumber}/${PHASE_SESSION_COUNT}`, "Progression", "mb-10")}
               ${renderExerciseCard("Pattern", `${s.club.pattern.Rhythmic}+${s.club.pattern.Ballistic}+${s.club.pattern.Grinding}`, "Today", "mb-10")}
-              ${renderExerciseCard("Clubbell target", s.club.blockMode === "sets" ? `${s.club.targetSets} sets (${fmtMin(s.blockTimes?.club || 0)})` : fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress, s.settingsUsed?.cst || getCSTSettings()), "mb-10")}
-              ${renderExerciseCard("CST settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
+              ${renderExerciseCard("Clubbell target", s.club.blockMode === "sets" ? `${s.club.targetSets} sets x ${s.club.setSeconds}s (${fmtMin(s.blockTimes?.club || 0)} total)` : fmtMin(s.blockTimes?.club || 0), getBandDescription(s.total, progress, s.settingsUsed?.cst || getCSTSettings()), "mb-10")}
+              ${renderExerciseCard("Old Club Practice settings used today", `Allowed types: ${(s.club.allowedClubTypes || []).map(x => x.toUpperCase()).join(', ')}`, "Locked today", "mb-10")}
             </div>
           </div>
         </div>
@@ -3139,15 +3195,15 @@ function getDefaultLastState(){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Standalone Body-Flow Practice</span>
-          <span class="pill">${s.bodyFlow.bmeCount} BME's | 40 min cap</span>
+          <span>Ground Flow Practice</span>
+          <span class="pill">${s.bodyFlow.bmeCount} Movement Elements | 40 min cap</span>
         </button>
         <div class="accordion-content">
           ${renderExerciseCard("Use", s.bodyFlow.use, "Practice", "mt-12 mb-10")}
           ${renderExerciseCard("Rule", s.bodyFlow.rule, "Quality", "mb-10")}
           ${renderExerciseCard("Performance Breathing", "Begin with roughly 2 minutes. Use full exhalations to prepare; let the inhale happen rather than forcing it.", "Start", "mb-10")}
           <div class="accordion mt-12 active">
-            <button type="button" class="accordion-header"><span>Today's BME cycle</span><span class="pill">${s.bodyFlow.bmeCount} BME's</span></button>
+            <button type="button" class="accordion-header"><span>Today's Movement Element cycle</span><span class="pill">${s.bodyFlow.bmeCount} Movement Elements</span></button>
             <div class="accordion-content">
               <div class="stack-10 mt-12">${s.bodyFlow.bmes.map((bme, idx) => v6RenderBmeCard(bme, idx)).join("")}</div>
             </div>
@@ -3167,7 +3223,7 @@ function getDefaultLastState(){
               </div>
             </div>
           </div>
-          ${isBFDebugEnabled() ? `<details class="mt-12"><summary>Debug BME path</summary><div class="detailsBody small">${cleanText(s.bodyFlow.bmes.map(x => `${x.name} [${v6BaseList(x.start)} -> ${v6BaseList(x.end)}]`).join(' | '))}</div></details>` : ``}
+          ${isBFDebugEnabled() ? `<details class="mt-12"><summary>Debug Movement Element path</summary><div class="detailsBody small">${cleanText(s.bodyFlow.bmes.map(x => `${x.name} [${v6BaseList(x.start)} -> ${v6BaseList(x.end)}]`).join(' | '))}</div></details>` : ``}
         </div>
       </div>`;
     }
@@ -3177,13 +3233,13 @@ function getDefaultLastState(){
       html += `
       <div class="accordion">
         <button type="button" class="accordion-header">
-          <span>Body-Flow Decompression BME</span>
-          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} | After Clubbell</span>
+          <span>Decompression Element</span>
+          <span class="pill">${fmtMin(s.blockTimes?.decomp || 0)} | After Club</span>
         </button>
         <div class="accordion-content">
           ${renderExerciseCard("Practice", s.decompFlow.name, "Decompress", "mt-12 mb-10")}
-          ${renderExerciseCard("Use", s.decompFlow.use, "After Clubbell", "mb-10")}
-          ${renderExerciseCard("Rule", s.decompFlow.rule, "BME", "mb-10")}
+          ${renderExerciseCard("Use", s.decompFlow.use, "After Club", "mb-10")}
+          ${renderExerciseCard("Rule", s.decompFlow.rule, "Movement Element", "mb-10")}
           <div class="stack-10">${v6RenderBmeCard(bme)}</div>
           ${renderExerciseCard("Prompt", "Move slowly for 5 minutes. If it feels rough, make the range smaller and let the breath soften the movement.", "Practice", "mt-10")}
         </div>
@@ -3198,7 +3254,7 @@ function getDefaultLastState(){
         <span class="small">${s.completed ? 'Saved as completed for today.' : 'Use Finish when the training is actually done.'}</span>
       </div>`;
     }
-    html += `${!s.intuOnly && progress.awaitingDecision ? `<div class="finish-row"><button id="btnPhaseNext" class="btn good">Next phase</button><button id="btnPhaseRepeat" class="btn">Repeat phase</button><span class="small">${PHASE_SESSION_COUNT} Clubbell sessions completed. Choose what to do next before the next Clubbell block.</span></div>` : ""}
+    html += `${!s.intuOnly && progress.awaitingDecision ? `<div class="finish-row"><button id="btnPhaseNext" class="btn good">Next phase</button><button id="btnPhaseRepeat" class="btn">Repeat phase</button><span class="small">${PHASE_SESSION_COUNT} Club sessions completed. Choose what to do next before the next Club block.</span></div>` : ""}
     <p class="small mt-10">${summaryText}</p>`;
 
     leftCard.innerHTML = html;
@@ -3230,24 +3286,24 @@ function getDefaultLastState(){
     const progress = loadProgressCached();
     const currentSessionInPhase = Math.max(0, Math.min(PHASE_SESSION_COUNT - 1, progress.sessionInPhase || 0));
     settingsCstCard.innerHTML = `
-      <h2>CST settings</h2>
+      <h2>Old Club Practice settings</h2>
       <div class="setting-list">
         <div class="settings-note">These settings affect newly generated sessions. Today's locked session does not change until you reset the day.</div>
         <div id="progressionCard" class="exercise">
-          <div class="ex-left"><div class="ex-title">Current phase</div><div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Clubbell session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentClubStepLabel(progress, cst)}`}</div></div>
+          <div class="ex-left"><div class="ex-title">Current phase</div><div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Club session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentClubStepLabel(progress, cst)}`}</div></div>
           <div class="pill">Progression</div>
         </div>
         <div id="progressionAdvanced" class="hidden-advanced">
-          <div class="exercise"><div class="ex-left"><div class="ex-title">Advanced progression override</div><div class="ex-meta">Hidden mode unlocked. Choose a phase and Clubbell session slot, then apply.</div></div><div class="pill">Advanced</div></div>
+          <div class="exercise"><div class="ex-left"><div class="ex-title">Advanced progression override</div><div class="ex-meta">Hidden mode unlocked. Choose a phase and Club session slot, then apply.</div></div><div class="pill">Advanced</div></div>
           <div class="kv"><label class="label">Phase</label><select id="progressionPhaseSelect">${PHASES.map((phase, index) => `<option value="${index}" ${index === (progress.phaseIndex || 0) ? 'selected' : ''}>${phase.name}</option>`).join('')}</select></div>
           <div class="kv"><label class="label">Session</label><select id="progressionSessionSelect">${Array.from({ length:PHASE_SESSION_COUNT }, (_, index) => `<option value="${index}" ${index === currentSessionInPhase ? 'selected' : ''}>${index + 1}</option>`).join('')}</select></div>
           <div class="row"><button id="btnApplyProgressionOverride" class="btn good">Apply override</button><button id="btnHideProgressionAdvanced" class="btn">Hide</button></div>
         </div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Allowed club types</div><div class="ex-meta">At least one must stay on. Clubbell days only use enabled types.</div></div><div class="pill">CST</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Allowed club types</div><div class="ex-meta">At least one must stay on. Club days only use enabled types.</div></div><div class="pill">Old Club Practice</div></div>
         <div class="toggle-list">
           ${[{ key:'single', label:'Single Club' },{ key:'double', label:'Double Club' },{ key:'2h', label:'2-Hand Club' }].map(item => `<label class="toggle-item"><span>${item.label}</span><input type="checkbox" data-cst-club="${item.key}" ${cst.clubTypes?.[item.key] ? 'checked' : ''}></label>`).join('')}
         </div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Clubbell block mode</div><div class="ex-meta">Timer keeps the current countdown. Sets uses 16/20/24/28 sets and gives one beep every minute.</div></div><div class="pill">Mode</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Club block mode</div><div class="ex-meta">Timer keeps the current countdown. Sets runs separate set blocks: 1+1+1 through 2+2+1 uses 60s, 2+2+2 through 3+3+2 uses 75s, and 3+3+3 uses 90s.</div></div><div class="pill">Mode</div></div>
         <div class="toggle-list">
           <label class="toggle-item"><span>Timer</span><input type="radio" name="clubBlockMode" value="timer" ${cst.clubMode === 'timer' ? 'checked' : ''}></label>
           <label class="toggle-item"><span>Sets</span><input type="radio" name="clubBlockMode" value="sets" ${cst.clubMode === 'sets' ? 'checked' : ''}></label>
@@ -3256,22 +3312,22 @@ function getDefaultLastState(){
       </div>`;
 
     settingsBfCard.innerHTML = `
-      <h2>Body-Flow settings</h2>
+      <h2>Ground Flow settings</h2>
       <div class="setting-list">
-        <div class="settings-note">CST V6: standalone Body-Flow uses an authentic BME practice cycle. It is no longer a random flow sequence and has no levels. The generator does not force seamless start/end matching; the cards show the book start/finish, and you explore the grafts during practice. Clubbell days keep a 5-minute single-BME decompression, where Arm Screw is allowed.</div>
+        <div class="settings-note">Old Club Practice V6: standalone Ground Flow uses an authentic Movement Element practice cycle. It is no longer a random flow sequence and has no levels. The generator does not force seamless start/end matching; the cards show the book start/finish, and you explore the grafts during practice. Club days keep a 5-minute single-element decompression, where Arm Screw is allowed.</div>
         <div class="toggle-list">
-          <label class="toggle-item"><span>Alternate with standalone Body-Flow days</span><input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}></label>
+          <label class="toggle-item"><span>Alternate with standalone Ground Flow days</span><input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}></label>
         </div>
         <div class="kv">
-          <label class="label">Standalone BME count</label>
+          <label class="label">Standalone Movement Element count</label>
           <select id="bfSettingsBmeCount">
-            <option value="3">3 BME's - default/authentic</option>
-            <option value="4">4 BME's - extended</option>
-            <option value="5">5 BME's - maximum</option>
+            <option value="3">3 Movement Elements - default/authentic</option>
+            <option value="4">4 Movement Elements - extended</option>
+            <option value="5">5 Movement Elements - maximum</option>
           </select>
         </div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Standalone timer</div><div class="ex-meta">One 40-minute cap. Start with Performance Breathing, practice each BME, then explore the grafts. No standalone decompression.</div></div><div class="pill">V6</div></div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Clubbell decompression</div><div class="ex-meta">After Clubbell the app gives one BME for 5 minutes. Arm Screw is included here because it works well as a shoulder and ribcage reset.</div></div><div class="pill">V6</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Practice timer</div><div class="ex-meta">One 40-minute cap. Start with Performance Breathing, practice each Movement Element, then explore the grafts. No standalone decompression.</div></div><div class="pill">V6</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Reset</div><div class="ex-meta">After Club the app gives one Decompression Element for 5 minutes. Arm Screw is included here because it works well as a shoulder and ribcage reset.</div></div><div class="pill">V6</div></div>
       </div>`;
 
     const bfEnableStandalone = document.getElementById('bfSettingsEnableStandalone');
