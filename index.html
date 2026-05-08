@@ -314,6 +314,54 @@
   }
   .timer-actions{display:flex; flex-wrap:wrap; gap:10px}
   .timer-note{padding:14px 15px; border-radius:16px; border:1px solid var(--line); background:rgba(255,255,255,.02)}
+  .counter-shell{
+    display:grid;
+    gap:10px;
+    margin-top:14px;
+    padding:14px 15px;
+    border-radius:18px;
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.025);
+  }
+  .counter-row{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .counter-controls{display:flex; align-items:center; gap:10px}
+  .counter-btn{
+    appearance:none;
+    border:1px solid rgba(255,255,255,.08);
+    background:rgba(255,255,255,.05);
+    color:var(--text);
+    border-radius:16px;
+    width:56px;
+    height:56px;
+    font-size:28px;
+    font-weight:800;
+    cursor:pointer;
+  }
+  .counter-value{
+    min-width:72px;
+    text-align:center;
+    font-size:28px;
+    font-weight:820;
+    font-variant-numeric: tabular-nums;
+  }
+  .history-list{display:grid; gap:12px}
+  .history-separator{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    color:var(--danger);
+    font-size:12px;
+    font-weight:800;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+  }
+  .history-separator::before,
+  .history-separator::after{
+    content:"";
+    height:1px;
+    flex:1 1 auto;
+    background:rgba(217,139,137,.65);
+  }
   .card h2 + .small{margin-top:-2px}
   @media (max-width: 959px){
     body{padding:10px 10px calc(96px + env(safe-area-inset-bottom))}
@@ -418,6 +466,7 @@
     </div>
     <div class="tabbar">
       <button type="button" class="tab active" data-tab="today">Today</button>
+      <button type="button" class="tab" data-tab="history">History</button>
       <button type="button" class="tab" data-tab="settings">Settings</button>
     </div>
   </div>
@@ -435,6 +484,10 @@
       <div id="settingsBfCard" class="card"></div>
     </div>
   </section>
+
+  <section id="panel-history" class="panel">
+    <div id="historyCard" class="card"></div>
+  </section>
 </div>
 
 <script>
@@ -448,6 +501,7 @@
   const LS_COMPLETED = "cst_completed_v60";
   const LS_COMPLETED_LEGACY = "cst_completed_v38";
   const LS_PROGRESS = "cst_progress_v60";
+  const LS_HISTORY = "cst_history_v60";
 
   const gateDef = [
     { key:'soreness', label:'Soreness / Recovery', choices:['Pain','Restricted','Stiff','Slightly stiff','Loose','Fresh'] },
@@ -1215,6 +1269,7 @@ function getCSTSettings(){
 
   const leftCard = document.getElementById("leftCard");
   const rightInner = document.getElementById("rightInner");
+  const historyCard = document.getElementById("historyCard");
   const settingsCstCard = document.getElementById("settingsCstCard");
   const settingsBfCard = document.getElementById("settingsBfCard");
   const btnMain = document.getElementById("btnMain");
@@ -1232,6 +1287,7 @@ function getCSTSettings(){
   let cachedLast = null;
   let cachedCompleted = null;
   let cachedProgress = null;
+  let cachedHistory = null;
   let lastTickSyncSecond = null;
   let accordionsBound = false;
 
@@ -1252,6 +1308,25 @@ function getCSTSettings(){
       sideLabel:String(currentStage?.setSide || ""),
       setSeconds:Number(currentStage?.seconds) || Number(session?.club?.setSeconds) || 0
     };
+  }
+  function isClubTimerModeSession(session){
+    return !!(session?.dayType === "clubbell" && session?.club && session?.club?.blockMode !== "sets");
+  }
+  function getClubTypeAbbr(clubType){
+    if(clubType === "single") return "S";
+    if(clubType === "double") return "D";
+    if(clubType === "2h") return "2H";
+    return "-";
+  }
+  function getClubTypeLabel(clubType){
+    if(clubType === "single") return "Single Club";
+    if(clubType === "double") return "Double Club";
+    if(clubType === "2h") return "2-Hand Club";
+    return String(clubType || "-");
+  }
+  function getPhaseCode(phaseIndex){
+    const idx = Number.isFinite(Number(phaseIndex)) ? Number(phaseIndex) : null;
+    return idx === null ? "-" : `P${idx + 1}`;
   }
 
   function dateKeyForOffset(days){
@@ -1465,6 +1540,25 @@ function getDefaultLastState(){
     cachedCompleted = normalizeCompletedState(v);
     saveJSON(LS_COMPLETED, cachedCompleted);
   }
+  function loadHistory(){
+    if(cachedHistory !== null) return cachedHistory.slice();
+    try{
+      const raw = JSON.parse(localStorage.getItem(LS_HISTORY) || "[]");
+      cachedHistory = Array.isArray(raw) ? raw.filter(item => item && typeof item === "object").slice(0, 24) : [];
+    } catch {
+      cachedHistory = [];
+    }
+    return cachedHistory.slice();
+  }
+  function saveHistory(entries){
+    cachedHistory = entries.slice(0, 24);
+    localStorage.setItem(LS_HISTORY, JSON.stringify(cachedHistory));
+    return cachedHistory.slice();
+  }
+  function pushHistoryEntry(entry){
+    const next = [entry, ...loadHistory()].slice(0, 24);
+    return saveHistory(next);
+  }
   function loadProgressCached(){
     if(cachedProgress !== null) return cachedProgress;
     cachedProgress = getProgress();
@@ -1606,6 +1700,7 @@ function getDefaultLastState(){
       currentStageStartedAt: null,
       currentStageEndsAt: null,
       isRunning: false,
+      manualSetCount:0,
       lastCountdownBeep: null,
       lastMinuteCue: null,
       completed: false,
@@ -1764,6 +1859,7 @@ function getDefaultLastState(){
         document.querySelectorAll('.panel').forEach(panel => panel.classList.remove('active'));
         const target = document.getElementById(`panel-${name}`);
         if(target) target.classList.add('active');
+        if(name === "history") renderHistoryPanel();
       });
     });
   }
@@ -1783,6 +1879,26 @@ function getDefaultLastState(){
       </div>`;
   }
 
+  function renderHistoryPanel(){
+    const items = loadHistory();
+    if(!historyCard) return;
+    historyCard.innerHTML = `
+      <h2>History</h2>
+      <p class="small">Last 24 Club sessions with sets, type, and phase.</p>
+      <div class="history-list mt-12">
+        ${items.length ? items.map((item, index) => `
+          ${index > 0 && item.phaseCode && items[index - 1]?.phaseCode && item.phaseCode !== items[index - 1].phaseCode ? `<div class="history-separator">${cleanText(items[index - 1].phaseCode)} -> ${cleanText(item.phaseCode)}</div>` : ``}
+          <div class="exercise">
+            <div class="ex-left">
+              <div class="ex-title">${cleanText(item.day || "-")}</div>
+              <div class="ex-meta">${cleanText(item.phaseCode || "-")} | ${cleanText(item.typeLabel || "-")} | ${Number(item.setCount) || 0} sets${item.mode === "sets" ? " | sets mode" : " | timer mode"}</div>
+            </div>
+            <div class="pill">${cleanText(item.typeCode || "-")}</div>
+          </div>`).join("") : `<div class="exercise"><div class="ex-left"><div class="ex-title">No history yet</div><div class="ex-meta">Finished Club sessions will appear here.</div></div><div class="pill">-</div></div>`}
+      </div>
+    `;
+  }
+
   function syncRightPanel(s){
     if(!s){
       renderRightNone();
@@ -1794,6 +1910,8 @@ function getDefaultLastState(){
     const currentLabel = document.getElementById("currentStageLabel");
     const timeDisplay = document.getElementById("timeDisplay");
     const stageAssist = document.getElementById("stageAssist");
+    const manualSetValue = document.getElementById("manualSetValue");
+    const manualSetMeta = document.getElementById("manualSetMeta");
     const playPauseBtn = document.getElementById("btnPlayPause");
     const nextStageMeta = document.getElementById("nextStageMeta");
 
@@ -1810,6 +1928,12 @@ function getDefaultLastState(){
       stageAssist.textContent = setProgress
         ? `Set ${setProgress.currentSet}/${setProgress.totalSets}${setProgress.sideLabel ? ` | ${setProgress.sideLabel}` : ""} | ${setProgress.setSeconds}s`
         : "Countdown runs for the current block.";
+    }
+    if(manualSetValue && isClubTimerModeSession(s)){
+      manualSetValue.textContent = String(Math.max(0, Number(s.manualSetCount) || 0));
+    }
+    if(manualSetMeta && isClubTimerModeSession(s)){
+      manualSetMeta.textContent = `${getClubTypeAbbr(s.club?.clubType)} | tap plus/minus to store completed sets`;
     }
     playPauseBtn.textContent = s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start");
     nextStageMeta.textContent = next ? cleanText(next.manualStart ? `${next.label} | starts when you press Start` : next.label) : "You are done after this block.";
@@ -1852,6 +1976,21 @@ function getDefaultLastState(){
           <p id="stageAssist" class="small mt-10">${setProgress ? `Set ${setProgress.currentSet}/${setProgress.totalSets}${setProgress.sideLabel ? ` | ${setProgress.sideLabel}` : ""} | ${setProgress.setSeconds}s` : "Countdown runs for the current block."}</p>
         </div>
 
+        ${isClubTimerModeSession(s) ? `
+        <div class="counter-shell">
+          <div class="counter-row">
+            <div>
+              <div class="label">Set Teller</div>
+              <div id="manualSetMeta" class="small mt-10">${getClubTypeAbbr(s.club?.clubType)} | tap plus/minus to store completed sets</div>
+            </div>
+            <div class="counter-controls">
+              <button id="btnSetMinus" class="counter-btn" type="button">-</button>
+              <div id="manualSetValue" class="counter-value">${Math.max(0, Number(s.manualSetCount) || 0)}</div>
+              <button id="btnSetPlus" class="counter-btn" type="button">+</button>
+            </div>
+          </div>
+        </div>` : ``}
+
         <div class="timer-actions">
           <button id="btnPlayPause" class="btn primary">${s.isRunning ? "Pause" : ((current && current.manualStart) ? "Start decompression" : "Start")}</button>
           <button id="btnNextStage" class="btn">Next block</button>
@@ -1879,7 +2018,7 @@ function getDefaultLastState(){
           }).join("")}
         </div>
 
-        <div class="timer-note small">${isClubSetModeSession(s) ? "Sets mode runs one set per block. Each set gets its own countdown and switches automatically to the next set." : "Clear beeps at 3-2-1, on block change, and at the end. Manual stages only start when you press Start. Wake Lock tries to keep your screen active while the timer is running."}</div>
+        <div class="timer-note small">${isClubSetModeSession(s) ? "Sets mode runs one set per block and advances automatically." : "Beeps at 3-2-1, on block change, and at the end. Manual stages start only when you press Start."}</div>
       </div>
     `;
 
@@ -1893,6 +2032,18 @@ function getDefaultLastState(){
     document.getElementById("btnResetTimer").onclick = resetSequence;
     const finishRight = document.getElementById("btnFinishRight");
     if(finishRight) finishRight.onclick = finishSession;
+    const btnSetMinus = document.getElementById("btnSetMinus");
+    if(btnSetMinus) btnSetMinus.onclick = () => adjustManualSetCount(-1);
+    const btnSetPlus = document.getElementById("btnSetPlus");
+    if(btnSetPlus) btnSetPlus.onclick = () => adjustManualSetCount(1);
+  }
+
+  function adjustManualSetCount(delta){
+    const d = loadDay();
+    if(!d || !isClubTimerModeSession(d)) return;
+    d.manualSetCount = Math.max(0, (Number(d.manualSetCount) || 0) + delta);
+    saveDay(d);
+    syncRightPanel(d);
   }
 
   async function ensureAudio(){
@@ -2144,6 +2295,19 @@ function getDefaultLastState(){
       completedAt: d.completedAt
     });
     if(d.dayType === 'clubbell' && d.club){
+      pushHistoryEntry({
+        day:d.day,
+        completedAt:d.completedAt,
+        typeCode:getClubTypeAbbr(d.club.clubType),
+        typeLabel:getClubTypeLabel(d.club.clubType),
+        phaseIndex:d.progressSnapshot?.phaseIndex,
+        phaseCode:getPhaseCode(d.progressSnapshot?.phaseIndex),
+        phaseName:d.progressSnapshot?.phaseName || "",
+        setCount:d.club.blockMode === "sets" ? (Number(d.club.targetSets) || 0) : (Number(d.manualSetCount) || 0),
+        mode:d.club.blockMode || "timer"
+      });
+    }
+    if(d.dayType === 'clubbell' && d.club){
       const last = loadLast();
       last.lastClubType = d.club.clubType;
       last.lastClubTypeIndex = Number.isInteger(d.club.clubTypeIndex)
@@ -2217,7 +2381,7 @@ function getDefaultLastState(){
         </div>
         <div class="row">
           <button id="btnGenerate" class="btn primary" disabled>Generate session</button>
-          <span class="small">0-8 = Mobility Prep only | Club: 9-11 = 15 min fallback, 12-15 = progression target via settings: timer (15/20/25/30) or sets (16/20/24/28) | Ground Flow day: 40 min cap | Ground Flow follows a completed Club day</span>
+          <span class="small">0-8 = Mobility Prep only | 9-11 = 15 min fallback | 12-15 = progression target | Ground Flow follows a completed Club day</span>
         </div>
       </div>
     `;
@@ -2297,6 +2461,7 @@ function getDefaultLastState(){
     const day = loadDay();
     migrateLegacyStorage(day);
     renderSettings();
+    renderHistoryPanel();
     if(day){
       btnMain.textContent = "Open session";
       renderSession(day);
@@ -3135,14 +3300,14 @@ function getDefaultLastState(){
   function renderSession(s){
     const progress = loadProgressCached();
     const summaryText = s.intuOnly
-      ? "Today is recovery-focused: Mobility Prep only. Because no Club or Ground Flow session is completed today, tomorrow defaults back to Club."
+      ? "Recovery day: Mobility Prep only. Tomorrow returns to Club."
       : s.dayType === "clubbell"
-      ? "Today: Mobility Prep, then Club, then finish with one 5-minute Ground Flow Decompression Element. Finish this session to unlock a standalone Ground Flow day tomorrow."
-      : "Today: standalone Ground Flow. Use the 40-minute cap to work through the selected Movement Element cycle as far as quality allows. No extra decompression stage is needed.";
+      ? "Today: Mobility Prep, Club, then a 5-minute Ground Flow reset. Finish the session to unlock Ground Flow tomorrow."
+      : "Today: Ground Flow Practice. Use the 40-minute cap and stop where quality drops.";
 
     let html = `<h2>Today</h2>`;
     if(s.intuOnly){
-      html += `${renderExerciseCard("Mobility Prep-only day", `Score 0-8: Mobility Prep only today. The calendar cycle still continues as normal.`, "Recovery", "mb-12")}`;
+      html += `${renderExerciseCard("Mobility Prep-only day", `Score 0-8: Mobility Prep only today. The cycle continues as normal.`, "Recovery", "mb-12")}`;
     }
 
     html += `
@@ -3288,22 +3453,22 @@ function getDefaultLastState(){
     settingsCstCard.innerHTML = `
       <h2>Old Club Practice settings</h2>
       <div class="setting-list">
-        <div class="settings-note">These settings affect newly generated sessions. Today's locked session does not change until you reset the day.</div>
+        <div class="settings-note">These settings affect new sessions. Today's locked session stays the same until you reset the day.</div>
         <div id="progressionCard" class="exercise">
           <div class="ex-left"><div class="ex-title">Current phase</div><div class="ex-meta">${getCurrentPhase(progress).name} | ${progress.awaitingDecision ? 'checkpoint required' : `Club session ${(progress.sessionInPhase || 0) + 1}/${PHASE_SESSION_COUNT} | Progression step ${getCurrentClubStepLabel(progress, cst)}`}</div></div>
           <div class="pill">Progression</div>
         </div>
         <div id="progressionAdvanced" class="hidden-advanced">
-          <div class="exercise"><div class="ex-left"><div class="ex-title">Advanced progression override</div><div class="ex-meta">Hidden mode unlocked. Choose a phase and Club session slot, then apply.</div></div><div class="pill">Advanced</div></div>
+          <div class="exercise"><div class="ex-left"><div class="ex-title">Advanced progression override</div><div class="ex-meta">Choose a phase and session slot, then apply.</div></div><div class="pill">Advanced</div></div>
           <div class="kv"><label class="label">Phase</label><select id="progressionPhaseSelect">${PHASES.map((phase, index) => `<option value="${index}" ${index === (progress.phaseIndex || 0) ? 'selected' : ''}>${phase.name}</option>`).join('')}</select></div>
           <div class="kv"><label class="label">Session</label><select id="progressionSessionSelect">${Array.from({ length:PHASE_SESSION_COUNT }, (_, index) => `<option value="${index}" ${index === currentSessionInPhase ? 'selected' : ''}>${index + 1}</option>`).join('')}</select></div>
           <div class="row"><button id="btnApplyProgressionOverride" class="btn good">Apply override</button><button id="btnHideProgressionAdvanced" class="btn">Hide</button></div>
         </div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Allowed club types</div><div class="ex-meta">At least one must stay on. Club days only use enabled types.</div></div><div class="pill">Old Club Practice</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Allowed club types</div><div class="ex-meta">At least one must stay on.</div></div><div class="pill">Old Club Practice</div></div>
         <div class="toggle-list">
           ${[{ key:'single', label:'Single Club' },{ key:'double', label:'Double Club' },{ key:'2h', label:'2-Hand Club' }].map(item => `<label class="toggle-item"><span>${item.label}</span><input type="checkbox" data-cst-club="${item.key}" ${cst.clubTypes?.[item.key] ? 'checked' : ''}></label>`).join('')}
         </div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Club block mode</div><div class="ex-meta">Timer keeps the current countdown. Sets runs separate set blocks: 1+1+1 through 2+2+1 uses 60s, 2+2+2 through 3+3+2 uses 75s, and 3+3+3 uses 90s.</div></div><div class="pill">Mode</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Club block mode</div><div class="ex-meta">Timer uses a single countdown. Sets uses separate set blocks with pattern-based timing.</div></div><div class="pill">Mode</div></div>
         <div class="toggle-list">
           <label class="toggle-item"><span>Timer</span><input type="radio" name="clubBlockMode" value="timer" ${cst.clubMode === 'timer' ? 'checked' : ''}></label>
           <label class="toggle-item"><span>Sets</span><input type="radio" name="clubBlockMode" value="sets" ${cst.clubMode === 'sets' ? 'checked' : ''}></label>
@@ -3314,7 +3479,7 @@ function getDefaultLastState(){
     settingsBfCard.innerHTML = `
       <h2>Ground Flow settings</h2>
       <div class="setting-list">
-        <div class="settings-note">Old Club Practice V6: standalone Ground Flow uses an authentic Movement Element practice cycle. It is no longer a random flow sequence and has no levels. The generator does not force seamless start/end matching; the cards show the book start/finish, and you explore the grafts during practice. Club days keep a 5-minute single-element decompression, where Arm Screw is allowed.</div>
+        <div class="settings-note">Ground Flow uses a Movement Element practice cycle. Club days keep a 5-minute decompression element.</div>
         <div class="toggle-list">
           <label class="toggle-item"><span>Alternate with standalone Ground Flow days</span><input type="checkbox" id="bfSettingsEnableStandalone" ${bf.enableStandalone ? 'checked' : ''}></label>
         </div>
@@ -3326,8 +3491,8 @@ function getDefaultLastState(){
             <option value="5">5 Movement Elements - maximum</option>
           </select>
         </div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Practice timer</div><div class="ex-meta">One 40-minute cap. Start with Performance Breathing, practice each Movement Element, then explore the grafts. No standalone decompression.</div></div><div class="pill">V6</div></div>
-        <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Reset</div><div class="ex-meta">After Club the app gives one Decompression Element for 5 minutes. Arm Screw is included here because it works well as a shoulder and ribcage reset.</div></div><div class="pill">V6</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Practice timer</div><div class="ex-meta">40-minute cap. Start with breathing, then practice and explore.</div></div><div class="pill">V6</div></div>
+        <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Reset</div><div class="ex-meta">After Club the app gives one 5-minute reset element.</div></div><div class="pill">V6</div></div>
       </div>`;
 
     const bfEnableStandalone = document.getElementById('bfSettingsEnableStandalone');
