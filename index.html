@@ -823,7 +823,9 @@ function getClubExerciseDescription(name){
 
 function renderClubExerciseAccordionCard(x, idx){
   const title = `${idx + 1}. ${cleanText(x.exercise)}`;
-  const meta = `${cleanText(x.bucketLabel || x.bucket)} | ${cleanText(x.subcategory)}`;
+  const metaParts = [cleanText(x.bucketLabel || x.bucket), cleanText(x.subcategory)];
+  if(x.prescription) metaParts.push(cleanText(x.prescription));
+  const meta = metaParts.join(" | ");
   const description = getClubExerciseDescription(x.exercise);
   return `<details class="intu-item club-exercise-item">
     <summary class="intu-summary">
@@ -1705,7 +1707,8 @@ function getDefaultLastState(){
         const exerciseKey = `${bucket}|${subcategory}`;
         const exercise = pickExerciseForSubcategory(bucket, subcategory, clubType, lastExerciseMap[exerciseKey] || null);
         if(exercise){
-          sequence.push({ bucket, bucketLabel:getBucketLabel(bucket), subcategory, exercise:exercise.name, modes:exercise.modes });
+          const prescription = cstSettings.legEmphasis && bucket === "Grinding" && subcategory === "lower" ? "3 reps" : "";
+          sequence.push({ bucket, bucketLabel:getBucketLabel(bucket), subcategory, exercise:exercise.name, modes:exercise.modes, prescription });
         }
       });
     });
@@ -1714,7 +1717,7 @@ function getDefaultLastState(){
       phaseName:phase.name,
       pattern,
       sequence,
-      flow: sequence.map(x => x.exercise).join(" -> ")
+      flow: sequence.map(x => x.prescription ? `${x.exercise} (${x.prescription})` : x.exercise).join(" -> ")
     };
   }
 
