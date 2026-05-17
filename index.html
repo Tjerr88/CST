@@ -1002,8 +1002,46 @@ function refillSubcategoryBag(progress, bucket, exclude = []){
   progress.subcategoryBags[bucket] = bag;
   return bag;
 }
-function drawSubcategories(progress, bucket, count){
+function weightedSubcategoryPick(items, weightMap = {}){
+  const weighted = items.map(item => ({ item, weight: Math.max(0, Number(weightMap[item]) || 0) })).filter(x => x.weight > 0);
+  if(!weighted.length) return items[0] || null;
+  const total = weighted.reduce((sum, x) => sum + x.weight, 0);
+  let r = Math.random() * total;
+  for(const entry of weighted){
+    r -= entry.weight;
+    if(r <= 0) return entry.item;
+  }
+  return weighted[weighted.length - 1]?.item || null;
+}
+function drawGrindingSubcategoriesWithLegEmphasis(progress, count){
+  const order = SUBCATEGORY_ORDER.Grinding || [];
+  if(count >= order.length){
+    progress.subcategoryBags.Grinding = [];
+    progress.subcategoryLast.Grinding = order[order.length - 1] || null;
+    return order.slice();
+  }
+  const picked = [];
+  let last = progress.subcategoryLast?.Grinding || null;
+  while(picked.length < count){
+    let candidates = order.filter(x => !picked.includes(x));
+    if(last === "lower" && candidates.length > 1){
+      const noLower = candidates.filter(x => x !== "lower");
+      if(noLower.length) candidates = noLower;
+    }
+    const next = weightedSubcategoryPick(candidates, { lower: 2.4, press: 1, cast: 1 });
+    if(!next) break;
+    picked.push(next);
+    last = next;
+  }
+  progress.subcategoryBags.Grinding = [];
+  progress.subcategoryLast.Grinding = picked[picked.length - 1] || progress.subcategoryLast.Grinding || null;
+  return picked;
+}
+function drawSubcategories(progress, bucket, count, opts = {}){
   const order = SUBCATEGORY_ORDER[bucket] || [];
+  if(bucket === "Grinding" && opts.legEmphasis){
+    return drawGrindingSubcategoriesWithLegEmphasis(progress, count);
+  }
   if(count >= order.length){
     progress.subcategoryBags[bucket] = [];
     progress.subcategoryLast[bucket] = order[order.length - 1] || null;
@@ -1074,12 +1112,13 @@ function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imu
   function setBFSettings(next){ localStorage.setItem(BF_SETTINGS_KEY, JSON.stringify(next)); }
 
 function getCSTSettings(){
-  const base = { clubTypes:{ single:true, double:true, "2h":true }, clubMode:"sets" };
+  const base = { clubTypes:{ single:true, double:true, "2h":true }, clubMode:"sets", legEmphasis:false };
   try{
     const stored = JSON.parse(localStorage.getItem(CST_SETTINGS_KEY) || "{}");
     const next = { ...base, ...stored, clubTypes:{ ...base.clubTypes, ...(stored.clubTypes || {}) } };
     if(!Object.values(next.clubTypes).some(Boolean)) next.clubTypes.single = true;
     if(!["timer", "sets"].includes(String(next.clubMode))) next.clubMode = "sets";
+    next.legEmphasis = !!next.legEmphasis;
     return next;
   } catch { return base; }
 }
@@ -1653,7 +1692,7 @@ function getDefaultLastState(){
 
     return { type:enabledTypes[0], index:CLUB_TYPE_SEQUENCE.indexOf(enabledTypes[0]) };
   }
-  function generateClubExercises(clubType, progress, lastState = loadLast()){
+  function generateClubExercises(clubType, progress, lastState = loadLast(), cstSettings = getCSTSettings()){
     const phase = getCurrentPhase(progress);
     const pattern = getCurrentPattern(progress);
     const sequence = [];
@@ -1661,7 +1700,7 @@ function getDefaultLastState(){
 
     BUCKETS.forEach(bucket => {
       const needed = pattern[bucket] || 0;
-      const subcategories = drawSubcategories(progress, bucket, needed);
+      const subcategories = drawSubcategories(progress, bucket, needed, { legEmphasis: !!cstSettings.legEmphasis });
       subcategories.forEach(subcategory => {
         const exerciseKey = `${bucket}|${subcategory}`;
         const exercise = pickExerciseForSubcategory(bucket, subcategory, clubType, lastExerciseMap[exerciseKey] || null);
@@ -1747,7 +1786,7 @@ function getDefaultLastState(){
       const cstSettings = getCSTSettings();
       const clubTypePick = nextFullClubType(progress, last);
       const clubType = clubTypePick.type;
-      const clubPlan = generateClubExercises(clubType, progress, last);
+      const clubPlan = generateClubExercises(clubType, progress, last, cstSettings);
       const bfSettings = getBFSettings();
       const decompLevel = bfSettings.decompComplexity === "simple" ? 1 : 2;
       const decompSequence = buildBodyFlowSequence(`${todayKey()}|body-flow-decompress`, {
@@ -3243,7 +3282,7 @@ function getDefaultLastState(){
       const cstSettings = getCSTSettings();
       const clubTypePick = nextFullClubType(progress, last);
       const clubType = clubTypePick.type;
-      const clubPlan = generateClubExercises(clubType, progress, last);
+      const clubPlan = generateClubExercises(clubType, progress, last, cstSettings);
       const decompBme = v6PickDecompressionBme(`${todayKey()}|v6-decompress-bme`);
       session.club = {
         allowedClubTypes:Object.entries(session.settingsUsed.cst.clubTypes).filter(([,v]) => v).map(([k]) => k),
@@ -3517,6 +3556,9 @@ function getDefaultLastState(){
           <label class="toggle-item"><span>Timer</span><input type="radio" name="clubBlockMode" value="timer" ${cst.clubMode === 'timer' ? 'checked' : ''}></label>
           <label class="toggle-item"><span>Sets</span><input type="radio" name="clubBlockMode" value="sets" ${cst.clubMode === 'sets' ? 'checked' : ''}></label>
         </div>
+        <div class="toggle-list">
+          <label class="toggle-item"><span>Leg emphasis</span><input type="checkbox" id="cstLegEmphasis" ${cst.legEmphasis ? 'checked' : ''}></label>
+        </div>
         <div class="row"><button id="btnResetPhase1" class="btn danger">Reset to phase 1</button></div>
       </div>`;
 
@@ -3588,6 +3630,13 @@ function getDefaultLastState(){
         renderSettings();
       });
     });
+    const cstLegEmphasis = document.getElementById('cstLegEmphasis');
+    if(cstLegEmphasis){
+      cstLegEmphasis.addEventListener('change', () => {
+        setCSTSettings({ ...getCSTSettings(), legEmphasis:cstLegEmphasis.checked });
+        renderSettings();
+      });
+    }
     const btnResetPhase1 = document.getElementById('btnResetPhase1');
     if(btnResetPhase1) btnResetPhase1.onclick = () => { saveProgressCached(resetProgressToPhase1()); cachedDay = null; renderSettings(); boot(); };
   }
