@@ -3020,9 +3020,20 @@ function getDefaultLastState(){
 ];
   const V6_STANDALONE_BMES = V6_BME_DEFS.filter(x => x.id !== "ARM_SCREW");
   const V6_DECOMP_BMES = V6_BME_DEFS.filter(x => x.decomp || x.id === "ARM_SCREW");
+  const V6_ADVANCED_BME_IDS = new Set([
+    "ELEVATED_SCORPION",
+    "DOUBLE_LEG_SWOOP",
+    "ARCHING_LEG_THREAD",
+    "SWING_SPLIT",
+    "LATERAL_SHOULDER_ROLL",
+    "NECK_ROLL",
+    "TWISTING_SPINAL_ARCH",
+    "ARCHING_HIGH_LEG"
+  ]);
   const BF_BME_BAG_KEY = "cst_bodyflow_bme_bag_v6";
   const BF_DECOMP_BAG_KEY = "cst_bodyflow_decomp_bag_v6";
   function v6BmeById(id){ return V6_BME_DEFS.find(x => x.id === id); }
+  function v6IsAdvancedBme(bme){ return !!bme && V6_ADVANCED_BME_IDS.has(bme.id); }
   function v6Intersects(a,b){ return (a || []).some(x => (b || []).includes(x)); }
   function v6BaseName(id){ return BODYFLOW_BASE_LABEL[id] || id || "-"; }
   function v6BaseList(ids){ return (ids || []).map(v6BaseName).join(", "); }
@@ -3062,11 +3073,12 @@ function getDefaultLastState(){
   }
 
   function getBFSettings(){
-    const base = { enableStandalone:true, standaloneBmeCount:3 };
+    const base = { enableStandalone:true, standaloneBmeCount:3, maxOneAdvancedPerSession:false };
     try{
       const stored = JSON.parse(localStorage.getItem(BF_SETTINGS_KEY) || "{}");
       const next = { ...base, ...stored };
       next.standaloneBmeCount = Math.max(3, Math.min(5, Number(next.standaloneBmeCount) || 3));
+      next.maxOneAdvancedPerSession = !!next.maxOneAdvancedPerSession;
       return next;
     } catch { return base; }
   }
@@ -3076,13 +3088,14 @@ function getDefaultLastState(){
     return v6TakeBagItem(BF_DECOMP_BAG_KEY, V6_DECOMP_BMES, seedKey);
   }
 
-  function v6PickBmeSet(seedKey, count){
+  function v6PickBmeSet(seedKey, count, opts = {}){
     let bag = v6LoadBagIds(BF_BME_BAG_KEY, V6_STANDALONE_BMES);
     if(!bag.length){
       bag = v6RefillBagIds(BF_BME_BAG_KEY, V6_STANDALONE_BMES, seedKey);
     }
 
     const selected = [];
+    const maxOneAdvancedPerSession = !!opts.maxOneAdvancedPerSession;
     while(selected.length < count){
       let pool = bag
         .filter(id => !selected.some(item => item.id === id))
@@ -3107,6 +3120,10 @@ function getDefaultLastState(){
       if(selected.length && candidates.length > 1){
         const differentFamily = candidates.filter(x => !selected.some(s => s.family === x.family));
         if(differentFamily.length) candidates = differentFamily;
+      }
+      if(maxOneAdvancedPerSession && selected.some(v6IsAdvancedBme) && candidates.length > 1){
+        const nonAdvanced = candidates.filter(x => !v6IsAdvancedBme(x));
+        if(nonAdvanced.length) candidates = nonAdvanced;
       }
       const pick = rand(candidates);
       selected.push(pick);
@@ -3151,8 +3168,8 @@ function getDefaultLastState(){
     return steps.map((step, index) => ({ index:index + 1, ...step }));
   }
 
-  function v6BuildStandaloneBodyFlow(seedKey, count){
-    const bmes = v6PickBmeSet(seedKey, count);
+  function v6BuildStandaloneBodyFlow(seedKey, count, opts = {}){
+    const bmes = v6PickBmeSet(seedKey, count, opts);
     return {
       name:"Authentic Body-Flow Practice",
       bmeCount:bmes.length,
@@ -3259,7 +3276,9 @@ function getDefaultLastState(){
       saveProgressCached(progress);
     } else {
       const bfSettings = getBFSettings();
-      session.bodyFlow = v6BuildStandaloneBodyFlow(`${todayKey()}|v6-body-flow-practice`, bfSettings.standaloneBmeCount);
+      session.bodyFlow = v6BuildStandaloneBodyFlow(`${todayKey()}|v6-body-flow-practice`, bfSettings.standaloneBmeCount, {
+        maxOneAdvancedPerSession: bfSettings.maxOneAdvancedPerSession
+      });
       session.blockTimes.bodyFlow = 40 * 60;
       saveLast(last);
     }
@@ -3516,15 +3535,23 @@ function getDefaultLastState(){
             <option value="5">5 Movement Elements - maximum</option>
           </select>
         </div>
+        <div class="toggle-list">
+          <label class="toggle-item"><span>Max 1 advanced Movement Element per sessie</span><input type="checkbox" id="bfSettingsMaxOneAdvanced" ${bf.maxOneAdvancedPerSession ? 'checked' : ''}></label>
+        </div>
         <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Practice timer</div><div class="ex-meta">40-minute cap. Start with breathing, then practice and explore.</div></div><div class="pill">V6</div></div>
         <div class="exercise"><div class="ex-left"><div class="ex-title">Ground Flow Reset</div><div class="ex-meta">After Club the app gives one 5-minute reset element.</div></div><div class="pill">V6</div></div>
       </div>`;
 
     const bfEnableStandalone = document.getElementById('bfSettingsEnableStandalone');
     const bfCount = document.getElementById('bfSettingsBmeCount');
+    const bfMaxOneAdvanced = document.getElementById('bfSettingsMaxOneAdvanced');
     if(bfCount) bfCount.value = String(bf.standaloneBmeCount);
-    const persistBF = () => setBFSettings({ enableStandalone:!!bfEnableStandalone.checked, standaloneBmeCount:Number(bfCount.value) });
-    [bfEnableStandalone, bfCount].forEach(el => el && el.addEventListener('change', persistBF));
+    const persistBF = () => setBFSettings({
+      enableStandalone:!!bfEnableStandalone.checked,
+      standaloneBmeCount:Number(bfCount.value),
+      maxOneAdvancedPerSession:!!bfMaxOneAdvanced.checked
+    });
+    [bfEnableStandalone, bfCount, bfMaxOneAdvanced].forEach(el => el && el.addEventListener('change', persistBF));
 
     const progressionCard = document.getElementById('progressionCard');
     const progressionAdvanced = document.getElementById('progressionAdvanced');
